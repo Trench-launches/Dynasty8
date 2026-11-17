@@ -1,9 +1,10 @@
 /**
- * Original property photos bundled in /public/properties/<slug>.jpg (AI-generated for
+ * Original property photos bundled in /public/properties/<slug>-v2.jpg (AI-generated for
  * DYNASTY; no game assets). Used whenever a listing has no image URL of its own, in
  * both mock mode and database mode. A real `imageUrl` from the backend always wins.
  *
- * To add one: drop a 3:2 JPEG at public/properties/<slug>.jpg and list the slug here.
+ * To add one: drop a 3:2 JPEG at public/properties/<slug>-v2.jpg and list the slug here.
+ * (Bump the -vN suffix when replacing photos so browser and image caches pick up the new file.)
  */
 const BUNDLED = new Set<string>([
   "starlet-motel",
@@ -24,5 +25,5 @@ const BUNDLED = new Set<string>([
 ]);
 
 export function bundledPropertyImage(slug: string): string | null {
-  return BUNDLED.has(slug) ? `/properties/${slug}.jpg` : null;
+  return BUNDLED.has(slug) ? `/properties/${slug}-v2.jpg` : null;
 }
