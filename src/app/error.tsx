@@ -1,0 +1,31 @@
+"use client";
+
+import { useEffect } from "react";
+import Link from "next/link";
+
+export default function Error({ error, retry }: { error: unknown; retry: () => void }) {
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
+  return (
+    <div className="grid min-h-dvh place-items-center bg-background p-6 text-center">
+      <div className="max-w-md space-y-4">
+        <p className="font-display text-5xl tracking-wide text-white">WASTED</p>
+        <p className="text-white/60">Something went wrong loading the property market. The listings service may be unavailable.</p>
+        <div className="flex justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => retry()}
+            className="rounded-lg bg-sunset-gradient px-5 py-2.5 text-sm font-extrabold text-ink"
+          >
+            Try again
+          </button>
+          <Link href="/" className="rounded-lg border border-white/15 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/5">
+            Back to map
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
