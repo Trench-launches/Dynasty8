@@ -1,23 +1,31 @@
 "use client";
 
 import { useEffect } from "react";
-import { TriangleAlert } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
-export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function Error({ error, retry }: { error: unknown; retry: () => void }) {
   useEffect(() => {
     console.error(error);
   }, [error]);
+
   return (
-    <div className="mx-auto flex min-h-[60dvh] max-w-md flex-col items-center justify-center px-4 text-center">
-      <TriangleAlert className="size-12 text-coral" aria-hidden />
-      <h1 className="mt-3 font-display text-3xl tracking-wide text-violet">Something went sideways</h1>
-      <p className="mt-2 text-sm text-violet/70">
-        This page hit an unexpected error while loading. Your browsing is safe; nothing was sent or signed.
-      </p>
-      <Button className="mt-5" onClick={reset}>
-        Try again
-      </Button>
+    <div className="grid min-h-dvh place-items-center bg-background p-6 text-center">
+      <div className="max-w-md space-y-4">
+        <p className="font-display text-5xl tracking-wide text-white">WASTED</p>
+        <p className="text-white/60">Something went wrong loading the property market. The listings service may be unavailable.</p>
+        <div className="flex justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => retry()}
+            className="rounded-lg bg-sunset-gradient px-5 py-2.5 text-sm font-extrabold text-ink"
+          >
+            Try again
+          </button>
+          <Link href="/" className="rounded-lg border border-white/15 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/5">
+            Back to map
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

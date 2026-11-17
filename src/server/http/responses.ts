@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_rethrow } from "next/navigation";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import type { ApiErrorDto } from "@/contracts/api";
@@ -70,6 +71,9 @@ export function handle<A extends unknown[]>(fn: (...args: A) => Promise<Response
     try {
       return await fn(...args);
     } catch (e) {
+      // Let Next.js control-flow signals through (e.g. "stop prerendering here" during the
+      // build); only real errors become JSON error responses.
+      unstable_rethrow(e);
       return errorResponse(e);
     }
   };

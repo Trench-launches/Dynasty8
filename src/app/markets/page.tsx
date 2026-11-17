@@ -1,94 +1,91 @@
 import type { Metadata } from "next";
-import { getEcosystemToken, getProperties } from "@/lib/data";
-import { formatNumber, formatPrice, formatUsdCompact } from "@/lib/utils";
+import { Suspense } from "react";
+import { PageLoading } from "@/components/layout/page-loading";
+import { SiteHeader } from "@/components/layout/site-header";
 import { MarketsTable } from "@/components/markets/markets-table";
-import { PriceChart } from "@/components/property/price-chart";
-import { ContractAddress } from "@/components/property/contract-address";
-import { DemoTag } from "@/components/ui/badge";
-import { Change } from "@/components/ui/change";
+import { ChangeText, MarketDataTag, TokenStatusBadge } from "@/components/property/badges";
+import { getCatalogue, getEcosystemMarkets, getEcosystemToken } from "@/lib/catalogue";
+import { formatPrice, formatUsdCompact } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Markets" };
+export const metadata: Metadata = {
+  title: "Markets",
+  description: "Every DYNASTY property token and the DYNASTY ecosystem token in one place.",
+};
 
-export default async function MarketsPage() {
-  const [properties, realty] = await Promise.all([getProperties(), getEcosystemToken()]);
-  const totalMcap = properties.reduce((s, p) => s + p.market.marketCapUsd, 0);
-  const totalVol = properties.reduce((s, p) => s + p.market.volume24hUsd, 0);
+export default function MarketsPage() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <MarketsContent />
+    </Suspense>
+  );
+}
+
+async function MarketsContent() {
+  const [properties, ecosystem, summary] = await Promise.all([
+    getCatalogue(),
+    getEcosystemToken(),
+    getEcosystemMarkets(),
+  ]);
+  const m = ecosystem.market;
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-8 px-4 py-6 lg:px-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.3em] text-sunset">Markets</p>
-          <h1 className="font-display text-4xl tracking-wide text-violet">Property token markets</h1>
-          <p className="mt-1 max-w-2xl text-sm text-violet/70">
-            One native ecosystem token and an independent Pump.fun-style token for every listing. Every figure below is
-            simulated for this prototype.
-          </p>
-        </div>
-        <DemoTag label="Demo data · not live" />
-      </header>
-
-      {/* Native token */}
-      <section id="realty" className="scroll-mt-28 overflow-hidden rounded-[2rem] bg-midnight text-cream">
-        <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[1fr_1.3fr]">
+    <div className="flex min-h-dvh flex-col">
+      <SiteHeader ecosystem={ecosystem} />
+      <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="flex items-center gap-3">
-              <span className="bg-sunset grid h-14 w-14 place-items-center rounded-full font-display text-lg text-white">RLT</span>
-              <div>
-                <p className="font-display text-3xl leading-none tracking-wide">${realty.market.ticker}</p>
-                <p className="text-sm text-cream/70">{realty.identity.name} · native ecosystem token</p>
-              </div>
-            </div>
-            <p className="mt-4 text-sm leading-relaxed text-cream/75">
-              REALTY is planned as the ecosystem token that ties the marketplace together. Property tokens remain
-              separate assets with their own markets; REALTY does not represent them or any real estate.
+            <h1 className="font-display text-5xl leading-none font-bold text-white sm:text-6xl">
+              PROPERTY <span className="text-sunset-gradient">MARKETS</span>
+            </h1>
+            <p className="mt-2 max-w-xl text-sm text-white/55">
+              Every listed property token on one board. Figures only appear for tokens that are live and verified.
             </p>
-            <dl className="mt-5 grid grid-cols-2 gap-3">
-              {[
-                ["Price", formatPrice(realty.market.priceUsd)],
-                ["Market cap", formatUsdCompact(realty.market.marketCapUsd)],
-                ["24h volume", formatUsdCompact(realty.market.volume24hUsd)],
-                ["Holders", formatNumber(realty.market.holders)],
-              ].map(([k, v]) => (
-                <div key={k} className="rounded-2xl bg-white/8 p-3">
-                  <dt className="text-[10px] font-bold uppercase tracking-wider text-cream/55">{k}</dt>
-                  <dd className="text-lg font-extrabold tabular-nums">{v}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="mt-3 flex items-center gap-2 text-xs text-cream/60">
-              24h <Change value={realty.market.change24hPct} className="text-xs" /> ·
-              <span className="font-bold uppercase tracking-wider text-tangerine">Demo data</span>
-            </p>
-            <div className="mt-4 text-violet">
-              <ContractAddress token={realty.identity} />
-            </div>
           </div>
-          <div className="rounded-3xl bg-cream p-4 text-violet">
-            <PriceChart market={realty.market} />
-          </div>
+          <dl className="grid grid-cols-3 gap-2 text-right">
+            <Summary label="Live tokens" value={`${summary.liveTokens} / ${summary.totalListings}`} />
+            <Summary label="Total market cap" value={formatUsdCompact(summary.totalMarketCapUsd)} />
+            <Summary label="24h volume" value={formatUsdCompact(summary.totalVolume24hUsd)} />
+          </dl>
         </div>
-      </section>
 
-      {/* Totals */}
-      <section className="grid gap-3 sm:grid-cols-3">
-        {[
-          ["Listed properties", String(properties.length)],
-          ["Combined property mcap", formatUsdCompact(totalMcap)],
-          ["Combined 24h volume", formatUsdCompact(totalVol)],
-        ].map(([k, v]) => (
-          <div key={k} className="rounded-3xl bg-white p-5 ring-1 ring-violet/8">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-violet/55">{k}</p>
-            <p className="font-display text-3xl tracking-wide text-violet">{v}</p>
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#9a4a10]">Demo</p>
+        {summary.source === "demo" && (
+          <p className="rounded-lg border border-neon/30 bg-neon/10 px-4 py-2 text-xs text-neon">
+            Demo mode: market figures on this page are generated for design preview and are not real.
+          </p>
+        )}
+
+        <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-gradient-to-r from-violet-deep/60 to-card p-5">
+          <div>
+            <p className="text-[11px] font-bold tracking-[0.2em] text-white/45 uppercase">Ecosystem token</p>
+            <p className="font-display text-3xl leading-none tracking-wide text-white">
+              {ecosystem.name} <span className="text-sunset-gradient">${ecosystem.ticker}</span>
+            </p>
+            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-white/55">{ecosystem.summary}</p>
           </div>
-        ))}
-      </section>
+          <div className="flex items-center gap-4 text-sm">
+            <TokenStatusBadge status={ecosystem.status} />
+            <span className="text-white/80 tabular-nums">{formatPrice(m?.priceUsd)}</span>
+            <ChangeText value={m?.change24hPct} />
+            <MarketDataTag market={m} />
+          </div>
+        </section>
 
-      <section>
-        <h2 className="mb-3 font-display text-2xl tracking-wide text-violet">All property tokens</h2>
         <MarketsTable properties={properties} />
-      </section>
+
+        <p className="text-[11px] leading-relaxed text-white/40">
+          Property tokens are themed digital collectibles. Holding one does not grant ownership of any real or in-game
+          property. Not affiliated with Rockstar Games or Take-Two Interactive. Nothing here is financial advice.
+        </p>
+      </main>
+    </div>
+  );
+}
+
+function Summary({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-card px-3 py-2">
+      <dt className="text-[10px] tracking-wider text-white/45 uppercase">{label}</dt>
+      <dd className="font-display text-2xl text-cream">{value}</dd>
     </div>
   );
 }

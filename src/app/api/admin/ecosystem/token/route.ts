@@ -4,12 +4,9 @@ import { handle, json, readJsonBody } from "@/server/http/responses";
 import { publicKeySchema } from "@/server/solana/address";
 import { attachNativeMint } from "@/server/services/admin-tokens";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 const body = z.object({ mintAddress: publicKeySchema }).strict();
 
-/** POST /api/admin/ecosystem/token (ADMIN): attach the verified REALTY mint. */
+/** POST /api/admin/ecosystem/token (ADMIN): attach the verified DYNASTY mint. */
 export const POST = handle(async (req: Request) => {
   const { actor } = await requireAdmin(req, "ADMIN");
   const { mintAddress } = body.parse(await readJsonBody(req));

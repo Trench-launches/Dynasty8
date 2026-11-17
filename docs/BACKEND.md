@@ -25,7 +25,7 @@ src/server/
     properties.ts             Property registry reads, filtering, sorting
     market-sync.ts            Background sync: provider -> MarketSnapshot rows
     charts.ts                 Chart history with caching and explicit unavailable states
-    ecosystem.ts              REALTY + aggregates
+    ecosystem.ts              DYNASTY native token + aggregates
     admin-properties.ts       Admin property CRUD
     admin-tokens.ts           Mint registration + verification (read-only chain checks)
     audit.ts                  Append-only audit log
@@ -79,5 +79,5 @@ Holder counts and bonding-curve progress percentage are not provided by any adap
 ## Not implemented (by design) and what each would need
 
 - **Token deployment, trading, signing:** none. The admin API can only register a mint that already exists.
-- **Buybacks / fee distribution to REALTY:** not implemented, and the API states that property-token fees do not accrue to REALTY. Doing this later would need: a defined on-chain fee source (e.g. Pump.fun creator fees, which only reach the creator wallet), a custody design (multisig, not a hot key), a signing service separate from this API with its own approvals and audit, legal review, and public disclosure of the mechanism.
+- **Buybacks / fee distribution to DYNASTY:** not implemented, and the API states that property-token fees do not accrue to DYNASTY. Doing this later would need: a defined on-chain fee source (e.g. Pump.fun creator fees, which only reach the creator wallet), a custody design (multisig, not a hot key), a signing service separate from this API with its own approvals and audit, legal review, and public disclosure of the mechanism.
 - **Creator-fee analytics:** would need a creator-wallet verification flow (signed message) and an indexer for fee transfers.

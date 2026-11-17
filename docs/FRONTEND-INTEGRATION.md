@@ -1,114 +1,74 @@
-# Frontend integration guide (for Jack)
+# Frontend integration
 
-The API is served by the same Next.js app, so the frontend can call it on the same origin. Nothing in your components was changed; the backend only added files.
+The backend and the 3D-map frontend run in one Next.js app. The UI is wired to the backend;
+this note explains how, and what to touch when either side changes.
 
-- Types: `src/contracts/api.ts` (pure types, import anywhere).
-- Client: `src/lib/api-client/client.ts` (`api.listProperties`, `api.getProperty`, `api.getPropertyMarket`, `api.getPropertyChart`, `api.getEcosystem`, `api.getEcosystemMarkets`).
-- Adapters to the existing mock types: `src/lib/api-client/adapter.ts` (`toTokenIdentity`, `toMarketView`, `toPricePoints`, `hasMapPosition`, `CATEGORY_LABEL`).
-- Full spec: `docs/openapi.yaml`.
+## Two shapes, one adapter
+
+- **Wire format (DTOs):** `src/contracts/api.ts`. What the `/api/*` routes return; see `docs/openapi.yaml`.
+- **View models:** `src/lib/types.ts`. What the components render (`Property`, `MarketSnapshot`, ...).
+- **Adapter:** `src/lib/api-client/adapter.ts` converts DTOs into view models. It is the only place
+  the two shapes meet. When a DTO changes, update the adapter; components stay untouched.
+
+| Backend | UI |
+|---|---|
+| `deploymentStatus` NOT_LAUNCHED / PENDING_VERIFICATION | `token.status = "coming_soon"` |
+| `deploymentStatus` LIVE | `"live"`, with mint and Pump.fun link (`mintVerified = true`) |
+| `deploymentStatus` INACTIVE | `"unavailable"`, no mint or link |
+| `locationVerification` VERIFIED / REPORTED / CONCEPT | `verification.status` confirmed / reported / unverified |
+| `map {x, y}` | `location`, `precision: "exact"` only when VERIFIED, else `"approximate"` |
+| `typeLabel` (falls back to `category`) | display `category` (motel, garage, nightlife, ...) |
+| `region` (id like `vice-city`, or its name) | `RegionId`, or `null` |
+| `market.freshness` UNAVAILABLE | `market = null` |
+| `market.freshness` STALE | numbers kept, `stale: true` (shown as **Delayed**) |
+| `launchOrder` | `priority` (launch-batch sort order) |
+| `imageUrl` (null) | bundled photo from `public/properties/<slug>.jpg`, else generated art |
+
+## Where data is read
+
+- **Server components** (`/`, `/markets`, `/property/[slug]`) use `src/lib/catalogue.ts`. It calls the
+  backend services directly (no HTTP round trip to its own API), behind `connection()` so builds never
+  touch the database, and caches results for a few seconds (`cacheLife("seconds")`).
+  `src/app/loading.tsx` is the Suspense boundary while that data loads.
+- **Client components** refresh through `src/lib/api.ts` → `src/lib/api-client/client.ts` → `/api/*`.
+  The marketplace re-polls the listing; the property page polls its market every 30 s.
+- **Mock mode:** `NEXT_PUBLIC_MOCK_API="true"` swaps both paths for `src/lib/mock-api.ts`. No database.
 
 ## Environment
 
 | Variable | Where | Default |
 |---|---|---|
+| `NEXT_PUBLIC_MOCK_API` | both | `"false"` = real backend |
+| `NEXT_PUBLIC_DEMO_MARKETS` | mock mode only | `"false"` |
 | `NEXT_PUBLIC_API_BASE_URL` | browser | empty = same origin |
 
-No other variable is needed by the frontend. Never expose `SOLANA_RPC_URL` or provider keys to the browser.
+Never expose `SOLANA_RPC_URL` or provider keys to the browser.
 
-## Endpoints
+## The catalogue
 
-| Method | Path | Notes |
+`src/data/catalogue.ts` is the single list of launch listings: names, tickers, type labels,
+regions, neighbourhoods, approximate map positions, featured flags and descriptions. The database
+seed (`prisma/seed.ts`) and mock mode both read it, and a test checks the two produce identical
+listings. The seed is idempotent and never overwrites admin edits, so after the first seed change
+placements through the admin API (`PATCH /api/admin/properties/{slug}` with `mapX`/`mapY`).
+
+## States the UI handles
+
+| Condition | API | UI |
 |---|---|---|
-| GET | `/api/properties` | `page` (1), `pageSize` (≤50, default 24), `q` (name contains or exact ticker, `$` optional), `category`, `region`, `verification`, `featured=true|false`, `sort=featured|name|marketCap|volume|change24h`, `order=asc|desc`. Unknown params are rejected with 400. |
-| GET | `/api/properties/{slug}` | Detail: description, gallery, sources. |
-| GET | `/api/properties/{slug}/market` | `{ slug, token, market }`. Cheap; poll every 30–60 s if needed. |
-| GET | `/api/properties/{slug}/chart?range=1h|24h|7d|30d|all` | Candles or an explicit unavailable state. |
-| GET | `/api/ecosystem` | REALTY token + totals + disclaimer. |
-| GET | `/api/ecosystem/markets` | Live property tokens with markets. |
-| GET | `/api/health` | Ops only. |
+| Token not launched (all 15 today) | `UNAVAILABLE`, `NOT_LAUNCHED` | "Coming Soon", ticker shown, no numbers or chart |
+| Launched, no data yet | `UNAVAILABLE`, `NO_DATA_YET` | "Live" badge, no numbers yet |
+| Token deactivated | `UNAVAILABLE`, `TOKEN_INACTIVE` | "Unavailable", no link |
+| Data older than 3 min | `STALE` | numbers with a **Delayed** tag and last-updated time |
+| A metric missing | that field `null` | "—" |
+| Chart unavailable | `status = "UNAVAILABLE"` | empty-chart message |
+| No coordinates | `map = null` | sidebar only, "Map placement pending" |
 
-Public endpoints need no authentication. They are rate limited (120 req/min per IP), so avoid polling every property separately; use the list endpoint.
+## Not provided by the backend
 
-## Example: list item (current state of every listing)
-
-```json
-{
-  "id": "cmw...",
-  "slug": "starlet-motel",
-  "name": "Starlet Motel",
-  "category": "SAFEHOUSE",
-  "typeLabel": "Motel",
-  "region": null,
-  "neighbourhood": null,
-  "map": null,
-  "imageUrl": null,
-  "locationVerification": "CONCEPT",
-  "featured": false,
-  "proposedTicker": "STARLET",
-  "token": {
-    "id": "cmw...", "mintAddress": null, "name": "Starlet Motel", "ticker": "STARLET",
-    "imageUrl": null, "pumpFunUrl": null, "deploymentStatus": "NOT_LAUNCHED",
-    "launchedAt": null, "creatorWallet": null, "isNative": false,
-    "metadataStatus": "UNVERIFIED", "venue": "UNKNOWN", "decimals": null, "supplyRaw": null
-  },
-  "market": {
-    "freshness": "UNAVAILABLE", "reason": "NOT_LAUNCHED", "source": null,
-    "priceUsd": null, "priceSol": null, "marketCapUsd": null, "fdvUsd": null,
-    "volume24hUsd": null, "change24hPct": null, "liquidityUsd": null,
-    "lastTradeAt": null, "updatedAt": null
-  }
-}
-```
-
-A live token with fresh data looks like this (`market` only):
-
-```json
-{ "freshness": "FRESH", "reason": null, "source": "dexscreener", "priceUsd": 0.000412, "priceSol": 0.0000031,
-  "marketCapUsd": 412000, "fdvUsd": 412000, "volume24hUsd": 88400, "change24hPct": 12.4,
-  "liquidityUsd": 25000, "lastTradeAt": null, "updatedAt": "2026-11-17T12:00:00.000Z" }
-```
-
-Chart:
-
-```json
-{ "range": "24h", "status": "OK", "reason": null, "interval": "15m", "source": "geckoterminal",
-  "candles": [{ "t": 1794900000, "open": 0.0004, "high": 0.00042, "low": 0.00039, "close": 0.000412, "volumeUsd": 1200 }],
-  "fetchedAt": "2026-11-17T12:00:05.000Z" }
-```
-
-## States the UI must handle
-
-| Condition | What the API returns | Suggested UI |
-|---|---|---|
-| Token not launched (all 15 today) | `market.freshness = "UNAVAILABLE"`, `reason = "NOT_LAUNCHED"`, all numbers `null` | "Not launched" badge, show `$proposedTicker`, hide numbers and charts, keep trade button disabled |
-| Launched, no data yet | `UNAVAILABLE`, `NO_DATA_YET` | "Market data pending" |
-| Token deactivated | `UNAVAILABLE`, `TOKEN_INACTIVE` | "Trading paused", no link |
-| Data older than 3 min | `freshness = "STALE"`, numbers present, `updatedAt` set | Show numbers greyed with "Last updated …"; never label as live |
-| Fresh data | `FRESH` | Normal display |
-| Some metric missing | that field is `null` (never `0`) | Show "—" |
-| Chart unavailable | `status = "UNAVAILABLE"`, `reason` one of NOT_LAUNCHED / NO_POOL / NO_HISTORY / RATE_LIMITED / PROVIDER_UNAVAILABLE, `candles = []` | Empty state; for RATE_LIMITED offer retry later |
-| No coordinates | `map = null` | Do not place on the map; list only. All 15 are `null` today. |
-| Location evidence | `locationVerification` VERIFIED / REPORTED / CONCEPT | Badge; CONCEPT = "Unconfirmed location" |
-| `pumpFunUrl` | Non-null only for a LIVE, verified mint with an on-chain Pump.fun curve | Only render a trade/market link when non-null |
-
-`toMarketView()` encodes these rules: `data` is non-null only for FRESH, complete data (shaped like the existing `TokenMarketData`, minus `holders` and `bondingCurvePct`, which the backend does not provide); `label` gives a ready-made status string; `raw` gives the nullable values.
-
-## Errors
-
-All errors use `{ "error": { "code", "message", "details"? } }` with codes BAD_REQUEST (400), NOT_FOUND (404), RATE_LIMITED (429), INTERNAL (500), plus UNAUTHORIZED / FORBIDDEN / CONFLICT / UNPROCESSABLE on admin routes. `api.*` throws `ApiClientError` with `status` and `code`.
-
-## Changes the current frontend needs to go live
-
-The prototype UI still reads `src/data/properties.ts` (10 GTA V demo listings with demo numbers and hand-placed map coordinates). To switch to the backend:
-
-1. Replace `getProperties()` / `getProperty()` in `src/lib/data.ts` with `api.listProperties()` / `api.getProperty()` (server components can call them directly).
-2. Make market fields nullable in the cards, preview, token stats and markets table, and show the states above. Remove the "Demo data" tags once real data is shown, but keep them for anything still mocked.
-3. The map needs coordinates. All 15 launch properties have `map: null` until verified positions are entered (admin PATCH with `mapX`/`mapY` in the map's 0–1000 × 0–700 space, plus a source if marked VERIFIED/REPORTED). Until then, show them in the list/grid only.
-4. Property art: `imageUrl` is null for all 15; keep the generated SVG art as the fallback (you will need art styles for the new property types).
-5. Neighbourhood/category filters: use the backend enums (`CATEGORY_LABEL`) and `region` once regions are entered.
-6. REALTY panel: read `api.getEcosystem().nativeToken` (currently NOT_LAUNCHED).
-7. Chart: `toPricePoints(chart)` returns the `PricePoint[]` the existing `PriceChart` uses, or `null` for the empty state.
+Holder counts and bonding-curve progress: no adapter supplies them, so `holders` is always `null`.
 
 ## Admin API (not for the public frontend)
 
-Admin routes under `/api/admin/*` need a GitHub sign-in (`/api/auth/signin`) by an account granted with `npm run admin:grant`, and a same-origin `Origin` header on mutations. See `docs/openapi.yaml`. An admin UI is not part of this phase.
+Admin routes under `/api/admin/*` need a GitHub sign-in (`/api/auth/signin`) by an account granted
+with `npm run admin:grant`, and a same-origin `Origin` header on mutations. There is no admin UI yet.

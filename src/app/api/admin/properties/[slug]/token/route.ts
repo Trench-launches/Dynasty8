@@ -3,9 +3,6 @@ import { requireAdmin } from "@/server/auth/admin";
 import { handle, json, readJsonBody } from "@/server/http/responses";
 import { attachMintToProperty } from "@/server/services/admin-tokens";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 /**
  * POST /api/admin/properties/:slug/token (ADMIN): register an already-deployed mint.
  * Verifies the mint on-chain; result is PENDING_VERIFICATION until /verify is called.

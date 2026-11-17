@@ -84,12 +84,14 @@ export interface PropertySummaryDto {
   featured: boolean;
   /** Ticker proposed by the catalogue. Not proof of a deployed token. */
   proposedTicker: string;
+  description: string;
+  /** Position in the launch catalogue (1 = first); null for listings added later. */
+  launchOrder: number | null;
   token: TokenDto | null;
   market: MarketDto;
 }
 
 export interface PropertyDetailDto extends PropertySummaryDto {
-  description: string;
   galleryImages: string[];
   sources: SourceReferenceDto[];
   createdAt: string;

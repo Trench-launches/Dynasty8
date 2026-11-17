@@ -213,7 +213,7 @@ describe("token registration (read-only Solana verification)", () => {
     );
   });
 
-  it("attaches the native REALTY mint separately from property tokens", async () => {
+  it("attaches the native DYNASTY mint separately from property tokens", async () => {
     const mint = newKey();
     mocks.mints.set(mint, validMint());
     const r = await nativeRoute(send("POST", "/api/admin/ecosystem/token", { mintAddress: mint }));

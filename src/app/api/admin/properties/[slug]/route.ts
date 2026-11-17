@@ -3,9 +3,6 @@ import { requireAdmin } from "@/server/auth/admin";
 import { ApiError, handle, json, readJsonBody } from "@/server/http/responses";
 import { adminGetProperty, updateProperty } from "@/server/services/admin-properties";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 type Ctx = { params: Promise<{ slug: string }> };
 
 export const GET = handle(async (req: Request, ctx: Ctx) => {

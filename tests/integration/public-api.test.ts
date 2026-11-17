@@ -7,6 +7,7 @@ import { GET as chartRoute } from "@/app/api/properties/[slug]/chart/route";
 import { GET as ecosystemRoute } from "@/app/api/ecosystem/route";
 import { GET as ecoMarketsRoute } from "@/app/api/ecosystem/markets/route";
 import { GET as healthRoute } from "@/app/api/health/route";
+import { CATALOGUE, slugify } from "@/data/catalogue";
 import { addSnapshot, db, get, installMockProviders, makeLive, params, resetDatabase } from "../helpers/fixtures";
 
 async function list(qs = "") {
@@ -42,9 +43,11 @@ describe("GET /api/properties", () => {
     expect((await list("?category=MARINA")).body.total).toBe(2);
     expect((await list("?verification=CONCEPT")).body.total).toBe(15);
     expect((await list("?verification=VERIFIED")).body.total).toBe(0);
-    await db().property.update({ where: { slug: "pegassi-residences" }, data: { featured: true, region: "Vice City" } });
-    expect((await list("?featured=true")).body.items.map((i) => i.slug)).toEqual(["pegassi-residences"]);
-    expect((await list("?region=vice%20city")).body.items.map((i) => i.slug)).toEqual(["pegassi-residences"]);
+    const featured = CATALOGUE.filter((e) => e.featured).map((e) => slugify(e.name));
+    expect((await list("?featured=true")).body.items.map((i) => i.slug).sort()).toEqual(featured.sort());
+    expect((await list("?region=ambrosia")).body.items.map((i) => i.slug)).toEqual(["rideout-customs"]);
+    await db().property.update({ where: { slug: "pegassi-residences" }, data: { region: "Grassrivers" } });
+    expect((await list("?region=GRASSRIVERS")).body.items.map((i) => i.slug)).toEqual(["pegassi-residences"]);
   });
 
   it("hides drafts, unpublished and disabled listings", async () => {
@@ -107,7 +110,7 @@ describe("property detail, market and chart", () => {
     const r = await detailRoute(get("/api/properties/starlet-motel"), params({ slug: "starlet-motel" }));
     const body = (await r.json()) as PropertyDetailDto;
     expect(r.status).toBe(200);
-    expect(body).toMatchObject({ slug: "starlet-motel", map: null, locationVerification: "CONCEPT", proposedTicker: "STARLET", sources: [] });
+    expect(body).toMatchObject({ slug: "starlet-motel", map: { x: 302, y: 362 }, locationVerification: "CONCEPT", proposedTicker: "STARLET", sources: [] });
     expect(body.token).toMatchObject({ mintAddress: null, pumpFunUrl: null, deploymentStatus: "NOT_LAUNCHED" });
     expect(body.market).toMatchObject({ freshness: "UNAVAILABLE", reason: "NOT_LAUNCHED", priceUsd: null, marketCapUsd: null });
   });
@@ -172,9 +175,9 @@ describe("property detail, market and chart", () => {
 describe("ecosystem and health", () => {
   beforeEach(resetDatabase);
 
-  it("reports the REALTY placeholder and honest totals", async () => {
+  it("reports the DYNASTY placeholder and honest totals", async () => {
     const body = (await (await ecosystemRoute(get("/api/ecosystem"))).json()) as EcosystemDto;
-    expect(body.nativeToken).toMatchObject({ ticker: "REALTY", isNative: true, deploymentStatus: "NOT_LAUNCHED", mintAddress: null });
+    expect(body.nativeToken).toMatchObject({ ticker: "DYNASTY", isNative: true, deploymentStatus: "NOT_LAUNCHED", mintAddress: null });
     expect(body.nativeToken.market.freshness).toBe("UNAVAILABLE");
     expect(body.totals).toEqual({ listedProperties: 15, launchedPropertyTokens: 0, aggregateVolume24hUsd: null, aggregateMarketCapUsd: null, tokensWithFreshData: 0 });
     expect(body.disclaimer).toMatch(/does not own, control or back/);
@@ -193,7 +196,7 @@ describe("ecosystem and health", () => {
   });
 
   it("health is ok with no live tokens and reports providers", async () => {
-    const r = await healthRoute();
+    const r = await healthRoute(get("/api/health"));
     const body = (await r.json()) as HealthDto;
     expect(r.status).toBe(200);
     expect(body).toMatchObject({ status: "ok", database: "ok", marketData: { stale: false } });
@@ -202,7 +205,7 @@ describe("ecosystem and health", () => {
 
   it("health is degraded when live tokens have no recent data", async () => {
     await makeLive("starlet-motel");
-    const body = (await (await healthRoute()).json()) as HealthDto;
+    const body = (await (await healthRoute(get("/api/health"))).json()) as HealthDto;
     expect(body).toMatchObject({ status: "degraded", marketData: { stale: true } });
   });
 });

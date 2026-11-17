@@ -5,7 +5,9 @@ import { GET as listRoute } from "@/app/api/properties/route";
 import { GET as detailRoute } from "@/app/api/properties/[slug]/route";
 import { GET as chartRoute } from "@/app/api/properties/[slug]/chart/route";
 import { api } from "@/lib/api-client/client";
-import { hasMapPosition, toMarketView, toPricePoints, toTokenIdentity } from "@/lib/api-client/adapter";
+import { toChartPoints, toMarketSnapshot, toProperty } from "@/lib/api-client/adapter";
+import { CATALOGUE, slugify } from "@/data/catalogue";
+import { MOCK_PROPERTIES } from "@/data/properties";
 import { addSnapshot, get, installMockProviders, makeLive, params, resetDatabase } from "../helpers/fixtures";
 
 /** Runtime mirror of src/contracts/api.ts, used to prove responses match the published contract. */
@@ -58,13 +60,14 @@ const summary = z
     locationVerification: z.enum(["VERIFIED", "REPORTED", "CONCEPT"]),
     featured: z.boolean(),
     proposedTicker: z.string(),
+    description: z.string(),
+    launchOrder: z.number().int().positive().nullable(),
     token: token.nullable(),
     market,
   })
   .strict();
 const detail = summary
   .extend({
-    description: z.string(),
     galleryImages: z.array(z.string()),
     sources: z.array(z.object({ url: z.string(), title: z.string(), note: z.string().nullable() }).strict()),
     createdAt: z.string(),
@@ -98,34 +101,80 @@ describe("frontend API contract", () => {
     await expect(api.getProperty("missing", { fetchImpl } as RequestInit)).rejects.toMatchObject({ status: 404, code: "NOT_FOUND" });
   });
 
-  it("adapter never turns unavailable data into numbers", async () => {
+  it("adapter maps a not-launched listing to the UI view model without inventing numbers", async () => {
     const d = (await (await detailRoute(get("/api/properties/starlet-motel"), params({ slug: "starlet-motel" }))).json()) as PropertyDetailDto;
-    const view = toMarketView(d.proposedTicker, d.market);
-    expect(view).toMatchObject({ data: null, freshness: "UNAVAILABLE", label: "Token not launched" });
-    expect(hasMapPosition(d)).toBe(false);
-    expect(toTokenIdentity(d.token!)).toMatchObject({ ticker: "STARLET", mintAddress: null, pumpFunUrl: null });
+    const p = toProperty(d);
+    expect(p).toMatchObject({
+      slug: "starlet-motel",
+      name: "Starlet Motel",
+      category: "motel",
+      region: "port-gellhorn",
+      neighbourhood: "Port Gellhorn",
+      featured: true,
+      priority: 1,
+      verification: { status: "unverified" },
+      location: { x: 302, y: 362, precision: "approximate" },
+      token: { ticker: "STARLET", status: "coming_soon", mint: null, mintVerified: false, pumpFunUrl: null },
+      market: null,
+    });
   });
 
-  it("adapter labels fresh data live and stale data as stale", async () => {
+  it("every seeded listing maps to the same view model as mock mode", async () => {
+    const list = await (await listRoute(get("/api/properties?pageSize=50"))).json();
+    const fromApi = new Map((list.items as PropertyDetailDto[]).map((d) => [d.slug, toProperty(d)]));
+    expect(fromApi.size).toBe(CATALOGUE.length);
+    for (const mock of MOCK_PROPERTIES) {
+      const real = fromApi.get(mock.slug);
+      expect(real, mock.slug).toBeDefined();
+      const pick = (p: typeof mock) => ({
+        name: p.name,
+        category: p.category,
+        region: p.region,
+        neighbourhood: p.neighbourhood,
+        description: p.description,
+        featured: p.featured,
+        priority: p.priority,
+        location: p.location,
+        ticker: p.token.ticker,
+      });
+      expect(pick(real!)).toEqual(pick(mock));
+    }
+    expect([...fromApi.keys()].sort()).toEqual(CATALOGUE.map((e) => slugify(e.name)).sort());
+  });
+
+  it("live tokens get verified mint links; fresh data is live and stale data is flagged", async () => {
     const live = await makeLive("starlet-motel");
     await addSnapshot(live.tokenId, 2000);
     let d = (await (await detailRoute(get("/api/properties/starlet-motel"), params({ slug: "starlet-motel" }))).json()) as PropertyDetailDto;
-    expect(toMarketView("STARLET", d.market).data?.source).toBe("live");
+    let p = toProperty(d);
+    expect(p.token).toMatchObject({ status: "live", mintVerified: true });
+    expect(p.token.mint).toBe(d.token!.mintAddress);
+    expect(p.market).toMatchObject({ source: "live", stale: false, holders: null });
+    expect(p.market!.priceUsd).not.toBeNull();
 
     await resetDatabase();
     const again = await makeLive("starlet-motel");
     await addSnapshot(again.tokenId, 60 * 60_000);
     d = (await (await detailRoute(get("/api/properties/starlet-motel"), params({ slug: "starlet-motel" }))).json()) as PropertyDetailDto;
-    const v = toMarketView("STARLET", d.market);
-    expect(v.isStale).toBe(true);
-    expect(v.data).toBeNull();
-    expect(v.raw.priceUsd).not.toBeNull();
-    expect(v.label).toMatch(/^Last updated/);
+    p = toProperty(d);
+    expect(p.market).toMatchObject({ source: "live", stale: true });
+    expect(p.market!.priceUsd).not.toBeNull();
   });
 
-  it("chart adapter maps candles to the existing PricePoint format, or null when unavailable", async () => {
+  it("unavailable market data maps to null, never zero", () => {
+    expect(
+      toMarketSnapshot({
+        freshness: "UNAVAILABLE", reason: "NO_DATA_YET", source: null, priceUsd: null, priceSol: null, marketCapUsd: null,
+        fdvUsd: null, volume24hUsd: null, change24hPct: null, liquidityUsd: null, lastTradeAt: null, updatedAt: null,
+      }),
+    ).toBeNull();
+  });
+
+  it("chart adapter maps candles to close-price points, or an empty series when unavailable", async () => {
     const chart = await (await chartRoute(get("/api/properties/starlet-motel/chart"), params({ slug: "starlet-motel" }))).json();
-    expect(toPricePoints(chart)).toBeNull();
-    expect(toPricePoints({ range: "24h", status: "OK", reason: null, interval: "15m", source: "x", fetchedAt: "", candles: [{ t: 10, open: 1, high: 2, low: 1, close: 1.5, volumeUsd: null }] })).toEqual([{ t: 10_000, price: 1.5 }]);
+    expect(toChartPoints(chart)).toEqual([]);
+    expect(
+      toChartPoints({ range: "24h", status: "OK", reason: null, interval: "15m", source: "x", fetchedAt: "", candles: [{ t: 10, open: 1, high: 2, low: 1, close: 1.5, volumeUsd: null }] }),
+    ).toEqual([{ t: new Date(10_000).toISOString(), priceUsd: 1.5, volumeUsd: null }]);
   });
 });

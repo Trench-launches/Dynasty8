@@ -3,9 +3,6 @@ import { requireAdmin } from "@/server/auth/admin";
 import { handle, json, readJsonBody } from "@/server/http/responses";
 import { adminListProperties, createProperty } from "@/server/services/admin-properties";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 /** GET /api/admin/properties (VIEWER): every listing, including drafts and disabled. */
 export const GET = handle(async (req: Request) => {
   await requireAdmin(req, "VIEWER");
