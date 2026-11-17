@@ -7,7 +7,8 @@ import * as THREE from "three";
 import type { MapControls as MapControlsImpl } from "three-stdlib";
 import { MAP_HEIGHT, MAP_WIDTH } from "@/data/regions";
 import type { MapLocation, Property, RegionId } from "@/lib/types";
-import { REGION_FOCUS, type MapView } from "./geometry";
+import type { MapView } from "./geometry";
+import { ISLAND_VIEW, REGION_FOCUS } from "./tiles";
 import { cityPlan, type BuildingStyle } from "./city-plan";
 import { MAP_COLORS, renderBaseLayer, renderDetailLayers, type MapLayer } from "./map-texture";
 
@@ -23,7 +24,14 @@ const TAN_HALF = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
 const PHI_2D = 0.001;
 const PHI_3D = 0.86;
 const MAX_PHI_3D = 1.36;
-const BOUNDS = { minX: -50 - CX, maxX: MAP_WIDTH + 50 - CX, minZ: -50 - CZ, maxZ: MAP_HEIGHT + 50 - CZ };
+const BOUNDS = {
+  minX: ISLAND_VIEW.x - 60 - CX,
+  maxX: ISLAND_VIEW.x + ISLAND_VIEW.w + 60 - CX,
+  minZ: ISLAND_VIEW.y - 60 - CZ,
+  maxZ: ISLAND_VIEW.y + ISLAND_VIEW.h + 60 - CZ,
+};
+/** Scene position the home view looks at: the middle of the island. */
+const HOME_TARGET = toScene(ISLAND_VIEW.x + ISLAND_VIEW.w / 2, ISLAND_VIEW.y + ISLAND_VIEW.h / 2);
 
 export type ViewMode = "2d" | "3d";
 export interface Insets {
@@ -321,42 +329,158 @@ export function SelectionBeacon({ location }: { location: MapLocation | null }) 
   return <Beacon location={location} />;
 }
 
+export interface PinCluster {
+  id: string;
+  /** Member slugs, in a stable order (the fan-out uses it for petal angles). */
+  slugs: string[];
+}
+
+/** Screen distance (px) under which pins merge into a cluster. */
+const CLUSTER_RADIUS = 34;
+
+/** Angle between neighbouring petals in a fan (about 45°, so pin heads just clear each other). */
+const PETAL_STEP = 0.78;
+/** Fan-out animation: each petal starts at the top and sweeps round to its place. */
+const PETAL_MS = 380;
+const PETAL_STAGGER_MS = 45;
+
 /**
- * Projects each pin's map position to screen space every frame and moves the
- * matching DOM element (rendered by LeonidaMap). One React tree, no per-pin roots.
+ * Petal layout for a fanned-out cluster: angle around the centre and tip distance from it.
+ * Up to six pins fan out in an arc over the top of the badge; bigger groups go all the way
+ * round, starting from the top.
+ */
+export function petalLayout(index: number, count: number) {
+  const fan = PETAL_STEP * (count - 1) <= Math.PI * 1.4;
+  const step = fan ? PETAL_STEP : (Math.PI * 2) / count;
+  const angle = -Math.PI / 2 + (index - (fan ? (count - 1) / 2 : 0)) * step;
+  const tip = fan ? 16 : Math.max(18, count * 6.5);
+  return { angle, tip, rotation: angle + Math.PI / 2 };
+}
+
+/**
+ * Projects each pin's map position to screen space every frame and moves the matching DOM
+ * element (rendered by LeonidaMap). Pins that crowd together on screen are grouped into
+ * clusters: their own elements hide and the cluster badge shows instead, unless that cluster
+ * is fanned out, in which case its pins are laid out as petals around the badge.
  */
 export function PinProjector({
   properties,
   pinEls,
+  clusterEls,
+  selectedRef,
+  expandedRef,
+  expandedAtRef,
+  onClusters,
 }: {
   properties: Property[];
   pinEls: RefObject<Map<string, HTMLElement>>;
+  clusterEls: RefObject<Map<string, HTMLElement>>;
+  selectedRef: RefObject<string | null>;
+  expandedRef: RefObject<string | null>;
+  /** performance.now() when the current cluster was fanned out (drives the sweep animation). */
+  expandedAtRef: RefObject<number>;
+  onClusters: (clusters: PinCluster[]) => void;
 }) {
   const points = useMemo(
     () =>
       properties
         .filter((p) => p.location)
-        .map((p) => ({ slug: p.slug, v: toScene(p.location!.x, p.location!.y) })),
+        .map((p) => ({ slug: p.slug, v: toScene(p.location!.x, p.location!.y) }))
+        .sort((a, b) => a.slug.localeCompare(b.slug)),
     [properties],
   );
   const tmp = useMemo(() => new THREE.Vector3(), []);
+  const lastSignature = useRef("");
+  const reduceMotion = useMemo(
+    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    [],
+  );
 
   useFrame(({ camera, size }) => {
     const els = pinEls.current;
     if (!els) return;
-    for (const { slug, v } of points) {
-      const el = els.get(slug);
-      if (!el) continue;
+    // The camera rig moves the camera earlier in this frame; its world matrix is normally only
+    // refreshed at render time, so update it now or pins trail the map by a frame while it flies.
+    camera.updateMatrixWorld();
+
+    const screen = points.map(({ slug, v }) => {
       tmp.copy(v).project(camera);
-      const visible = tmp.z < 1 && Math.abs(tmp.x) < 1.3 && Math.abs(tmp.y) < 1.3;
-      el.style.display = visible ? "" : "none";
-      if (!visible) continue;
-      const x = ((tmp.x + 1) / 2) * size.width;
-      const y = ((1 - tmp.y) / 2) * size.height;
-      el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+      return {
+        slug,
+        v,
+        visible: tmp.z < 1 && Math.abs(tmp.x) < 1.3 && Math.abs(tmp.y) < 1.3,
+        x: ((tmp.x + 1) / 2) * size.width,
+        y: ((1 - tmp.y) / 2) * size.height,
+      };
+    });
+
+    // Greedy clustering in screen space; the selected pin always stands alone.
+    const clusterOf = new Map<string, { id: string; index: number; count: number; cx: number; cy: number }>();
+    const clusters: PinCluster[] = [];
+    const centres = new Map<string, [number, number]>();
+    const taken = new Set<string>();
+    for (const a of screen) {
+      if (!a.visible || taken.has(a.slug) || a.slug === selectedRef.current) continue;
+      const members = screen.filter(
+        (b) =>
+          b.visible &&
+          !taken.has(b.slug) &&
+          b.slug !== selectedRef.current &&
+          Math.hypot(b.x - a.x, b.y - a.y) < CLUSTER_RADIUS,
+      );
+      if (members.length < 2) continue;
+      members.forEach((m) => taken.add(m.slug));
+      const id = members.map((m) => m.slug).join("|");
+      const cx = members.reduce((s, m) => s + m.x, 0) / members.length;
+      const cy = members.reduce((s, m) => s + m.y, 0) / members.length;
+      clusters.push({ id, slugs: members.map((m) => m.slug) });
+      centres.set(id, [cx, cy]);
+      members.forEach((m, index) => clusterOf.set(m.slug, { id, index, count: members.length, cx, cy }));
+    }
+
+    const signature = clusters.map((c) => c.id).join(",");
+    if (signature !== lastSignature.current) {
+      lastSignature.current = signature;
+      onClusters(clusters);
+    }
+
+    for (const p of screen) {
+      const el = els.get(p.slug);
+      if (!el) continue;
+      const c = clusterOf.get(p.slug);
+      if (!p.visible || (c && expandedRef.current !== c.id)) {
+        el.style.display = "none";
+        continue;
+      }
+      el.style.display = "";
+      if (c) {
+        const final = petalLayout(c.index, c.count);
+        const elapsed = performance.now() - expandedAtRef.current - c.index * PETAL_STAGGER_MS;
+        const t = reduceMotion ? 1 : 1 - Math.pow(1 - clamp(elapsed / PETAL_MS, 0, 1), 3);
+        // Start at the top (-90°) and sweep round to the final angle.
+        const angle = -Math.PI / 2 + (final.angle + Math.PI / 2) * t;
+        const tip = final.tip * (0.3 + 0.7 * t);
+        el.style.transform = `translate3d(${(c.cx + Math.cos(angle) * tip).toFixed(1)}px, ${(c.cy + Math.sin(angle) * tip).toFixed(1)}px, 0)`;
+        el.style.setProperty("--petal-rotation", `${(angle + Math.PI / 2).toFixed(3)}rad`);
+        el.style.opacity = t >= 1 ? "" : Math.min(1, t * 2.5).toFixed(2);
+        el.style.zIndex = String(200000 + c.index);
+        continue;
+      }
+      el.style.opacity = "";
+      el.style.transform = `translate3d(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px, 0)`;
       // Nearer pins on top; hovered/selected pins above everything.
       const boost = el.dataset.state === "default" ? 0 : 100000;
-      el.style.zIndex = String(boost + Math.max(0, 50000 - Math.round(v.distanceTo(camera.position))));
+      el.style.zIndex = String(boost + Math.max(0, 50000 - Math.round(p.v.distanceTo(camera.position))));
+    }
+
+    const cEls = clusterEls.current;
+    if (!cEls) return;
+    // Badges for clusters that no longer exist are unmounted by LeonidaMap on the next render.
+    for (const [id, centre] of centres) {
+      const el = cEls.get(id);
+      if (!el) continue;
+      el.style.display = "";
+      el.style.transform = `translate3d(${centre[0].toFixed(1)}px, ${centre[1].toFixed(1)}px, 0)`;
     }
   });
 
@@ -390,13 +514,13 @@ export function CameraRig({ ref, mode, introReady, compassRef, introFocusRef, on
 
   const homeRadius = useMemo(() => {
     const aspect = size.width / Math.max(1, size.height);
-    return Math.max((MAP_HEIGHT * 0.53) / TAN_HALF, (MAP_WIDTH * 0.56) / (TAN_HALF * aspect));
+    return Math.max((ISLAND_VIEW.h * 0.53) / TAN_HALF, (ISLAND_VIEW.w * 0.56) / (TAN_HALF * aspect));
   }, [size.width, size.height]);
 
   const home = (m: ViewMode): ViewState =>
     m === "2d"
-      ? { target: new THREE.Vector3(0, 0, 0), r: homeRadius, phi: PHI_2D, theta: 0 }
-      : { target: new THREE.Vector3(0, 0, 90), r: homeRadius * 0.8, phi: PHI_3D, theta: 0 };
+      ? { target: HOME_TARGET.clone(), r: homeRadius, phi: PHI_2D, theta: 0 }
+      : { target: HOME_TARGET.clone().add(new THREE.Vector3(0, 0, 90)), r: homeRadius * 0.8, phi: PHI_3D, theta: 0 };
 
   const read = (): ViewState => {
     const c = controls.current!;

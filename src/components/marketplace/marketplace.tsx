@@ -17,7 +17,7 @@ import { SearchBox } from "./listing-filters";
 const LeonidaMap = dynamic(() => import("@/components/map/leonida-map"), {
   ssr: false,
   loading: () => (
-    <div className="absolute inset-0 grid place-items-center bg-[#1e5d9c]">
+    <div className="absolute inset-0 grid place-items-center bg-[#2c67a4]">
       <span className="size-10 animate-spin rounded-full border-2 border-[#ced4da] border-t-white" />
     </div>
   ),

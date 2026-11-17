@@ -8,8 +8,9 @@ import type { PropertyCategory } from "@/contracts/api";
  * These are catalogue proposals only:
  * - not confirmed by Rockstar, not known to be purchasable in GTA VI;
  * - no location sources yet, so every entry is CONCEPT (unverified);
- * - `map` is a district-level placement on our own illustrated map (MAP_WIDTH x MAP_HEIGHT
- *   in src/data/regions.ts), shown in the UI as "approximate". It is not an in-game plot;
+ * - `map` is a placement on the GTA VI community map (map units of 16 in-game metres, MAP_WIDTH x MAP_HEIGHT
+ *   in src/data/regions.ts), shown in the UI as "approximate". Where a listing matches a place in the
+ *   gtadb.org landmark data (CC BY 4.0) it sits on that place, otherwise somewhere in its stated area;
  * - every token is NOT_LAUNCHED with no mint address (none have been deployed).
  * Admins upgrade verification (with sources), adjust placements and attach real mints later.
  *
@@ -40,7 +41,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: "SAFEHOUSE",
     region: "port-gellhorn",
     neighbourhood: "Port Gellhorn",
-    map: [302, 362],
+    map: [433, 551],
     featured: true,
     description:
       "A roadside motel with a flickering neon sign, a drained pool and a parking lot that has seen things. The Gulf-coast hideout that started it all.",
@@ -53,7 +54,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: "SAFEHOUSE",
     region: "leonida-keys",
     neighbourhood: "Leonida Keys",
-    map: [668, 1418],
+    map: [564, 1189],
     description:
       "A low-slung island bungalow off the overseas highway. Shutters, a screened porch and a boat ramp for quick departures.",
   },
@@ -65,7 +66,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: "RESIDENTIAL",
     region: "vice-city",
     neighbourhood: "Vice City",
-    map: [1014, 1002],
+    map: [744, 688],
     description:
       "A quiet walk-up apartment on the bay with skyline views across the water and an easy line to the causeway.",
   },
@@ -77,7 +78,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: "RESIDENTIAL",
     region: "leonida-keys",
     neighbourhood: "Leonida Keys",
-    map: [538, 1478],
+    map: [621, 1114],
     featured: true,
     description:
       "A weathered stilt house standing over the shallows, reachable by boat or a long wooden jetty. Sunsets included.",
@@ -90,7 +91,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: "GARAGE",
     region: "vice-city",
     neighbourhood: "Vice City",
-    map: [982, 1172],
+    map: [859, 692],
     description:
       "A covered courtyard garage a few blocks from the waterfront, with room for a small collection and no questions asked.",
   },
@@ -100,9 +101,9 @@ export const CATALOGUE: CatalogueEntry[] = [
     ticker: "PARADISE",
     typeLabel: "Garage",
     category: "GARAGE",
-    region: "vice-city",
-    neighbourhood: "Vice City",
-    map: [888, 1010],
+    region: "grassrivers",
+    neighbourhood: "Watson Bay",
+    map: [513, 920],
     description:
       "A sun-bleached body shop with a hand-painted sign, roll-up doors and a back office that never seems to close.",
   },
@@ -114,7 +115,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: "MARINA",
     region: "leonida-keys",
     neighbourhood: "Key Lento, Leonida Keys",
-    map: [600, 1446],
+    map: [607, 1129],
     description:
       "A members' marina with fuel docks, a tiki bar and slips for everything from fishing skiffs to offshore racers.",
   },
@@ -126,7 +127,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: "HOSPITALITY",
     region: "vice-city",
     neighbourhood: "Ocean Beach, Vice City",
-    map: [1088, 1080],
+    map: [891, 728],
     featured: true,
     description: "A pastel art deco hotel on the beachfront strip, with a rooftop sign that glows pink after dark.",
   },
@@ -138,7 +139,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: "RESIDENTIAL",
     region: "vice-city",
     neighbourhood: "Vice City",
-    map: [940, 958],
+    map: [685, 723],
     description:
       "A mid-century apartment block with breezeway balconies, a courtyard pool and a view of the bay bridges.",
   },
@@ -149,10 +150,10 @@ export const CATALOGUE: CatalogueEntry[] = [
     typeLabel: "Luxury",
     category: "LUXURY",
     region: "vice-city",
-    neighbourhood: "Ocean Beach, Vice City",
-    map: [1082, 976],
+    neighbourhood: "Tequesta Retreat, Vice City",
+    map: [768, 828],
     description:
-      "Glass-fronted luxury residences on the north end of the beach, with valet parking and a private pool deck.",
+      "Glass-fronted luxury towers at Tequesta Retreat, with valet parking and a private pool deck.",
   },
   {
     group: "B",
@@ -162,7 +163,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: "COMMERCIAL",
     region: "vice-city",
     neighbourhood: "Downtown Vice City",
-    map: [992, 1050],
+    map: [739, 786],
     description:
       "A downtown office tower with a rooftop helipad and a lobby built to impress investors who ask few questions.",
   },
@@ -174,7 +175,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: "COMMERCIAL",
     region: "vice-city",
     neighbourhood: "Vice City",
-    map: [928, 1100],
+    map: [690, 760],
     description:
       "An independent record label and studio with soundproofed booths, a lounge and a loading bay out back.",
   },
@@ -184,11 +185,11 @@ export const CATALOGUE: CatalogueEntry[] = [
     ticker: "RIDEOUT",
     typeLabel: "Automotive",
     category: "COMMERCIAL",
-    region: "ambrosia",
-    neighbourhood: "Ambrosia",
-    map: [776, 476],
+    region: "vice-city",
+    neighbourhood: "Crosstown, Vice City",
+    map: [714, 707],
     description:
-      "A highway-side custom shop with a dyno bay, a paint booth and a forecourt full of projects.",
+      "A Crosstown custom shop with a dyno bay, a paint booth and a forecourt full of projects.",
   },
   {
     group: "B",
@@ -196,11 +197,11 @@ export const CATALOGUE: CatalogueEntry[] = [
     ticker: "DELIGHTS",
     typeLabel: "Nightlife",
     category: "ENTERTAINMENT",
-    region: "vice-city",
-    neighbourhood: "Ocean Beach, Vice City",
-    map: [1086, 1150],
+    region: "port-gellhorn",
+    neighbourhood: "Port Gellhorn",
+    map: [371, 544],
     description:
-      "A neon-soaked cabaret on the beach strip with a velvet rope, a rooftop terrace and a bass line you can feel from the causeway.",
+      "A neon-soaked cabaret off the interstate in Port Gellhorn, with a velvet rope, a rooftop terrace and a bass line you can feel from the parking lot.",
   },
   {
     group: "B",
@@ -208,11 +209,11 @@ export const CATALOGUE: CatalogueEntry[] = [
     ticker: "BOATWORKS",
     typeLabel: "Marina",
     category: "MARINA",
-    region: "port-gellhorn",
-    neighbourhood: "Port Gellhorn",
-    map: [248, 386],
+    region: "leonida-keys",
+    neighbourhood: "Key Lento, Leonida Keys",
+    map: [608, 1134],
     description:
-      "A working boatyard and marina on the Port Gellhorn harbour, with slipways, a dry stack and a chandlery.",
+      "A working boatyard and marina on Key Lento, with slipways, a dry stack and a chandlery.",
   },
 ];
 

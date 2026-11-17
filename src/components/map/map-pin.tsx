@@ -1,23 +1,28 @@
 "use client";
 
-import { memo } from "react";
+import { memo, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import { TOKEN_STATUS_LABELS } from "@/data/regions";
 import { formatUsdCompact, tickerLabel } from "@/lib/format";
 import type { Property } from "@/lib/types";
 
-/** House-shaped pin, origin at the tip. Shared with the legend. */
-export const HOUSE_PATH = "M17 40 L12 33 H6 V19 H3.5 L17 6.5 L30.5 19 H28 V33 H22 Z";
+/** Teardrop pin outline (viewBox 0 0 34 44), tip at the bottom centre. */
+export const PIN_PATH = "M17 43 C15.6 40.6 4 29 4 17.5 A13 13 0 0 1 30 17.5 C30 29 18.4 40.6 17 43 Z";
+/** House symbol drawn inside the pin head. */
+const HOUSE = "M17 9.2 L25 16.2 H22.6 V24.4 H19.2 V19.6 H14.8 V24.4 H11.4 V16.2 H9 Z";
 const STAR =
   "M0 -5 L1.47 -1.55 L4.76 -1.55 L2.12 0.6 L2.94 4.05 L0 2.1 L-2.94 4.05 L-2.12 0.6 L-4.76 -1.55 L-1.47 -1.55 Z";
+
+export const PIN_GREEN = "#18713c";
+export const PIN_GOLD = "#e0b13a";
 
 export type PinState = "default" | "hovered" | "selected";
 
 export function pinColors(status: Property["token"]["status"], state: PinState) {
-  if (state === "selected") return { fill: "#ff6b9d", stroke: "#ffffff", door: "#15152e", dashed: status === "unavailable" };
-  if (status === "unavailable") return { fill: "#77718a", stroke: "#26222f", door: "#3d384a", dashed: true };
-  if (status === "live") return { fill: "url(#pin-live)", stroke: state === "hovered" ? "#ff6b9d" : "#1a1220", door: "#ffffff", dashed: false };
-  return { fill: "#ffffff", stroke: state === "hovered" ? "#ff6b9d" : "#1a1220", door: "#30204f", dashed: false };
+  const outline = state === "selected" ? PIN_GOLD : state === "hovered" ? "#0f5a2d" : PIN_GREEN;
+  if (status === "unavailable") return { fill: "#eef0f1", stroke: state === "selected" ? PIN_GOLD : "#8a9096", house: "#8a9096" };
+  if (status === "live") return { fill: PIN_GREEN, stroke: state === "selected" ? PIN_GOLD : "#ffffff", house: "#ffffff" };
+  return { fill: "#ffffff", stroke: outline, house: PIN_GREEN };
 }
 
 export function PinGlyph({
@@ -25,37 +30,30 @@ export function PinGlyph({
   state,
   featured,
   className,
+  style,
 }: {
   status: Property["token"]["status"];
   state: PinState;
   featured: boolean;
   className?: string;
+  style?: CSSProperties;
 }) {
   const c = pinColors(status, state);
   return (
-    <svg viewBox="0 0 34 42" className={cn("overflow-visible", className)} aria-hidden="true">
-      <defs>
-        <linearGradient id="pin-live" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffb36b" />
-          <stop offset="1" stopColor="#ff8066" />
-        </linearGradient>
-      </defs>
+    <svg viewBox="0 0 34 44" className={cn("overflow-visible", className)} style={style} aria-hidden="true">
       <path
-        d={HOUSE_PATH}
+        d={PIN_PATH}
         fill={c.fill}
         stroke={c.stroke}
-        strokeWidth={state === "default" ? 2 : 2.6}
+        strokeWidth={state === "selected" ? 3.2 : 2.2}
         strokeLinejoin="round"
-        strokeDasharray={c.dashed ? "3.5 2.5" : undefined}
+        strokeDasharray={status === "unavailable" ? "3.5 2.5" : undefined}
       />
-      <rect x={14} y={24} width={6} height={9} rx={1} fill={c.door} />
-      {status === "unavailable" && (
-        <path d="M8 31 L26 13" stroke="#fff" strokeOpacity={0.85} strokeWidth={2.2} strokeLinecap="round" />
-      )}
+      <path d={HOUSE} fill={c.house} />
       {featured && (
-        <g transform="translate(29 8)">
-          <circle r={6.5} fill="#15152e" stroke="#ffb36b" strokeWidth={1.4} />
-          <path d={STAR} fill="#ffb36b" transform="scale(0.95)" />
+        <g transform="translate(29 6)">
+          <circle r={6.2} fill={PIN_GOLD} stroke="#ffffff" strokeWidth={1.4} />
+          <path d={STAR} fill="#ffffff" transform="scale(0.85)" />
         </g>
       )}
     </svg>
@@ -68,9 +66,14 @@ interface MapPinProps {
   showLabel: boolean;
   onSelect: (slug: string) => void;
   onHover: (slug: string | null) => void;
+  /**
+   * Fanned out of a cluster: the pin leans so its tip points at the cluster centre. The angle
+   * comes from the `--petal-rotation` CSS variable, which the projector animates every frame.
+   */
+  petal?: boolean;
 }
 
-export const MapPin = memo(function MapPin({ property, state, showLabel, onSelect, onHover }: MapPinProps) {
+export const MapPin = memo(function MapPin({ property, state, showLabel, onSelect, onHover, petal = false }: MapPinProps) {
   const m = property.market;
   return (
     <div className="relative -translate-x-1/2 -translate-y-full select-none">
@@ -92,20 +95,21 @@ export const MapPin = memo(function MapPin({ property, state, showLabel, onSelec
           status={property.token.status}
           state={state}
           featured={property.featured}
+          style={petal ? { transform: "rotate(var(--petal-rotation, 0rad))", transformOrigin: "50% 100%" } : undefined}
           className={cn(
-            "h-[42px] w-[34px]",
+            "h-[44px] w-[34px]",
             state === "selected"
-              ? "drop-shadow-[0_0_10px_rgba(255,107,157,0.95)]"
-              : "drop-shadow-[0_3px_4px_rgba(0,0,0,0.45)]",
+              ? "drop-shadow-[0_0_8px_rgba(224,177,58,0.9)]"
+              : "drop-shadow-[0_2px_3px_rgba(0,0,0,0.4)]",
           )}
         />
       </button>
 
-      {(showLabel || state !== "default") && (
+      {!petal && (showLabel || state !== "default") && (
         <span
           className={cn(
             "pointer-events-none absolute top-full left-1/2 mt-1 -translate-x-1/2 rounded px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide whitespace-nowrap shadow",
-            state === "selected" ? "bg-sunset text-ink" : "bg-white/95 text-[#212529]",
+            state === "selected" ? "bg-[#e0b13a] text-[#212529]" : "bg-white/95 text-[#212529]",
           )}
         >
           {tickerLabel(property)}
