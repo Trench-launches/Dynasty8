@@ -75,7 +75,7 @@ export function SiteHeader({ ecosystem }: { ecosystem: EcosystemToken }) {
               </button>
             </span>
           </TooltipTrigger>
-          <TooltipContent side="bottom">Wallet connection is coming soon</TooltipContent>
+          <TooltipContent side="bottom">Wallet connection is not available yet</TooltipContent>
         </Tooltip>
       </div>
     </header>

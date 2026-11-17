@@ -240,7 +240,13 @@ export default function LeonidaMap({
                 if (el) pinEls.current.set(p.slug, el);
                 else pinEls.current.delete(p.slug);
               }}
-              className="pointer-events-auto absolute top-0 left-0 will-change-transform"
+              // The wrapper's own box sits below-right of the pin it carries (the pin is shifted
+              // up-left onto the tip), so it must not take the pointer or it steals hovers from
+              // neighbouring pins. Only the pin button is hoverable; enter/leave still bubble here.
+              // Stacking: pins sort by depth (< 50,000), fanned-out pins 200,000+, cluster badges
+              // 150,000 / 300,000 (open). Hovered and selected pins go above all of them so their
+              // card is never covered; !important beats the per-frame inline z-index.
+              className="pointer-events-none absolute top-0 left-0 will-change-transform data-[state=hovered]:z-[500000]! data-[state=selected]:z-[400000]!"
               style={{ display: "none" }}
               onPointerEnter={(e) => {
                 if (e.pointerType === "mouse" && petals.has(p.slug)) cancelClose();
@@ -271,7 +277,7 @@ export default function LeonidaMap({
                 if (el) clusterEls.current.set(c.id, el);
                 else clusterEls.current.delete(c.id);
               }}
-              className="pointer-events-auto absolute top-0 left-0 will-change-transform"
+              className="pointer-events-none absolute top-0 left-0 will-change-transform"
               style={{ display: "none", zIndex: isOpen ? 300000 : 150000 }}
             >
               <button
@@ -288,7 +294,7 @@ export default function LeonidaMap({
                   if (e.pointerType === "mouse") scheduleClose();
                 }}
                 className={cn(
-                  "grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[3px] border-white font-display leading-none text-white shadow-[0_2px_6px_rgba(0,0,0,0.45)] transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2",
+                  "pointer-events-auto grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[3px] border-white font-display leading-none text-white shadow-[0_2px_6px_rgba(0,0,0,0.45)] transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2",
                   isOpen ? "size-6 text-sm" : "size-10 text-lg",
                 )}
                 style={{ background: PIN_GREEN, outlineColor: PIN_GOLD }}
@@ -380,7 +386,7 @@ export default function LeonidaMap({
         </button>
         {legendOpen && (
           <ul className="mt-1.5 space-y-1.5 rounded-lg border border-[#dee2e6] bg-white/95 p-3 text-xs text-[#212529] backdrop-blur">
-            <LegendRow label="Token coming soon" glyph={<PinGlyph status="coming_soon" state="default" featured={false} className="h-5 w-4" />} />
+            <LegendRow label="Property" glyph={<PinGlyph status="coming_soon" state="default" featured={false} className="h-5 w-4" />} />
             <LegendRow label="Token live" glyph={<PinGlyph status="live" state="default" featured={false} className="h-5 w-4" />} />
             <LegendRow label="Featured" glyph={<PinGlyph status="coming_soon" state="default" featured className="h-5 w-4" />} />
             <LegendRow label="Unavailable" glyph={<PinGlyph status="unavailable" state="default" featured={false} className="h-5 w-4" />} />

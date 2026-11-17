@@ -329,6 +329,10 @@ export function SelectionBeacon({ location }: { location: MapLocation | null }) 
   return <Beacon location={location} />;
 }
 
+/** Space (px) the hover card needs above a pin before it flips below it; half its width. */
+const HOVER_CARD_CLEARANCE = 170;
+const HOVER_CARD_HALF_W = 130;
+
 export interface PinCluster {
   id: string;
   /** Member slugs, in a stable order (the fan-out uses it for petal angles). */
@@ -447,6 +451,9 @@ export function PinProjector({
     for (const p of screen) {
       const el = els.get(p.slug);
       if (!el) continue;
+      // Let the hover card flip below / shift inward when the pin is near an edge of the map.
+      el.dataset.flip = p.y < HOVER_CARD_CLEARANCE ? "1" : "";
+      el.dataset.edge = p.x < HOVER_CARD_HALF_W ? "l" : p.x > size.width - HOVER_CARD_HALF_W ? "r" : "";
       const c = clusterOf.get(p.slug);
       if (!p.visible || (c && expandedRef.current !== c.id)) {
         el.style.display = "none";
@@ -468,9 +475,8 @@ export function PinProjector({
       }
       el.style.opacity = "";
       el.style.transform = `translate3d(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px, 0)`;
-      // Nearer pins on top; hovered/selected pins above everything.
-      const boost = el.dataset.state === "default" ? 0 : 100000;
-      el.style.zIndex = String(boost + Math.max(0, 50000 - Math.round(p.v.distanceTo(camera.position))));
+      // Nearer pins on top. Hovered/selected pins are lifted above everything by CSS in LeonidaMap.
+      el.style.zIndex = String(Math.max(0, 50000 - Math.round(p.v.distanceTo(camera.position))));
     }
 
     const cEls = clusterEls.current;

@@ -79,15 +79,23 @@ export const MapPin = memo(function MapPin({ property, state, showLabel, onSelec
     <div className="relative -translate-x-1/2 -translate-y-full select-none">
       <button
         type="button"
-        aria-label={`${property.name} (${tickerLabel(property)}), ${TOKEN_STATUS_LABELS[property.token.status]}`}
+        aria-label={
+          property.token.status === "coming_soon"
+            ? `${property.name} (${tickerLabel(property)})`
+            : `${property.name} (${tickerLabel(property)}), ${TOKEN_STATUS_LABELS[property.token.status]}`
+        }
         aria-pressed={state === "selected"}
         onClick={() => onSelect(property.slug)}
         onPointerEnter={() => onHover(property.slug)}
         onPointerLeave={() => onHover(null)}
         onFocus={() => onHover(property.slug)}
         onBlur={() => onHover(null)}
+        // Petals lean the whole button (not just the glyph) so the hover/click area matches
+        // what you see; otherwise neighbouring petals' upright boxes overlap and steal the hover.
+        // (Only scale is transitioned: the projector animates the rotation every frame.)
+        style={petal ? { rotate: "var(--petal-rotation, 0rad)", transitionProperty: "scale" } : undefined}
         className={cn(
-          "block origin-bottom cursor-pointer rounded-md transition-transform duration-200 ease-out outline-none focus-visible:ring-2 focus-visible:ring-tropic",
+          "pointer-events-auto block origin-bottom cursor-pointer rounded-md transition-transform duration-200 ease-out outline-none focus-visible:ring-2 focus-visible:ring-tropic",
           state === "selected" ? "scale-[1.35]" : state === "hovered" ? "scale-[1.15]" : "scale-100",
         )}
       >
@@ -95,7 +103,6 @@ export const MapPin = memo(function MapPin({ property, state, showLabel, onSelec
           status={property.token.status}
           state={state}
           featured={property.featured}
-          style={petal ? { transform: "rotate(var(--petal-rotation, 0rad))", transformOrigin: "50% 100%" } : undefined}
           className={cn(
             "h-[44px] w-[34px]",
             state === "selected"
@@ -119,14 +126,25 @@ export const MapPin = memo(function MapPin({ property, state, showLabel, onSelec
       {state === "hovered" && (
         <div
           role="tooltip"
-          className="pointer-events-none absolute bottom-full left-1/2 mb-3 w-56 -translate-x-1/2 rounded-xl border border-[#dee2e6] bg-white/95 p-3 text-left shadow-2xl shadow-black/50 backdrop-blur"
+          className={cn(
+            "pointer-events-none absolute bottom-full left-1/2 mb-3 w-56 -translate-x-1/2 rounded-xl border border-[#dee2e6] bg-white/95 p-3 text-left shadow-2xl shadow-black/50 backdrop-blur",
+            // Near the top of the map: show the card below the pin instead of above it.
+            "[[data-flip='1']_&]:top-full [[data-flip='1']_&]:bottom-auto [[data-flip='1']_&]:mt-7 [[data-flip='1']_&]:mb-0",
+            // Near the left / right edge: anchor the card to the pin's side so it stays on screen.
+            "[[data-edge='l']_&]:left-[-12px] [[data-edge='l']_&]:translate-x-0",
+            "[[data-edge='r']_&]:right-[-12px] [[data-edge='r']_&]:left-auto [[data-edge='r']_&]:translate-x-0",
+          )}
         >
           <p className="truncate font-display text-[17px] leading-tight text-cream">{property.name}</p>
           <p className="mt-1 truncate text-xs text-[#6c757d]">{property.neighbourhood}</p>
           <div className="mt-2 flex items-center justify-between gap-2 text-xs">
             <span className="font-bold text-tropic">{tickerLabel(property)}</span>
             <span className="text-[#495057]">
-              {m ? `MC ${formatUsdCompact(m.marketCapUsd)}` : TOKEN_STATUS_LABELS[property.token.status]}
+              {m
+                ? `MC ${formatUsdCompact(m.marketCapUsd)}`
+                : property.token.status === "unavailable"
+                  ? TOKEN_STATUS_LABELS.unavailable
+                  : null}
               {m?.source === "demo" && <span className="ml-1 text-[10px] font-bold text-neon">DEMO</span>}
               {m?.stale && <span className="ml-1 text-[10px] font-bold text-amber-200">DELAYED</span>}
             </span>

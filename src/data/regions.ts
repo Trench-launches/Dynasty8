@@ -43,7 +43,7 @@ export const CATEGORY_LABELS: Record<PropertyCategory, string> = {
 };
 
 export const TOKEN_STATUS_LABELS: Record<TokenStatus, string> = {
-  coming_soon: "Coming Soon",
+  coming_soon: "Pre-launch",
   live: "Live",
   unavailable: "Unavailable",
 };
