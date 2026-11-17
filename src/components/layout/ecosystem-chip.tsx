@@ -20,17 +20,11 @@ export function EcosystemChip({ token }: { token: EcosystemToken }) {
         >
           <LogoMark className="size-6" />
           <span className="font-bold text-[#212529]">${token.ticker}</span>
-          <span className="hidden text-xs text-cream/60 lg:inline">
-            {m ? (
-              <>
-                {formatPrice(m.priceUsd)} <ChangeText value={m.change24hPct} />
-              </>
-            ) : token.status === "coming_soon" ? (
-              "Launching soon"
-            ) : (
-              "No market data"
-            )}
-          </span>
+          {m && (
+            <span className="hidden text-xs text-cream/60 lg:inline">
+              {formatPrice(m.priceUsd)} <ChangeText value={m.change24hPct} />
+            </span>
+          )}
           <MarketDataTag market={m} className="hidden lg:inline" />
         </button>
       </PopoverTrigger>
