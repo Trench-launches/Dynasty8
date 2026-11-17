@@ -15,11 +15,11 @@ export function EcosystemChip({ token }: { token: EcosystemToken }) {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="flex h-9 items-center gap-2 rounded-full border border-[#ced4da] bg-[#e9ecef] pr-3.5 pl-1.5 text-sm transition-colors outline-none hover:bg-[#e9ecef] focus-visible:ring-2 focus-visible:ring-ring sm:h-10"
+          className="flex h-9 shrink-0 items-center gap-2 rounded-full border border-[#ced4da] bg-[#e9ecef] pr-1.5 pl-1.5 min-[420px]:pr-3.5 text-sm transition-colors outline-none hover:bg-[#e9ecef] focus-visible:ring-2 focus-visible:ring-ring sm:h-10"
           aria-label={`${token.ticker} ecosystem token details`}
         >
           <LogoMark className="size-6" />
-          <span className="font-bold text-[#212529]">${token.ticker}</span>
+          <span className="hidden font-bold text-[#212529] min-[420px]:inline">${token.ticker}</span>
           {m && (
             <span className="hidden text-xs text-cream/60 lg:inline">
               {formatPrice(m.priceUsd)} <ChangeText value={m.change24hPct} />

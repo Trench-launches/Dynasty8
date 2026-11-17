@@ -19,7 +19,7 @@ export function SiteHeader({ ecosystem }: { ecosystem: EcosystemToken }) {
   const isActive = (href: string) => (href === "/" ? pathname === "/" || pathname.startsWith("/property") : pathname.startsWith(href));
 
   return (
-    <header className="bg-header-gradient relative z-40 flex h-14 shrink-0 items-center gap-3 px-3 shadow-[0_2px_8px_rgba(0,0,0,0.18)] sm:h-16 sm:gap-6 sm:px-6">
+    <header className="bg-header-gradient relative z-40 flex h-14 shrink-0 items-center gap-2 px-3 shadow-[0_2px_8px_rgba(0,0,0,0.18)] sm:h-16 sm:gap-6 sm:px-6">
       <Link href="/" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="DYNASTY home">
         <Logo />
       </Link>
