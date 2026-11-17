@@ -17,6 +17,7 @@ import type {
   LocationVerification,
   TokenDto,
 } from "@/contracts/api";
+import type { FundHistoryDto } from "@/contracts/demolition-fund";
 
 export class ApiClientError extends Error {
   constructor(
@@ -76,4 +77,6 @@ export const api = {
     request<ChartDto>(`/api/properties/${encodeURIComponent(slug)}/chart${qs({ range })}`, init),
   getEcosystem: (init?: RequestInit) => request<EcosystemDto>("/api/ecosystem", init),
   getEcosystemMarkets: (init?: RequestInit) => request<{ items: EcosystemMarketRowDto[] }>("/api/ecosystem/markets", init),
+  getFundHistory: (p: { limit?: number; before?: string } = {}, init?: RequestInit) =>
+    request<FundHistoryDto>(`/api/demolition-fund/history${qs(p)}`, init),
 };

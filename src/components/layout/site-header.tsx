@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Map, Wallet } from "lucide-react";
+import { BarChart3, Flame, Map, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 import { EcosystemChip } from "@/components/layout/ecosystem-chip";
@@ -12,6 +12,7 @@ import type { EcosystemToken } from "@/lib/types";
 const NAV = [
   { href: "/", label: "Properties", icon: Map },
   { href: "/markets", label: "Markets", icon: BarChart3 },
+  { href: "/fund", label: "Fund", icon: Flame },
 ];
 
 export function SiteHeader({ ecosystem }: { ecosystem: EcosystemToken }) {
