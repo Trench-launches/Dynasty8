@@ -1,0 +1,190 @@
+// Dynasty 8 backend: property registry, token registry, market snapshots, admin + audit.
+// Property tokens are speculative digital assets, not claims on any real or in-game property.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PropertyCategory {
+  RESIDENTIAL
+  SAFEHOUSE
+  GARAGE
+  MARINA
+  COMMERCIAL
+  INDUSTRIAL
+  LUXURY
+  ENTERTAINMENT
+  HOSPITALITY
+  RETAIL
+}
+
+/// Source evidence for the GTA location itself. Says nothing about any token.
+enum LocationVerification {
+  VERIFIED
+  REPORTED
+  CONCEPT
+}
+
+enum PropertyStatus {
+  DRAFT
+  PUBLISHED
+  UNPUBLISHED
+  /// Pulled because the listing or its token is compromised. Hidden from the public API.
+  DISABLED
+}
+
+enum TokenDeploymentStatus {
+  NOT_LAUNCHED
+  PENDING_VERIFICATION
+  LIVE
+  INACTIVE
+}
+
+enum MetadataVerification {
+  UNVERIFIED
+  VERIFIED
+  MISMATCH
+}
+
+/// Where the token was last observed trading. Only set from on-chain or provider evidence.
+enum TradingVenue {
+  UNKNOWN
+  PUMPFUN_BONDING_CURVE
+  PUMPSWAP
+  OTHER_DEX
+}
+
+enum AdminRole {
+  VIEWER
+  EDITOR
+  ADMIN
+}
+
+model Property {
+  id                   String               @id @default(cuid())
+  slug                 String               @unique
+  name                 String
+  description          String
+  category             PropertyCategory
+  /// Free-text label from the catalogue, e.g. "Motel / Safehouse". Display only.
+  typeLabel            String?
+  region               String?
+  neighbourhood        String?
+  /// Map coordinates stay null until verified. Never randomised.
+  mapX                 Float?
+  mapY                 Float?
+  imageUrl             String?
+  galleryImages        String[]             @default([])
+  status               PropertyStatus       @default(DRAFT)
+  locationVerification LocationVerification @default(CONCEPT)
+  featured             Boolean              @default(false)
+  /// Which catalogue batch proposed the listing ("A" user-supplied, "B" research candidate).
+  catalogueGroup       String?
+  /// Catalogue proposal; a proposed ticker is not a deployed token.
+  proposedTicker       String
+  sources              SourceReference[]
+  token                Token?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  @@index([status, category])
+  @@index([status, featured])
+}
+
+model SourceReference {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  url        String
+  title      String
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@index([propertyId])
+}
+
+model Token {
+  id               String                @id @default(cuid())
+  /// The unique identity of a deployed token. Null until an admin attaches a verified mint.
+  mintAddress      String?               @unique
+  name             String
+  ticker           String
+  imageUrl         String?
+  /// Only set for a mint whose Pump.fun bonding-curve account was found on-chain.
+  pumpFunUrl       String?
+  deploymentStatus TokenDeploymentStatus @default(NOT_LAUNCHED)
+  launchedAt       DateTime?
+  creatorWallet    String?
+  creatorVerified  Boolean               @default(false)
+  isNative         Boolean               @default(false)
+  metadataStatus   MetadataVerification  @default(UNVERIFIED)
+  venue            TradingVenue          @default(UNKNOWN)
+  /// On-chain facts read from the mint account (raw base-unit supply as a string).
+  onchainSupply    String?
+  decimals         Int?
+  /// Metadata as reported by the metadata provider. Untrusted: sanitised, never rendered as HTML.
+  metadataName     String?
+  metadataSymbol   String?
+  metadataImageUrl String?
+  lastVerifiedAt   DateTime?
+  propertyId       String?               @unique
+  property         Property?             @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  snapshots        MarketSnapshot[]
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@index([deploymentStatus])
+}
+
+/// One provider observation. Null means "the provider did not supply it", never zero.
+model MarketSnapshot {
+  id           String    @id @default(cuid())
+  tokenId      String
+  token        Token     @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  source       String
+  priceUsd     Float?
+  priceSol     Float?
+  marketCapUsd Float?
+  fdvUsd       Float?
+  volume24hUsd Float?
+  change24hPct Float?
+  liquidityUsd Float?
+  pairAddress  String?
+  dexId        String?
+  lastTradeAt  DateTime?
+  fetchedAt    DateTime  @default(now())
+
+  @@index([tokenId, fetchedAt(sort: Desc)])
+}
+
+model AdminUser {
+  id        String    @id @default(cuid())
+  githubId  String    @unique
+  login     String?
+  email     String?
+  role      AdminRole @default(VIEWER)
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actorLabel String
+  action     String
+  entityType String
+  entityId   String?
+  before     Json?
+  after      Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt(sort: Desc)])
+  @@index([entityType, entityId])
+}

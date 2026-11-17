@@ -1,39 +1,39 @@
 import type { Metadata, Viewport } from "next";
-import { Anton, Manrope } from "next/font/google";
-import { brand } from "@/config/brand";
-import { SiteHeader } from "@/components/layout/site-header";
-import { TokenTape } from "@/components/layout/token-tape";
-import { SiteFooter } from "@/components/layout/site-footer";
+import { Barlow_Condensed, Figtree, Geist_Mono } from "next/font/google";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
-const anton = Anton({ subsets: ["latin"], weight: "400", variable: "--font-anton", display: "swap" });
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
+// Open-licence lookalikes for the reference site's type: a bold grotesque for UI/body and
+// a condensed uppercase face for display headings. (Rockstar's own fonts are proprietary.)
+const figtree = Figtree({ variable: "--font-figtree", subsets: ["latin"] });
+const barlow = Barlow_Condensed({
+  variable: "--font-barlow",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: `${brand.name} · ${brand.subtitle}`, template: `%s · ${brand.name}` },
-  description: brand.description,
+  title: {
+    default: "DYNASTY — Leonida Property Market",
+    template: "%s · DYNASTY",
+  },
+  description:
+    "Browse Leonida's most notorious properties on an interactive map and discover their Solana property tokens.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#FF6B9D",
-  width: "device-width",
-  initialScale: 1,
+  themeColor: "#141527",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${anton.variable} ${manrope.variable}`}>
-      <body className="min-h-dvh antialiased">
-        <a
-          href="#main"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[200] focus:rounded-lg focus:bg-white focus:px-3 focus:py-2"
-        >
-          Skip to content
-        </a>
-        <SiteHeader />
-        <TokenTape />
-        <main id="main">{children}</main>
-        <SiteFooter />
+    <html
+      lang="en"
+      className={`dark ${figtree.variable} ${barlow.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <body className="flex min-h-full flex-col">
+        <TooltipProvider delayDuration={150}>{children}</TooltipProvider>
       </body>
     </html>
   );
