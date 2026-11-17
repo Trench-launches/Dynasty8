@@ -45,9 +45,9 @@ describe("GET /api/properties", () => {
     expect((await list("?verification=VERIFIED")).body.total).toBe(0);
     const featured = CATALOGUE.filter((e) => e.featured).map((e) => slugify(e.name));
     expect((await list("?featured=true")).body.items.map((i) => i.slug).sort()).toEqual(featured.sort());
-    expect((await list("?region=ambrosia")).body.items.map((i) => i.slug)).toEqual(["rideout-customs"]);
-    await db().property.update({ where: { slug: "pegassi-residences" }, data: { region: "Grassrivers" } });
-    expect((await list("?region=GRASSRIVERS")).body.items.map((i) => i.slug)).toEqual(["pegassi-residences"]);
+    expect((await list("?region=port-gellhorn")).body.items.map((i) => i.slug).sort()).toEqual(["delights-cabaret", "starlet-motel"]);
+    await db().property.update({ where: { slug: "pegassi-residences" }, data: { region: "Mount-Kalaga" } });
+    expect((await list("?region=MOUNT-KALAGA")).body.items.map((i) => i.slug)).toEqual(["pegassi-residences"]);
   });
 
   it("hides drafts, unpublished and disabled listings", async () => {
@@ -110,7 +110,8 @@ describe("property detail, market and chart", () => {
     const r = await detailRoute(get("/api/properties/starlet-motel"), params({ slug: "starlet-motel" }));
     const body = (await r.json()) as PropertyDetailDto;
     expect(r.status).toBe(200);
-    expect(body).toMatchObject({ slug: "starlet-motel", map: { x: 302, y: 362 }, locationVerification: "CONCEPT", proposedTicker: "STARLET", sources: [] });
+    const [x, y] = CATALOGUE.find((e) => e.name === "Starlet Motel")!.map!;
+    expect(body).toMatchObject({ slug: "starlet-motel", map: { x, y }, locationVerification: "CONCEPT", proposedTicker: "STARLET", sources: [] });
     expect(body.token).toMatchObject({ mintAddress: null, pumpFunUrl: null, deploymentStatus: "NOT_LAUNCHED" });
     expect(body.market).toMatchObject({ freshness: "UNAVAILABLE", reason: "NOT_LAUNCHED", priceUsd: null, marketCapUsd: null });
   });

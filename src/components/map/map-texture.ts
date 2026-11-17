@@ -1,61 +1,68 @@
 /**
- * Paints Leonida as a flat, bright 2D atlas map: saturated blue sea with a cyan coastal glow,
- * flat greens on land, light-grey cities with a white street grid, white roads and a faint grid.
- * Original artwork generated from our own geometry (see geometry.ts), never traced from a game map.
+ * Paints Leonida as a flat 2D road map in the Dynasty 8 site style: flat light-blue water,
+ * greens for natural land, grey towns with white streets, a dense white road network with
+ * grey casings, yellow beaches and light-blue lakes, ponds, rivers and canals. Original
+ * artwork generated in code from our own geometry (a stylised Florida, see geometry.ts).
  *
  * Pipeline
  * 1. Low-res "fields" for the whole map (computed once): water colour from a coastline
- *    distance field, land colour from soft biome masks + gentle noise.
- * 2. `paintLayer` draws a view of the map at any resolution: fields, coast, beaches, farms,
- *    wetlands, the city plan (streets, blocks, footprints, parks), roads, bridges and labels.
- *    The base layer covers the whole map; detail layers re-render Vice City at high
- *    resolution so close zooms stay sharp.
+ *    distance field, land colour from soft land-use masks.
+ * 2. A road network (computed once): real highways from geometry.ts plus procedurally
+ *    generated county roads, farm section roads and forest tracks.
+ * 3. `paintLayer` draws a view of the map at any resolution. The base layer covers the whole
+ *    map; detail layers re-render regions and cities at higher resolution so zooms stay sharp.
  */
 
 import { REGIONS } from "@/data/regions";
 import {
-  AMBROSIA_FARMS,
+  AIRPORTS,
+  ALL_ISLETS,
   BARRIER_ISLANDS,
-  BAY_ISLANDS,
-  BEACH_ZONES,
+  BEACH_PATHS,
   CAUSEWAYS,
   DETAIL_VIEWS,
   DISTRICT_LABELS,
-  GRASSRIVERS_WETLAND,
-  HARBOUR,
+  FARMS,
+  FORESTS,
   HIGHWAYS,
-  KALAGA_FOREST,
-  KEYS,
-  LAKE,
+  LAKE_POLYS,
+  LAND_POLYS,
   MAINLAND,
   OCEAN_BEACH_ISLAND,
+  OCEAN_BEACH_SHORE,
   OVERSEAS_HIGHWAY,
+  PIERS,
+  PONDS,
   REGION_BOUNDARIES,
-  RIVERS,
   ROADS,
-  RUNWAYS,
+  SANDY_POLYS,
   TEXTURE_AREA,
   URBAN_AREAS,
+  WATERWAYS,
   WATER_BANKS,
-  inIslet,
+  WETLANDS,
+  geo,
   onLand,
   pointInPolygon,
+  seeded,
+  smoothPath,
   type Islet,
   type MapLabel,
   type MapView,
   type Pt,
+  type UrbanArea,
 } from "./geometry";
-import { cityPlan, type Cell, type Rect } from "./city-plan";
-import { blurField, distanceField, fbm, hex, ramp, rgbString, rng, smoothstep, type RGB } from "./noise";
+import { blurField, distanceField, fbm, hex, ramp, rgbString, smoothstep, type RGB } from "./noise";
+import { streetPlan, type District } from "./street-plan";
 
 export const MAP_COLORS = {
-  /** Open ocean — also the fallback colour of the endless sea plane beyond the texture. */
-  ocean: "#2966ae",
+  /** Open sea — also the fallback colour of the endless sea plane beyond the texture. */
+  ocean: "#84bcef",
 } as const;
 
 const A = TEXTURE_AREA;
 /** Map units per pixel of the low-res fields. */
-const FIELD_RES = 2;
+const FIELD_RES = 1.5;
 
 /**
  * Let the browser breathe between heavy steps. A MessageChannel round-trip is used because
@@ -73,50 +80,41 @@ function yieldFrame(): Promise<void> {
 /* ------------------------------------------------------------------ palette */
 
 const oceanRamp = ramp([
-  [0, hex("#b8eff3")],
-  [1.5, hex("#90e2ef")],
-  [5, hex("#63cdea")],
-  [12, hex("#46b2e2")],
-  [24, hex("#3a97d6")],
-  [45, hex("#3181c9")],
-  [80, hex("#2c71bb")],
-  [140, hex(MAP_COLORS.ocean)],
+  [0, hex("#a9d5f8")],
+  [2, hex("#9acbf5")],
+  [8, hex("#8ec4f3")],
+  [25, hex("#88bff1")],
+  [70, hex(MAP_COLORS.ocean)],
 ]);
 
 const lakeRamp = ramp([
-  [0, hex("#9fdcef")],
-  [3, hex("#55b3e3")],
-  [12, hex("#3b95d7")],
-  [40, hex("#3385cd")],
+  [0, hex("#a9d5f8")],
+  [3, hex("#98caf5")],
+  [15, hex("#8ec4f3")],
 ]);
 
 const LAND = {
-  base: hex("#b7d46c"),
-  alt: hex("#a9cc62"),
-  light: hex("#c6dd80"),
-  farm: hex("#cdd88b"),
-  wet: hex("#9bc760"),
-  wetDark: hex("#70aa52"),
-  forest: hex("#70ad50"),
-  forestDark: hex("#5e9f47"),
-  urban: hex("#c6c6cc"),
-  mangrove: hex("#5f9f4c"),
+  base: hex("#86b47c"),
+  alt: hex("#7bab72"),
+  farm: hex("#a5c594"),
+  wet: hex("#93bf88"),
+  wetDark: hex("#79aa70"),
+  forest: hex("#62955c"),
+  forestDark: hex("#54824f"),
+  mangrove: hex("#5d9158"),
 };
 
 const C = {
-  street: "#f4f4f6",
-  block: "#b9bac3",
-  blockResidential: "#c6c7cf",
-  footprint: "#a6a8b3",
-  park: "#94c75f",
-  parking: "#bdbdc4",
-  plaza: "#d7d7dd",
-  verge: "#a9cd64",
-  sand: "#efe7b6",
-  road: "#ffffff",
-  roadCasing: "#8f8f99",
-  runway: "#8b8b94",
-  river: "#3f9bd9",
+  urban: "#a7a7ab",
+  urbanDark: "#9a9a9f",
+  urbanEdge: "#9b9ba0",
+  park: "#7aab6e",
+  street: "#ffffff",
+  casing: "#8c8c92",
+  sand: "#f2c33a",
+  river: "#9bcdf6",
+  runway: "#76767c",
+  apron: "#bdbdc2",
 };
 
 /* ------------------------------------------------------------------ shapes */
@@ -127,7 +125,8 @@ function ellipsePath(e: Islet, scale = 1): Path2D {
   return p;
 }
 
-function polyPath2D(pts: Pt[]): Path2D {
+function polyPath2D(pts: Pt[], smooth = false): Path2D {
+  if (smooth) return new Path2D(smoothPath(pts, true, 0.4));
   const p = new Path2D();
   pts.forEach(([x, y], i) => (i ? p.lineTo(x, y) : p.moveTo(x, y)));
   p.closePath();
@@ -135,15 +134,14 @@ function polyPath2D(pts: Pt[]): Path2D {
 }
 
 interface Shapes {
+  /** Mainland and every island. All sub-paths wind the same way, so it fills as a union. */
   land: Path2D;
+  /** Lakes and ponds (water drawn over the land). */
   inland: Path2D;
-  /** Everything except land (use with the "evenodd" rule). */
-  notLand: Path2D;
-  lake: Path2D;
-  highways: Path2D[];
-  roads: Path2D[];
-  bridges: Path2D[];
-  rivers: Path2D[];
+  /** The named lakes only. */
+  lakes: Path2D;
+  /** Rivers, lagoons and canals with their stroke widths. */
+  waterways: { path: Path2D; width: number }[];
 }
 
 let shapeCache: Shapes | null = null;
@@ -152,23 +150,15 @@ function shapes(): Shapes {
   const land = new Path2D();
   land.addPath(new Path2D(MAINLAND));
   land.addPath(new Path2D(OCEAN_BEACH_ISLAND));
-  for (const e of [...BARRIER_ISLANDS, ...BAY_ISLANDS, ...KEYS]) land.addPath(ellipsePath(e));
+  for (const poly of LAND_POLYS) land.addPath(polyPath2D(poly, true));
+  for (const e of ALL_ISLETS) land.addPath(ellipsePath(e));
+  const lakes = new Path2D();
+  for (const l of LAKE_POLYS) lakes.addPath(polyPath2D(l, true));
   const inland = new Path2D();
-  inland.addPath(ellipsePath(LAKE));
-  inland.addPath(ellipsePath(HARBOUR));
-  const notLand = new Path2D();
-  notLand.rect(A.x - 2000, A.y - 2000, A.w + 4000, A.h + 4000);
-  notLand.addPath(land);
-  shapeCache = {
-    land,
-    inland,
-    notLand,
-    lake: ellipsePath(LAKE),
-    highways: HIGHWAYS.map((d) => new Path2D(d)),
-    roads: ROADS.map((d) => new Path2D(d)),
-    bridges: [...CAUSEWAYS, OVERSEAS_HIGHWAY].map((d) => new Path2D(d)),
-    rivers: RIVERS.map((d) => new Path2D(d)),
-  };
+  inland.addPath(lakes);
+  for (const e of PONDS) inland.addPath(ellipsePath(e));
+  const waterways = WATERWAYS.map((w) => ({ path: new Path2D(w.d), width: w.width }));
+  shapeCache = { land, inland, lakes, waterways };
   return shapeCache;
 }
 
@@ -179,8 +169,6 @@ interface Fields {
   land: HTMLCanvasElement;
   w: number;
   h: number;
-  wet: Float32Array;
-  farm: Float32Array;
 }
 
 function canvas(w: number, h: number) {
@@ -207,7 +195,6 @@ const BANKS = WATER_BANKS.map((e) => {
   return { ...e, cos: Math.cos(a), sin: Math.sin(a), reach: Math.max(e.rx, e.ry) };
 });
 
-/** 0..1: how much a point sits on a shallow sand bank (stays turquoise far from shore). */
 function bankWeight(x: number, y: number): number {
   let best = 0;
   for (const e of BANKS) {
@@ -217,53 +204,18 @@ function bankWeight(x: number, y: number): number {
     const u = (dx * e.cos - dy * e.sin) / e.rx;
     const v = (dx * e.sin + dy * e.cos) / e.ry;
     const d = Math.sqrt(u * u + v * v);
-    if (d < 1) best = Math.max(best, 1 - smoothstep(0.5, 1, d));
+    if (d < 1) best = Math.max(best, 1 - smoothstep(0.4, 1, d));
   }
   return best;
 }
 
-/** In-place colour mix: c = mix(c, b, t). Avoids allocating in the per-pixel loop. */
 function mixInto(c: RGB, b: RGB, t: number) {
   c[0] += (b[0] - c[0]) * t;
   c[1] += (b[1] - c[1]) * t;
   c[2] += (b[2] - c[2]) * t;
 }
 
-/**
- * Low-frequency noise sampled on a coarse grid (every `step` field pixels) and bilinearly
- * interpolated — the same look for a fraction of the cost.
- */
-function coarseNoise(w: number, h: number, step: number, sample: (mx: number, my: number) => number): Float32Array {
-  const cw = Math.ceil(w / step) + 2;
-  const ch = Math.ceil(h / step) + 2;
-  const grid = new Float32Array(cw * ch);
-  for (let cy = 0; cy < ch; cy++) {
-    for (let cx = 0; cx < cw; cx++) {
-      grid[cy * cw + cx] = sample(A.x + (cx * step + 0.5) * FIELD_RES, A.y + (cy * step + 0.5) * FIELD_RES);
-    }
-  }
-  const out = new Float32Array(w * h);
-  for (let y = 0; y < h; y++) {
-    const gy = y / step;
-    const y0 = Math.floor(gy);
-    const fy = gy - y0;
-    for (let x = 0; x < w; x++) {
-      const gx = x / step;
-      const x0 = Math.floor(gx);
-      const fx = gx - x0;
-      const k = y0 * cw + x0;
-      const a = grid[k];
-      const b = grid[k + 1];
-      const c = grid[k + cw];
-      const d = grid[k + cw + 1];
-      out[y * w + x] = a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
-    }
-  }
-  return out;
-}
-
-/** Only pixels this close (map units) to the coast need both a land and a water colour. */
-const COAST_BAND = 8;
+const COAST_BAND = 6;
 
 async function computeFields(): Promise<Fields> {
   const w = Math.ceil(A.w / FIELD_RES);
@@ -275,38 +227,28 @@ async function computeFields(): Promise<Fields> {
     ctx.globalCompositeOperation = "destination-out";
     ctx.fill(S.inland);
   });
-  const lakeM = rasterMask(w, h, (ctx) => ctx.fill(S.lake));
-  const forestM = rasterMask(w, h, (ctx) => ctx.fill(polyPath2D(KALAGA_FOREST)));
-  const wetM = rasterMask(w, h, (ctx) => ctx.fill(polyPath2D(GRASSRIVERS_WETLAND)));
-  const farmM = rasterMask(w, h, (ctx) => ctx.fill(polyPath2D(AMBROSIA_FARMS)));
-  const urbanM = rasterMask(w, h, (ctx) => URBAN_AREAS.forEach((a) => ctx.fill(polyPath2D(a.poly))));
-  blurField(forestM, w, h, 10);
-  blurField(wetM, w, h, 10);
-  blurField(farmM, w, h, 8);
-  blurField(urbanM, w, h, 3);
+  const lakeM = rasterMask(w, h, (ctx) => ctx.fill(S.lakes));
+  const forestM = rasterMask(w, h, (ctx) => FORESTS.forEach((p) => ctx.fill(polyPath2D(p, true))));
+  const wetM = rasterMask(w, h, (ctx) => WETLANDS.forEach((p) => ctx.fill(polyPath2D(p, true))));
+  const farmM = rasterMask(w, h, (ctx) => FARMS.forEach((p) => ctx.fill(polyPath2D(p, true))));
+  blurField(forestM, w, h, 6);
+  blurField(wetM, w, h, 6);
+  blurField(farmM, w, h, 5);
   await yieldFrame();
 
   const isLand = (i: number) => landM[i] > 0.5;
   const dOut = distanceField(w, h, isLand);
   const dIn = distanceField(w, h, (i) => !isLand(i));
-
-  // Slow-varying noise: colour variation and the warp that gives biome edges an organic outline.
-  const N1 = coarseNoise(w, h, 4, (mx, my) => fbm(mx * 0.006, my * 0.006, 3, 11));
-  const WX = coarseNoise(w, h, 4, (mx, my) => (fbm(mx * 0.006, my * 0.006, 3, 31) - 0.5) * 70);
-  const WY = coarseNoise(w, h, 4, (mx, my) => (fbm(mx * 0.006, my * 0.006, 3, 37) - 0.5) * 70);
   await yieldFrame();
 
   const water = new ImageData(w, h);
   const land = new ImageData(w, h);
-  const idx = (x: number, y: number) =>
-    Math.min(h - 1, Math.max(0, Math.round(y))) * w + Math.min(w - 1, Math.max(0, Math.round(x)));
   const lc: RGB = [0, 0, 0];
-  const wet: RGB = [0, 0, 0];
-  const forest: RGB = [0, 0, 0];
-  const interiorWater = oceanRamp(0);
+  const tmp: RGB = [0, 0, 0];
+  const interior = oceanRamp(0);
 
   for (let y = 0; y < h; y++) {
-    if (y % 120 === 0) await yieldFrame();
+    if (y % 160 === 0) await yieldFrame();
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
       const o = i * 4;
@@ -315,19 +257,17 @@ async function computeFields(): Promise<Fields> {
       const onLandPx = landM[i] > 0.5;
       const dist = dOut[i] * FIELD_RES;
       const din = dIn[i] * FIELD_RES;
-      const n1 = N1[i];
 
-      /* water: open sea, lakes, and a band under the coast so the clipped coastline has no fringe */
-      let wc: RGB = interiorWater;
+      let wc: RGB = interior;
       if (!onLandPx || din < COAST_BAND) {
         if (lakeM[i] > 0.5) {
           wc = lakeRamp(dist);
         } else {
-          let depth = dist * (0.75 + 0.5 * n1);
+          let depth = dist;
           const bank = bankWeight(mx, my);
-          if (bank > 0) depth = depth * (1 - bank) + Math.min(depth, 2 + 8 * n1) * bank;
+          if (bank > 0) depth = depth * (1 - bank) + Math.min(depth, 4) * bank;
           const edge = Math.min(x, y, w - 1 - x, h - 1 - y) * FIELD_RES;
-          depth = Math.max(depth, 160 * (1 - smoothstep(0, 70, edge)));
+          depth = Math.max(depth, 80 * (1 - smoothstep(0, 40, edge)));
           wc = oceanRamp(depth);
         }
       }
@@ -336,36 +276,32 @@ async function computeFields(): Promise<Fields> {
       water.data[o + 2] = wc[2];
       water.data[o + 3] = 255;
 
-      /* land: flat colours with soft biome blends */
       lc[0] = LAND.base[0];
       lc[1] = LAND.base[1];
       lc[2] = LAND.base[2];
       if (onLandPx || dist < COAST_BAND) {
-        const j = idx(x + WX[i], y + WY[i]);
-        const wF = forestM[j];
-        const wW = wetM[j];
-        const wA = farmM[j];
-        const wU = urbanM[j];
-        mixInto(lc, LAND.alt, n1 * 0.8);
-        mixInto(lc, LAND.light, smoothstep(0.62, 0.8, n1) * 0.6);
-        if (wA > 0.01) mixInto(lc, LAND.farm, wA * 0.8);
+        const n = fbm(mx * 0.01, my * 0.01, 2, 11);
+        mixInto(lc, LAND.alt, smoothstep(0.45, 0.65, n) * 0.7);
+        const wA = farmM[i];
+        const wW = wetM[i];
+        const wF = forestM[i];
+        if (wA > 0.01) mixInto(lc, LAND.farm, wA * 0.9);
         if (wW > 0.01) {
-          wet[0] = LAND.wet[0];
-          wet[1] = LAND.wet[1];
-          wet[2] = LAND.wet[2];
-          mixInto(wet, LAND.wetDark, smoothstep(0.55, 0.62, fbm(mx * 0.03, my * 0.03, 2, 41)) * 0.8);
-          mixInto(lc, wet, wW);
+          tmp[0] = LAND.wet[0];
+          tmp[1] = LAND.wet[1];
+          tmp[2] = LAND.wet[2];
+          mixInto(tmp, LAND.wetDark, smoothstep(0.52, 0.6, fbm(mx * 0.05, my * 0.05, 2, 41)));
+          mixInto(lc, tmp, wW);
         }
         if (wF > 0.01) {
-          forest[0] = LAND.forest[0];
-          forest[1] = LAND.forest[1];
-          forest[2] = LAND.forest[2];
-          mixInto(forest, LAND.forestDark, smoothstep(0.5, 0.6, fbm(mx * 0.02, my * 0.02, 2, 43)));
-          mixInto(lc, forest, wF);
+          tmp[0] = LAND.forest[0];
+          tmp[1] = LAND.forest[1];
+          tmp[2] = LAND.forest[2];
+          mixInto(tmp, LAND.forestDark, smoothstep(0.5, 0.58, fbm(mx * 0.04, my * 0.04, 2, 43)));
+          mixInto(lc, tmp, wF);
         }
-        if (wU > 0.01) mixInto(lc, LAND.urban, wU * 0.5);
-        const mangroveCoast = (my > 740 && mx < 1015) || my > 1370 || (mx > 1030 && mx < 1062 && my > 980 && my < 1170);
-        if (mangroveCoast && din < 6) mixInto(lc, LAND.mangrove, (1 - smoothstep(1, 4, din)) * 0.85);
+        const southWest = my > 1150 && my < 1370 && mx < 860;
+        if (southWest && din < 5) mixInto(lc, LAND.mangrove, (1 - smoothstep(1, 4, din)) * 0.9);
       }
       land.data[o] = lc[0];
       land.data[o + 1] = lc[1];
@@ -379,17 +315,121 @@ async function computeFields(): Promise<Fields> {
     c.getContext("2d")!.putImageData(img, 0, 0);
     return c;
   };
-  return { water: toCanvas(water), land: toCanvas(land), w, h, wet: wetM, farm: farmM };
+  return { water: toCanvas(water), land: toCanvas(land), w, h };
 }
 
 let fieldsPromise: Promise<Fields> | null = null;
 const getFields = () => (fieldsPromise ??= computeFields());
 
-function sampleField(f: Fields, data: Float32Array, x: number, y: number) {
-  const fx = Math.floor((x - A.x) / FIELD_RES);
-  const fy = Math.floor((y - A.y) / FIELD_RES);
-  if (fx < 0 || fy < 0 || fx >= f.w || fy >= f.h) return 0;
-  return data[fy * f.w + fx];
+/* ------------------------------------------------------------- road network */
+
+interface RoadNetwork {
+  /** County roads between towns. */
+  county: Path2D;
+  /** Section-line roads through farmland and the countryside. */
+  rural: Path2D;
+  /** Winding tracks through the forests. */
+  tracks: Path2D;
+}
+
+function centroid(poly: Pt[]): Pt {
+  const n = poly.length;
+  return [poly.reduce((s, p) => s + p[0], 0) / n, poly.reduce((s, p) => s + p[1], 0) / n];
+}
+
+function inWetland(p: Pt) {
+  return WETLANDS.slice(0, 2).some((w) => pointInPolygon(p, w));
+}
+
+/** Fraction of samples along a segment that are on dry land. */
+function landFraction(a: Pt, b: Pt, samples = 16) {
+  let ok = 0;
+  for (let i = 0; i <= samples; i++) {
+    const t = i / samples;
+    if (onLand([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t])) ok++;
+  }
+  return ok / (samples + 1);
+}
+
+let networkCache: RoadNetwork | null = null;
+function roadNetwork(): RoadNetwork {
+  if (networkCache) return networkCache;
+  const r = seeded(4242);
+
+  // Towns plus scattered villages.
+  const nodes: Pt[] = URBAN_AREAS.filter((a) => a.id !== "ocean-beach").map((a) => centroid(a.poly));
+  for (let i = 0; i < 260; i++) {
+    const p: Pt = [A.x + r() * A.w, A.y + r() * A.h];
+    if (onLand(p) && !inWetland(p)) nodes.push(p);
+  }
+
+  // County roads: link each node to its nearest neighbours with a gentle bend.
+  const county = new Path2D();
+  const seen = new Set<string>();
+  nodes.forEach((a, i) => {
+    const near = nodes
+      .map((b, j) => ({ j, d: Math.hypot(b[0] - a[0], b[1] - a[1]) }))
+      .filter((e) => e.j !== i && e.d < 70)
+      .sort((x, y) => x.d - y.d)
+      .slice(0, 3);
+    for (const { j } of near) {
+      const key = i < j ? `${i}-${j}` : `${j}-${i}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const b = nodes[j];
+      if (landFraction(a, b) < 0.97) continue;
+      const mid: Pt = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      if (inWetland(mid)) continue;
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const bend = (r() - 0.5) * len * 0.25;
+      const nx = -(b[1] - a[1]) / len;
+      const ny = (b[0] - a[0]) / len;
+      county.moveTo(a[0], a[1]);
+      county.quadraticCurveTo(mid[0] + nx * bend, mid[1] + ny * bend, b[0], b[1]);
+    }
+  });
+
+  // Section-line roads: a jittered grid with random gaps, densest in farmland.
+  const rural = new Path2D();
+  const step = 11;
+  const jitter = (x: number, y: number): Pt => [x + (seeded(Math.floor(x * 7 + y * 131))() - 0.5) * 3, y];
+  for (let y = A.y; y < A.y + A.h; y += step) {
+    for (let x = A.x; x < A.x + A.w; x += step) {
+      const a = jitter(x, y);
+      const farm = FARMS.some((f) => pointInPolygon(a, f));
+      const chance = farm ? 0.75 : 0.22;
+      for (const [dx, dy] of [[step, 0], [0, step]]) {
+        if (r() > chance) continue;
+        const b = jitter(x + dx, y + dy);
+        if (!onLand(a) || !onLand(b) || inWetland(a) || inWetland(b)) continue;
+        rural.moveTo(a[0], a[1]);
+        rural.lineTo(b[0], b[1]);
+      }
+    }
+  }
+
+  // Forest tracks: meandering lines.
+  const tracks = new Path2D();
+  for (const forest of FORESTS) {
+    const xs = forest.map((p) => p[0]);
+    const ys = forest.map((p) => p[1]);
+    for (let i = 0; i < 18; i++) {
+      let x = Math.min(...xs) + r() * (Math.max(...xs) - Math.min(...xs));
+      let y = Math.min(...ys) + r() * (Math.max(...ys) - Math.min(...ys));
+      if (!pointInPolygon([x, y], forest)) continue;
+      let heading = r() * Math.PI * 2;
+      tracks.moveTo(x, y);
+      for (let s = 0; s < 14; s++) {
+        heading += (r() - 0.5) * 0.9;
+        x += Math.cos(heading) * 2.5;
+        y += Math.sin(heading) * 2.5;
+        tracks.lineTo(x, y);
+      }
+    }
+  }
+
+  networkCache = { county, rural, tracks };
+  return networkCache;
 }
 
 /* ------------------------------------------------------------------ helpers */
@@ -398,7 +438,8 @@ interface Painter {
   ctx: CanvasRenderingContext2D;
   view: MapView;
   ppu: number;
-  detail: boolean;
+  /** Major roads are drawn a little slimmer on the high-resolution city layers. */
+  roadScale: number;
 }
 
 function inView(p: Painter, x: number, y: number, margin = 0) {
@@ -406,22 +447,31 @@ function inView(p: Painter, x: number, y: number, margin = 0) {
   return x > v.x - margin && x < v.x + v.w + margin && y > v.y - margin && y < v.y + v.h + margin;
 }
 
-function rectInView(p: Painter, r: Rect, margin = 0) {
-  const v = p.view;
-  return r.x + r.w > v.x - margin && r.x < v.x + v.w + margin && r.y + r.h > v.y - margin && r.y < v.y + v.h + margin;
+/** Stroke a road with a grey casing; `minPx` keeps it visible at low resolutions. */
+function strokeRoad(p: Painter, path: Path2D | string, width: number, minPx = 0.8) {
+  const { ctx } = p;
+  const path2d = typeof path === "string" ? new Path2D(path) : path;
+  const w = Math.max(width, minPx / p.ppu);
+  ctx.strokeStyle = C.casing;
+  ctx.lineWidth = w + Math.max(width * 0.45, 0.6 / p.ppu);
+  ctx.stroke(path2d);
+  ctx.strokeStyle = C.street;
+  ctx.lineWidth = w;
+  ctx.stroke(path2d);
 }
 
-function fillRectRot(ctx: CanvasRenderingContext2D, f: Rect & { rot?: number }) {
-  if (!f.rot) {
-    ctx.fillRect(f.x, f.y, f.w, f.h);
-    return;
+function strokeWaterways(ctx: CanvasRenderingContext2D, filter: (width: number) => boolean) {
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (const w of shapes().waterways) {
+    if (!filter(w.width)) continue;
+    ctx.lineWidth = w.width;
+    ctx.stroke(w.path);
   }
-  ctx.save();
-  ctx.translate(f.x + f.w / 2, f.y + f.h / 2);
-  ctx.rotate((f.rot * Math.PI) / 180);
-  ctx.fillRect(-f.w / 2, -f.h / 2, f.w, f.h);
-  ctx.restore();
 }
+
+/** Rivers this wide or wider cut the minor roads; narrower ones are bridged. */
+const WIDE_WATER = 1.8;
 
 /* ---------------------------------------------------------- natural layers */
 
@@ -430,94 +480,6 @@ function paintWater(p: Painter, f: Fields) {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(f.water, A.x, A.y, A.w, A.h);
-  // Crisp light shoreline.
-  ctx.save();
-  ctx.clip(shapes().notLand, "evenodd");
-  ctx.strokeStyle = "rgba(235,250,252,0.7)";
-  ctx.lineJoin = "round";
-  ctx.lineWidth = 1.1;
-  ctx.stroke(shapes().land);
-  ctx.restore();
-}
-
-function paintFarms(p: Painter, f: Fields) {
-  const { ctx } = p;
-  const r = rng(77);
-  const colours = ["#cfd98c", "#c2d67b", "#d8d090", "#bcd475", "#d5dc9b", "#c8cf7f"];
-  const xs = AMBROSIA_FARMS.map((q) => q[0]);
-  const ys = AMBROSIA_FARMS.map((q) => q[1]);
-  const size = 22;
-  ctx.strokeStyle = "rgba(255,255,255,0.35)";
-  ctx.lineWidth = 0.5;
-  for (let y = Math.min(...ys); y < Math.max(...ys); y += size) {
-    for (let x = Math.min(...xs); x < Math.max(...xs); x += size) {
-      const roll = r();
-      const strips = 1 + Math.floor(r() * 3);
-      const cols = [r(), r(), r()];
-      if (!inView(p, x, y, size)) continue;
-      const cx = x + size / 2;
-      const cy = y + size / 2;
-      const wgt = sampleField(f, f.farm, cx, cy) + (cols[2] - 0.5) * 0.5;
-      if (roll > 0.88 || wgt < 0.35 || !onLand([cx, cy]) || inIslet([cx, cy], LAKE, 1.1)) continue;
-      if (URBAN_AREAS.some((a) => pointInPolygon([cx, cy], a.poly))) continue;
-      ctx.globalAlpha = 0.85 * smoothstep(0.35, 0.8, wgt);
-      for (let s = 0; s < strips; s++) {
-        ctx.fillStyle = colours[Math.floor(cols[s] * colours.length)];
-        ctx.fillRect(x, y + (s * size) / strips, size, size / strips);
-      }
-      ctx.strokeRect(x, y, size, size);
-    }
-  }
-  ctx.globalAlpha = 1;
-}
-
-function paintWetlands(p: Painter, f: Fields) {
-  const { ctx } = p;
-  const xs = GRASSRIVERS_WETLAND.map((q) => q[0]);
-  const ys = GRASSRIVERS_WETLAND.map((q) => q[1]);
-  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-
-  // Channels: slow, meandering streams running south-west.
-  const r = rng(55);
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = "#6cc0e4";
-  for (let i = 0; i < 30; i++) {
-    let x = x0 + r() * (x1 - x0);
-    let y = y0 + r() * (y1 - y0) * 0.7;
-    let heading = Math.PI / 2 + 0.35 + (r() - 0.5) * 0.4;
-    const steps = 20 + Math.floor(r() * 50);
-    const width = 0.7 + r() * 1.1;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    for (let s = 0; s < steps; s++) {
-      heading += (r() - 0.5) * 0.55;
-      heading += (Math.PI / 2 + 0.3 - heading) * 0.08;
-      x += Math.cos(heading) * 3;
-      y += Math.sin(heading) * 3;
-      ctx.lineTo(x, y);
-    }
-    ctx.lineWidth = width;
-    ctx.globalAlpha = 0.75 * smoothstep(0.3, 0.8, sampleField(f, f.wet, x, y));
-    ctx.stroke();
-  }
-  // Hammocks: flat darker-green islands of trees.
-  const t = rng(56);
-  ctx.fillStyle = "#77ae55";
-  for (let i = 0; i < 260; i++) {
-    const x = x0 + t() * (x1 - x0);
-    const y = y0 + t() * (y1 - y0);
-    const rx = 1.5 + t() * 4;
-    const ry = rx * (1.8 + t() * 1.6);
-    if (!inView(p, x, y, 20)) continue;
-    const wgt = sampleField(f, f.wet, x, y);
-    if (wgt < 0.45 || !onLand([x, y])) continue;
-    ctx.globalAlpha = 0.9 * smoothstep(0.45, 0.85, wgt);
-    ctx.beginPath();
-    ctx.ellipse(x, y, rx, ry, -0.35, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
 }
 
 function paintLand(p: Painter, f: Fields) {
@@ -528,194 +490,322 @@ function paintLand(p: Painter, f: Fields) {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(f.land, A.x, A.y, A.w, A.h);
-  paintFarms(p, f);
-  paintWetlands(p, f);
 
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = C.river;
-  ctx.lineWidth = 2.4;
-  for (const river of S.rivers) ctx.stroke(river);
-
-  // Beaches.
-  for (const zone of BEACH_ZONES) {
+  // Field patchwork in farmland.
+  const r = seeded(77);
+  const shades = ["#a9c794", "#b3cd9d", "#9fbf8b", "#b8cfa0"];
+  for (const farm of FARMS) {
     ctx.save();
-    ctx.clip(polyPath2D(zone));
-    ctx.strokeStyle = C.sand;
-    ctx.lineWidth = 3.4;
-    ctx.stroke(S.land);
+    ctx.clip(polyPath2D(farm, true));
+    const xs = farm.map((q) => q[0]);
+    const ys = farm.map((q) => q[1]);
+    for (let y = Math.min(...ys); y < Math.max(...ys); y += 5.5) {
+      for (let x = Math.min(...xs); x < Math.max(...xs); x += 5.5) {
+        const pick = r();
+        if (!inView(p, x, y, 6) || pick > 0.6) continue;
+        ctx.fillStyle = shades[Math.floor(pick * 6.6) % shades.length];
+        ctx.fillRect(x, y, 5.5, 5.5);
+      }
+    }
     ctx.restore();
   }
+
+  // Streams, narrow rivers and canals (minor roads bridge them).
+  ctx.strokeStyle = C.river;
+  strokeWaterways(ctx, (w) => w < WIDE_WATER);
+  ctx.restore();
+}
+
+/** Lakes, ponds, broad rivers and lagoons, painted over the land and the minor roads. */
+function paintInlandWater(p: Painter, f: Fields) {
+  const { ctx } = p;
+  const S = shapes();
+  ctx.save();
+  ctx.clip(S.land);
+  ctx.strokeStyle = C.river;
+  strokeWaterways(ctx, (w) => w >= WIDE_WATER);
   ctx.restore();
 
-  // Lakes and the harbour basin.
   ctx.save();
   ctx.clip(S.inland);
   ctx.drawImage(f.water, A.x, A.y, A.w, A.h);
   ctx.restore();
-  ctx.strokeStyle = "rgba(235,250,252,0.7)";
-  ctx.lineWidth = 0.9;
-  ctx.stroke(S.lake);
 }
 
-/* -------------------------------------------------------------------- city */
-
-function paintCellGround(p: Painter, c: Cell) {
+function paintBeaches(p: Painter) {
   const { ctx } = p;
-  const s = c.size;
-  const block: Rect = { x: c.x + c.inset, y: c.y + c.inset, w: s - c.inset * 2, h: s - c.inset * 2 };
-  ctx.fillStyle = C.street;
-  ctx.fillRect(c.x - 0.05, c.y - 0.05, s + 0.1, s + 0.1);
+  const S = shapes();
+  ctx.save();
+  ctx.clip(S.land);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = C.sand;
+  ctx.lineWidth = 2.8;
+  for (const d of BEACH_PATHS) ctx.stroke(new Path2D(d));
+  ctx.lineWidth = 2.4;
+  ctx.stroke(new Path2D(OCEAN_BEACH_SHORE));
+  ctx.lineWidth = 1.5;
+  for (const poly of SANDY_POLYS) ctx.stroke(polyPath2D(poly, true));
+  ctx.lineWidth = 0.9;
+  for (const e of BARRIER_ISLANDS) ctx.stroke(ellipsePath(e));
+  // River mouths and inlets stay open through the sand.
+  ctx.strokeStyle = C.river;
+  strokeWaterways(ctx, (w) => w >= WIDE_WATER);
+  ctx.restore();
+}
 
-  if (c.kind === "avenue") {
-    if (c.avH !== c.avV) {
-      ctx.fillStyle = C.verge;
-      if (c.avV) ctx.fillRect(c.x + s / 2 - 0.5, c.y, 1, s);
-      else ctx.fillRect(c.x, c.y + s / 2 - 0.5, s, 1);
+/* -------------------------------------------------------------------- towns */
+
+function paintDistrict(p: Painter, d: District) {
+  const { ctx } = p;
+  if (!inView(p, d.cx, d.cy, d.r)) return;
+  const cell = polyPath2D(d.poly);
+  const r = seeded(d.seed);
+  const local = Math.max(0.24, 0.7 / p.ppu);
+  ctx.save();
+  ctx.clip(cell);
+
+  if (d.kind === "park") {
+    ctx.fillStyle = C.park;
+    ctx.fill(cell);
+    if (r() < 0.65) {
+      ctx.fillStyle = C.river;
+      ctx.beginPath();
+      ctx.ellipse(d.cx + (r() - 0.5) * d.r * 0.6, d.cy + (r() - 0.5) * d.r * 0.6, d.r * (0.14 + r() * 0.14), d.r * (0.09 + r() * 0.1), r() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
     }
+    // A couple of winding park drives.
+    ctx.strokeStyle = C.street;
+    ctx.lineWidth = local;
+    for (let i = 0; i < 2; i++) {
+      const a = r() * Math.PI * 2;
+      const b = a + Math.PI * (0.6 + r() * 0.8);
+      ctx.beginPath();
+      ctx.moveTo(d.cx + Math.cos(a) * d.r, d.cy + Math.sin(a) * d.r);
+      ctx.quadraticCurveTo(d.cx + (r() - 0.5) * d.r, d.cy + (r() - 0.5) * d.r, d.cx + Math.cos(b) * d.r, d.cy + Math.sin(b) * d.r);
+      ctx.stroke();
+    }
+    ctx.restore();
     return;
   }
 
-  switch (c.kind) {
-    case "verge":
-      ctx.fillStyle = C.verge;
-      break;
-    case "park":
-      ctx.fillStyle = C.park;
-      break;
-    case "parking":
-      ctx.fillStyle = C.parking;
-      break;
-    case "plaza":
-      ctx.fillStyle = C.plaza;
-      break;
-    default:
-      ctx.fillStyle = c.lots.length ? C.blockResidential : C.block;
-  }
-  ctx.fillRect(block.x, block.y, block.w, block.h);
-}
+  ctx.translate(d.cx, d.cy);
+  ctx.rotate(d.angle);
+  const R = d.r + 1;
+  const ox = (r() - 0.5) * d.sx;
+  const oy = (r() - 0.5) * d.sy;
+  const nx = Math.ceil(R / d.sx) + 1;
+  const ny = Math.ceil(R / d.sy) + 1;
 
-function paintAirport(p: Painter) {
-  const { ctx } = p;
-  const c: Pt = [873, 1174];
-  const rot = -20;
-  const a = (rot * Math.PI) / 180;
-  if (!inView(p, c[0], c[1], 80)) return;
-  const local = (x: number, y: number): Pt => {
-    const dx = x - c[0];
-    const dy = y - c[1];
-    return [dx * Math.cos(-a) - dy * Math.sin(-a), dx * Math.sin(-a) + dy * Math.cos(-a)];
-  };
-  ctx.save();
-  ctx.translate(c[0], c[1]);
-  ctx.rotate(a);
-  ctx.fillStyle = C.verge;
-  ctx.fillRect(-52, -29, 104, 58);
-  ctx.fillStyle = C.plaza;
-  ctx.fillRect(-48, 14.4, 70, 7.4);
-  ctx.strokeStyle = "#b4b4bc";
-  ctx.lineWidth = 1.8;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(-36, -9);
-  ctx.lineTo(36, -9);
-  ctx.moveTo(-32, 12.6);
-  ctx.lineTo(32, 12.6);
-  for (const u of [-30, 0, 28]) {
-    ctx.moveTo(u, -14.9);
-    ctx.lineTo(u, 14.6);
+  // Pocket parks, and darker yards in industrial areas.
+  const lots = Math.round((nx * ny * 4) * (d.kind === "industrial" ? 0.22 : 0.035));
+  ctx.fillStyle = d.kind === "industrial" ? C.urbanDark : C.park;
+  for (let i = 0; i < lots; i++) {
+    const bx = Math.floor((r() * 2 - 1) * nx);
+    const by = Math.floor((r() * 2 - 1) * ny);
+    ctx.fillRect(ox + bx * d.sx, oy + by * d.sy, d.sx, d.sy);
   }
-  ctx.stroke();
-  for (const [x, y, len, w, r] of RUNWAYS) {
-    if (Math.hypot(x - c[0], y - c[1]) > 80) continue;
-    const [u, v] = local(x, y);
-    ctx.save();
-    ctx.translate(u, v);
-    ctx.rotate(((r - rot) * Math.PI) / 180);
-    runway(ctx, len, w * 0.95, p.detail);
-    ctx.restore();
+
+  // Canal estates: a finger canal down the middle of every long block.
+  if (d.kind === "canal") {
+    ctx.strokeStyle = C.river;
+    ctx.lineWidth = Math.min(0.5, d.sy * 0.16);
+    ctx.lineCap = "butt";
+    ctx.beginPath();
+    for (let j = -ny; j <= ny; j++) {
+      const y = oy + (j + 0.5) * d.sy;
+      ctx.moveTo(-R, y);
+      ctx.lineTo(R, y);
+    }
+    ctx.stroke();
+  }
+
+  // The street grid.
+  const streets = new Path2D();
+  for (let i = -nx; i <= nx; i++) {
+    streets.moveTo(ox + i * d.sx, -R);
+    streets.lineTo(ox + i * d.sx, R);
+  }
+  for (let j = -ny; j <= ny; j++) {
+    streets.moveTo(-R, oy + j * d.sy);
+    streets.lineTo(R, oy + j * d.sy);
+  }
+  ctx.strokeStyle = C.street;
+  ctx.lineWidth = local;
+  ctx.stroke(streets);
+
+  // Lake neighbourhoods: ponds with a loop road around each.
+  if (d.kind === "lake") {
+    const ponds = 1 + Math.floor(r() * 2.4);
+    for (let i = 0; i < ponds; i++) {
+      const px = (r() - 0.5) * d.r * 0.9;
+      const py = (r() - 0.5) * d.r * 0.9;
+      const rx = d.r * (0.14 + r() * 0.16);
+      const ry = rx * (0.55 + r() * 0.45);
+      const rot = r() * Math.PI;
+      ctx.beginPath();
+      ctx.ellipse(px, py, rx + local * 2.2, ry + local * 2.2, rot, 0, Math.PI * 2);
+      ctx.fillStyle = C.urban;
+      ctx.fill();
+      ctx.strokeStyle = C.street;
+      ctx.lineWidth = local;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(px, py, rx, ry, rot, 0, Math.PI * 2);
+      ctx.fillStyle = C.river;
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
 
-function runway(ctx: CanvasRenderingContext2D, len: number, w: number, detail: boolean) {
-  ctx.fillStyle = C.runway;
-  ctx.fillRect(-len / 2, -w / 2, len, w);
-  ctx.fillStyle = "rgba(255,255,255,0.9)";
-  if (detail) for (let x = -len / 2 + 4; x < len / 2 - 4; x += 2.4) ctx.fillRect(x, -0.07, 1.3, 0.14);
-  for (const end of [-1, 1]) {
-    for (let k = -3; k <= 3; k++) {
-      if (k === 0) continue;
-      ctx.fillRect(end * (len / 2 - 1.6) - 0.6, k * (w / 8) - 0.12, 1.2, 0.24);
-    }
+/** Returns true if the town is (at least partly) in view and was painted. */
+function paintTown(p: Painter, area: UrbanArea): boolean {
+  const { ctx } = p;
+  const xs = area.poly.map((q) => q[0]);
+  const ys = area.poly.map((q) => q[1]);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  if (!inView(p, (x0 + x1) / 2, (y0 + y1) / 2, Math.max(x1 - x0, y1 - y0))) return false;
+  const outline = polyPath2D(area.poly, true);
+
+  ctx.save();
+  ctx.clip(outline);
+  ctx.fillStyle = C.urban;
+  ctx.fill(outline);
+
+  const plan = streetPlan(area);
+  const arterials = new Path2D();
+  for (const d of plan) {
+    paintDistrict(p, d);
+    if (inView(p, d.cx, d.cy, d.r)) arterials.addPath(polyPath2D(d.poly));
+  }
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  // District edges are collector roads; long avenues run right across town.
+  strokeRoad(p, arterials, 0.34, 0);
+  const avenues = new Path2D();
+  const r = seeded(area.seed * 53 + 7);
+  const gap = Math.max(4.5, area.street * 4.4);
+  for (let x = x0 + gap * (0.25 + r() * 0.5); x < x1; x += gap * (0.8 + r() * 0.55)) {
+    const tilt = (r() - 0.5) * 0.14 * (y1 - y0);
+    avenues.moveTo(x - tilt, y0);
+    avenues.lineTo(x + tilt, y1);
+  }
+  for (let y = y0 + gap * (0.25 + r() * 0.5); y < y1; y += gap * (0.8 + r() * 0.55)) {
+    const tilt = (r() - 0.5) * 0.14 * (x1 - x0);
+    avenues.moveTo(x0, y - tilt);
+    avenues.lineTo(x1, y + tilt);
+  }
+  strokeRoad(p, avenues, 0.56, 0.7);
+  ctx.restore();
+
+  ctx.strokeStyle = C.urbanEdge;
+  ctx.lineWidth = Math.max(0.3, 0.8 / p.ppu);
+  ctx.stroke(outline);
+  return true;
+}
+
+/**
+ * Towns are painted on their own canvas, cut to dry land (minus lakes, ponds and rivers)
+ * and then laid over the map, so streets never run across water.
+ */
+function paintTowns(p: Painter) {
+  const { ctx, view, ppu } = p;
+  const layer = canvas(ctx.canvas.width, ctx.canvas.height);
+  const t = layer.getContext("2d")!;
+  t.setTransform(ppu, 0, 0, ppu, -view.x * ppu, -view.y * ppu);
+  const painter: Painter = { ...p, ctx: t };
+  let any = false;
+  for (const area of URBAN_AREAS) any = paintTown(painter, area) || any;
+  if (!any) return;
+
+  const S = shapes();
+  t.globalCompositeOperation = "destination-in";
+  t.fill(S.land);
+  t.globalCompositeOperation = "destination-out";
+  t.fill(S.inland);
+  strokeWaterways(t, () => true);
+
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(layer, 0, 0);
+  ctx.restore();
+}
+
+function paintAirports(p: Painter) {
+  const { ctx } = p;
+  for (const [lat, lon, len, angle] of AIRPORTS) {
+    const [x, y] = geo(lat, lon);
+    if (!inView(p, x, y, len * 2)) continue;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((angle * Math.PI) / 180);
+    ctx.fillStyle = C.apron;
+    ctx.fillRect(-len * 0.65, -len * 0.4, len * 1.3, len * 0.8);
+    ctx.fillStyle = C.runway;
+    ctx.fillRect(-len / 2, -len * 0.2, len, Math.max(0.5, len * 0.07));
+    ctx.fillRect(-len / 2, len * 0.14, len, Math.max(0.5, len * 0.07));
+    ctx.restore();
   }
 }
 
-function paintCity(p: Painter) {
-  const plan = cityPlan();
-  const cells = plan.cells.filter((c) => rectInView(p, { x: c.x, y: c.y, w: c.size, h: c.size }, 2));
-  for (const c of cells) paintCellGround(p, c);
-  paintAirport(p);
-  // Building footprints, a shade darker than the blocks.
-  p.ctx.fillStyle = C.footprint;
-  for (const f of plan.footprints) {
-    if (f.base > 0 || !rectInView(p, f, 1)) continue;
-    fillRectRot(p.ctx, f);
+/** Piers and marina docks reaching out over the water. */
+function paintPiers(p: Painter) {
+  const { ctx } = p;
+  ctx.lineCap = "butt";
+  for (const [lat, lon, heading, len, fingers] of PIERS) {
+    const [x, y] = geo(lat, lon);
+    if (!inView(p, x, y, len * 2)) continue;
+    const path = new Path2D();
+    path.moveTo(-0.3, 0);
+    path.lineTo(len, 0);
+    for (let i = 0; i < fingers; i++) {
+      const fx = (len * (i + 1.2)) / (fingers + 0.6);
+      path.moveTo(fx, -0.75);
+      path.lineTo(fx, 0.75);
+    }
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((heading * Math.PI) / 180);
+    ctx.strokeStyle = C.casing;
+    ctx.lineWidth = fingers ? 0.3 : 0.42;
+    ctx.stroke(path);
+    ctx.strokeStyle = fingers ? C.urban : "#e9e4d4";
+    ctx.lineWidth = fingers ? 0.2 : 0.3;
+    ctx.stroke(path);
+    ctx.restore();
   }
 }
 
 /* -------------------------------------------------------------------- roads */
 
-function paintRoads(p: Painter) {
+/** County roads, section roads and forest tracks: on dry land only. */
+function paintMinorRoads(p: Painter) {
   const { ctx } = p;
-  const S = shapes();
+  const net = roadNetwork();
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  const road = (path: Path2D, width: number) => {
-    ctx.strokeStyle = C.roadCasing;
-    ctx.lineWidth = width + 0.7;
-    ctx.stroke(path);
-    ctx.strokeStyle = C.road;
-    ctx.lineWidth = width;
-    ctx.stroke(path);
-  };
-  for (const r of S.roads) road(r, 1.3);
-  for (const hw of S.highways) road(hw, 2.8);
-  for (const b of S.bridges) road(b, 2.4);
-
-  // Regional airstrip at Port Gellhorn.
-  for (const [x, y, len, w, r] of RUNWAYS) {
-    if (Math.hypot(x - 873, y - 1174) < 80 || !inView(p, x, y, len)) continue;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate((r * Math.PI) / 180);
-    ctx.fillStyle = C.verge;
-    ctx.fillRect(-len / 2 - 4, -w * 2.5, len + 8, w * 5);
-    runway(ctx, len, w, p.detail);
-    ctx.restore();
-  }
-}
-
-/* ------------------------------------------------------------- grid & labels */
-
-function paintGrid(p: Painter) {
-  const { ctx } = p;
-  const step = 100;
   ctx.save();
-  ctx.strokeStyle = "rgba(255,255,255,0.1)";
-  ctx.lineWidth = 0.7;
-  ctx.beginPath();
-  for (let x = Math.ceil(p.view.x / step) * step; x < p.view.x + p.view.w; x += step) {
-    ctx.moveTo(x, p.view.y);
-    ctx.lineTo(x, p.view.y + p.view.h);
-  }
-  for (let y = Math.ceil(p.view.y / step) * step; y < p.view.y + p.view.h; y += step) {
-    ctx.moveTo(p.view.x, y);
-    ctx.lineTo(p.view.x + p.view.w, y);
-  }
-  ctx.stroke();
+  ctx.clip(shapes().land);
+  strokeRoad(p, net.tracks, 0.3, 0.5);
+  strokeRoad(p, net.rural, 0.35, 0.6);
+  strokeRoad(p, net.county, 0.6, 0.8);
   ctx.restore();
 }
+
+/** Highways and main roads, drawn last so they bridge rivers, lakes and bays. */
+function paintMajorRoads(p: Painter) {
+  const { ctx } = p;
+  const k = p.roadScale;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (const d of ROADS) strokeRoad(p, d, 0.9 * k, 1.1);
+  for (const d of CAUSEWAYS) strokeRoad(p, d, 0.8 * k, 1.1);
+  strokeRoad(p, OVERSEAS_HIGHWAY, 0.9 * k, 1.1);
+  for (const d of HIGHWAYS) strokeRoad(p, d, 1.5 * k, 1.6);
+}
+
+/* ------------------------------------------------------------------ labels */
 
 function cssFont(variable: string, fallback: string): string {
   const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
@@ -737,20 +827,20 @@ function drawLabel(ctx: CanvasRenderingContext2D, label: MapLabel, fonts: { disp
   if (label.kind === "region") {
     ctx.font = `400 ${size}px ${fonts.display}`;
     ctx.lineWidth = size * 0.14;
-    ctx.strokeStyle = "rgba(20, 22, 40, 0.8)";
+    ctx.strokeStyle = "rgba(25, 30, 25, 0.75)";
     ctx.strokeText(label.text, 0, 0);
     ctx.fillStyle = "#ffffff";
     ctx.fillText(label.text, 0, 0);
   } else if (label.kind === "district") {
     ctx.font = `800 ${size}px ${fonts.body}`;
     ctx.lineWidth = size * 0.26;
-    ctx.strokeStyle = "rgba(20, 22, 40, 0.7)";
+    ctx.strokeStyle = "rgba(25, 30, 25, 0.7)";
     ctx.strokeText(label.text, 0, 0);
     ctx.fillStyle = "#ffffff";
     ctx.fillText(label.text, 0, 0);
   } else {
     ctx.font = `italic 700 ${size}px ${fonts.body}`;
-    ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
     ctx.fillText(label.text, 0, 0);
   }
   ctx.restore();
@@ -760,9 +850,9 @@ async function paintLabels(p: Painter) {
   const { ctx } = p;
   ctx.save();
   ctx.clip(shapes().land);
-  ctx.strokeStyle = "rgba(255,255,255,0.55)";
-  ctx.lineWidth = 1.2;
-  ctx.setLineDash([8, 6]);
+  ctx.strokeStyle = "rgba(255,255,255,0.6)";
+  ctx.lineWidth = 1.1;
+  ctx.setLineDash([6, 4]);
   for (const d of REGION_BOUNDARIES) ctx.stroke(new Path2D(d));
   ctx.restore();
 
@@ -773,25 +863,31 @@ async function paintLabels(p: Painter) {
   };
   for (const label of DISTRICT_LABELS) drawLabel(ctx, label, fonts);
   for (const region of REGIONS) {
-    drawLabel(ctx, { text: region.name.toUpperCase(), x: region.label.x, y: region.label.y, size: 40, kind: "region" }, fonts);
+    drawLabel(ctx, { text: region.name.toUpperCase(), x: region.label.x, y: region.label.y, size: 26, kind: "region" }, fonts);
   }
 }
 
 /* ------------------------------------------------------------------- layers */
 
-async function paintLayer(view: MapView, ppu: number, detail: boolean): Promise<HTMLCanvasElement> {
+async function paintLayer(view: MapView, ppu: number): Promise<HTMLCanvasElement> {
   const f = await getFields();
   const out = canvas(Math.round(view.w * ppu), Math.round(view.h * ppu));
   const ctx = out.getContext("2d")!;
-  const p: Painter = { ctx, view, ppu, detail };
+  const p: Painter = { ctx, view, ppu, roadScale: ppu >= 8 ? 0.6 : ppu >= 4 ? 0.8 : 1 };
   ctx.setTransform(ppu, 0, 0, ppu, -view.x * ppu, -view.y * ppu);
 
   paintWater(p, f);
   paintLand(p, f);
   await yieldFrame();
-  paintCity(p);
-  paintRoads(p);
-  paintGrid(p);
+  paintMinorRoads(p);
+  paintInlandWater(p, f);
+  await yieldFrame();
+  paintTowns(p);
+  paintAirports(p);
+  paintBeaches(p);
+  paintPiers(p);
+  paintMajorRoads(p);
+  await yieldFrame();
   await paintLabels(p);
   return out;
 }
@@ -833,18 +929,23 @@ function cachedLayer(key: string, make: () => Promise<MapLayer>) {
 export function renderBaseLayer(heightPx: number): Promise<MapLayer> {
   return cachedLayer(`base:${heightPx}`, async () => {
     const view = { x: A.x, y: A.y, w: A.w, h: A.h };
-    const out = await paintLayer(view, heightPx / A.h, false);
+    const out = await paintLayer(view, heightPx / A.h);
     return { canvas: out, view, edgeColor: edgeColor(out) };
   });
 }
 
-/** High-resolution Vice City layers. `quality` scales the desktop resolution (0.5 on phones). */
+/**
+ * Higher-resolution region and city layers. `quality` scales the desktop resolution (0.5 on
+ * phones); layers that would add little over the base map at that quality are skipped.
+ */
 export async function renderDetailLayers(maxTexture: number, quality: number): Promise<MapLayer[]> {
   const out: MapLayer[] = [];
   for (const v of DETAIL_VIEWS) {
     const ppu = Math.min(v.pxPerUnit * quality, maxTexture / Math.max(v.w, v.h));
+    if (ppu < 3) continue;
     const view = { x: v.x, y: v.y, w: v.w, h: v.h };
-    out.push(await cachedLayer(`${v.id}:${ppu.toFixed(2)}`, async () => ({ canvas: await paintLayer(view, ppu, true), view })));
+    out.push(await cachedLayer(`${v.id}:${ppu.toFixed(2)}`, async () => ({ canvas: await paintLayer(view, ppu), view })));
+    await yieldFrame();
   }
   return out;
 }

@@ -1,16 +1,19 @@
 import type { PropertyCategory, Region, RegionId, TokenStatus } from "@/lib/types";
 
-/** Map world size in map units. All property locations use this coordinate space. */
-export const MAP_WIDTH = 1200;
-export const MAP_HEIGHT = 1600;
+/**
+ * Map world size in map units (16 in-game metres each; see src/components/map/tiles.ts).
+ * All property locations use this coordinate space.
+ */
+export const MAP_WIDTH = 1408;
+export const MAP_HEIGHT = 1408;
 
 export const REGIONS: Region[] = [
-  { id: "port-gellhorn", name: "Port Gellhorn", label: { x: 290, y: 565 } },
-  { id: "ambrosia", name: "Ambrosia", label: { x: 630, y: 470 } },
-  { id: "mount-kalaga", name: "Mount Kalaga", label: { x: 660, y: 215 } },
-  { id: "vice-city", name: "Vice City", label: { x: 960, y: 860 } },
-  { id: "grassrivers", name: "Grassrivers", label: { x: 600, y: 1000 } },
-  { id: "leonida-keys", name: "Leonida Keys", label: { x: 420, y: 1438 } },
+  { id: "port-gellhorn", name: "Port Gellhorn", label: { x: 360, y: 540 } },
+  { id: "ambrosia", name: "Ambrosia", label: { x: 600, y: 520 } },
+  { id: "mount-kalaga", name: "Mount Kalaga", label: { x: 560, y: 360 } },
+  { id: "vice-city", name: "Vice City", label: { x: 780, y: 720 } },
+  { id: "grassrivers", name: "Grassrivers", label: { x: 540, y: 1010 } },
+  { id: "leonida-keys", name: "Leonida Keys", label: { x: 560, y: 1160 } },
 ];
 
 export const REGION_BY_ID: Record<RegionId, Region> = Object.fromEntries(

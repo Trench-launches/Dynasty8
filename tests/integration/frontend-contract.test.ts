@@ -8,6 +8,9 @@ import { api } from "@/lib/api-client/client";
 import { toChartPoints, toMarketSnapshot, toProperty } from "@/lib/api-client/adapter";
 import { CATALOGUE, slugify } from "@/data/catalogue";
 import { MOCK_PROPERTIES } from "@/data/properties";
+
+/** Pin positions change with map art, so read them from the catalogue instead of hard-coding. */
+const STARLET_MAP = CATALOGUE.find((e) => e.name === "Starlet Motel")!.map!;
 import { addSnapshot, get, installMockProviders, makeLive, params, resetDatabase } from "../helpers/fixtures";
 
 /** Runtime mirror of src/contracts/api.ts, used to prove responses match the published contract. */
@@ -113,7 +116,7 @@ describe("frontend API contract", () => {
       featured: true,
       priority: 1,
       verification: { status: "unverified" },
-      location: { x: 302, y: 362, precision: "approximate" },
+      location: { x: STARLET_MAP[0], y: STARLET_MAP[1], precision: "approximate" },
       token: { ticker: "STARLET", status: "coming_soon", mint: null, mintVerified: false, pumpFunUrl: null },
       market: null,
     });

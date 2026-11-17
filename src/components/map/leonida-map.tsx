@@ -2,23 +2,26 @@
 
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
 import { Canvas } from "@react-three/fiber";
-import { ChevronDown, Locate, Minus, Plus } from "lucide-react";
+import { ChevronDown, Locate, Minus, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { REGIONS } from "@/data/regions";
 import type { MapLocation, Property } from "@/lib/types";
 import {
   CameraRig,
-  MapGround,
   PinProjector,
   SelectionBeacon,
   type Insets,
+  type PinCluster,
   type RigApi,
   type ViewMode,
 } from "./leonida-scene";
 
+import { LEONIDA_SEA, TileGround } from "./tile-ground";
+import { LEONIDA_MAP_CREDIT } from "./tiles";
+
 export type { Insets } from "./leonida-scene";
-import { MapPin, PinGlyph, type PinState } from "./map-pin";
+import { MapPin, PIN_GOLD, PIN_GREEN, PinGlyph, type PinState } from "./map-pin";
 
 export interface LeonidaMapHandle {
   focus(location: MapLocation): void;
@@ -42,7 +45,7 @@ interface LeonidaMapProps {
   children?: ReactNode;
 }
 
-const FOG = "#e7a3b8";
+const FOG = LEONIDA_SEA;
 
 export default function LeonidaMap({
   apiRef,
@@ -59,6 +62,15 @@ export default function LeonidaMap({
 }: LeonidaMapProps) {
   const rig = useRef<RigApi>(null);
   const pinEls = useRef(new Map<string, HTMLElement>());
+  const clusterEls = useRef(new Map<string, HTMLElement>());
+  const selectedRef = useRef<string | null>(selectedSlug);
+  const expandedRef = useRef<string | null>(null);
+  const [clusters, setClusters] = useState<PinCluster[]>([]);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  useEffect(() => {
+    selectedRef.current = selectedSlug;
+    expandedRef.current = expanded;
+  });
   const compassRef = useRef<HTMLSpanElement>(null);
   const insetsRef = useRef(insets);
   const introFocusRef = useRef<{ location: MapLocation; insets: Insets } | null>(null);
@@ -101,7 +113,34 @@ export default function LeonidaMap({
   }));
 
   const markReady = useCallback(() => setReady(true), []);
-  const noop = useCallback(() => {}, []);
+  const expandedAtRef = useRef(0);
+  const closeTimer = useRef<number | null>(null);
+  const cancelClose = useCallback(() => {
+    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+    closeTimer.current = null;
+  }, []);
+  /** Fan a cluster out (or close it with null); a newly opened cluster replays the sweep. */
+  const openCluster = useCallback(
+    (id: string | null) => {
+      cancelClose();
+      if (id && id !== expandedRef.current) expandedAtRef.current = performance.now();
+      setExpanded(id);
+    },
+    [cancelClose],
+  );
+  /** Hover-opened clusters close shortly after the mouse leaves the badge and its pins. */
+  const scheduleClose = useCallback(() => {
+    cancelClose();
+    closeTimer.current = window.setTimeout(() => setExpanded(null), 300);
+  }, [cancelClose]);
+  useEffect(() => cancelClose, [cancelClose]);
+  const collapse = useCallback(() => openCluster(null), [openCluster]);
+  const onClusters = useCallback((next: PinCluster[]) => {
+    setClusters(next);
+    setExpanded((id) => (id && next.some((c) => c.id === id) ? id : null));
+  }, []);
+  /** Pins of the fanned-out cluster. */
+  const petals = new Set(clusters.find((c) => c.id === expanded)?.slugs ?? []);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.target !== e.currentTarget) return; // let pins and buttons handle their own keys
@@ -116,7 +155,10 @@ export default function LeonidaMap({
       "=": () => api.zoomBy(1 / 1.5),
       "-": () => api.zoomBy(1.5),
       "0": () => api.reset(),
-      Escape: () => onSelect(null),
+      Escape: () => {
+        openCluster(null);
+        onSelect(null);
+      },
     };
     const fn = keys[e.key];
     if (fn) {
@@ -138,16 +180,17 @@ export default function LeonidaMap({
         "relative isolate overflow-hidden outline-none select-none focus-visible:ring-2 focus-visible:ring-tropic/60 focus-visible:ring-inset",
         className,
       )}
-      style={{
-        background: `linear-gradient(to bottom, #120c26 0%, #3b1d5c 28%, #a3487f 48%, ${FOG} 62%, ${FOG} 100%)`,
-      }}
+      style={{ background: FOG }}
     >
       <Canvas
         flat
         dpr={[1, 2]}
         camera={{ fov: 35, near: 1, far: 20000, position: [0, 4000, 1] }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-        onPointerMissed={() => onSelect(null)}
+        onPointerMissed={() => {
+          openCluster(null);
+          onSelect(null);
+        }}
         className="!absolute inset-0 touch-none"
         fallback={
           <div className="grid h-full place-items-center p-6 text-center text-sm text-[#495057]">
@@ -156,8 +199,7 @@ export default function LeonidaMap({
         }
       >
         <fog attach="fog" args={[FOG, 4000, 12000]} />
-        <MapGround onReady={markReady} />
-        <PinProjector properties={properties} pinEls={pinEls} />
+        <TileGround onReady={markReady} />
         <SelectionBeacon location={properties.find((p) => p.slug === selectedSlug)?.location ?? null} />
         <CameraRig
           ref={rig}
@@ -166,7 +208,17 @@ export default function LeonidaMap({
           compassRef={compassRef}
           introFocusRef={introFocusRef}
           onZoomBand={setNear}
-          onInteract={noop}
+          onInteract={collapse}
+        />
+        {/* After CameraRig: pins are placed with the camera as moved for this frame. */}
+        <PinProjector
+          properties={properties}
+          pinEls={pinEls}
+          clusterEls={clusterEls}
+          selectedRef={selectedRef}
+          expandedRef={expandedRef}
+          expandedAtRef={expandedAtRef}
+          onClusters={onClusters}
         />
       </Canvas>
 
@@ -190,8 +242,59 @@ export default function LeonidaMap({
               }}
               className="pointer-events-auto absolute top-0 left-0 will-change-transform"
               style={{ display: "none" }}
+              onPointerEnter={(e) => {
+                if (e.pointerType === "mouse" && petals.has(p.slug)) cancelClose();
+              }}
+              onPointerLeave={(e) => {
+                if (e.pointerType === "mouse" && petals.has(p.slug)) scheduleClose();
+              }}
             >
-              <MapPin property={p} state={state} showLabel={near} onSelect={onSelect} onHover={onHover} />
+              <MapPin
+                property={p}
+                state={state}
+                showLabel={near}
+                onSelect={onSelect}
+                onHover={onHover}
+                petal={petals.has(p.slug)}
+              />
+            </div>
+          );
+        })}
+
+        {/* Cluster badges: pins that crowd together on screen; click to fan them out. */}
+        {clusters.map((c) => {
+          const isOpen = c.id === expanded;
+          return (
+            <div
+              key={c.id}
+              ref={(el) => {
+                if (el) clusterEls.current.set(c.id, el);
+                else clusterEls.current.delete(c.id);
+              }}
+              className="pointer-events-auto absolute top-0 left-0 will-change-transform"
+              style={{ display: "none", zIndex: isOpen ? 300000 : 150000 }}
+            >
+              <button
+                type="button"
+                aria-expanded={isOpen}
+                aria-label={isOpen ? "Close group" : `Show ${c.slugs.length} properties here`}
+                onClick={() => openCluster(isOpen ? null : c.id)}
+                onPointerEnter={(e) => {
+                  if (e.pointerType !== "mouse") return;
+                  cancelClose();
+                  if (!isOpen) openCluster(c.id);
+                }}
+                onPointerLeave={(e) => {
+                  if (e.pointerType === "mouse") scheduleClose();
+                }}
+                className={cn(
+                  "grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[3px] border-white font-display leading-none text-white shadow-[0_2px_6px_rgba(0,0,0,0.45)] transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2",
+                  isOpen ? "size-6 text-sm" : "size-10 text-lg",
+                )}
+                style={{ background: PIN_GREEN, outlineColor: PIN_GOLD }}
+              >
+                {isOpen ? <X className="size-3.5" strokeWidth={3.2} aria-hidden="true" /> : c.slugs.length}
+              </button>
             </div>
           );
         })}
@@ -210,7 +313,7 @@ export default function LeonidaMap({
       <nav
         aria-label="Jump to region"
         className="scrollbar-thin absolute left-3 z-30 flex gap-1.5 overflow-x-auto pb-1"
-        style={{ top: topOffset + 12, maxWidth: `calc(100% - ${insets.right + 24}px)` }}
+        style={{ top: topOffset + 12, maxWidth: `calc(100% - ${insets.right + 80}px)` }}
       >
         {REGIONS.map((r) => (
           <button
@@ -227,12 +330,12 @@ export default function LeonidaMap({
       {/* Camera controls */}
       <div
         className={cn(
-          "absolute z-30 flex flex-col items-end gap-2 transition-[right,bottom] duration-300",
+          "absolute z-30 flex flex-col items-end gap-2 transition-[right,top] duration-300",
           !showChrome && "hidden",
         )}
-        style={{ right: insets.right + 12, bottom: insets.bottom + 12 }}
+        style={{ right: insets.right + 14, top: topOffset + 14 }}
       >
-        <div className="flex flex-col overflow-hidden rounded-2xl border border-[#dee2e6] bg-white/85 backdrop-blur">
+        <div className="flex flex-col overflow-hidden rounded-md border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.3)]" style={{ background: PIN_GREEN }}>
           <ControlButton label="Zoom in" onClick={() => rig.current?.zoomBy(1 / 1.6)}>
             <Plus />
           </ControlButton>
@@ -244,6 +347,22 @@ export default function LeonidaMap({
           </ControlButton>
         </div>
       </div>
+
+      {/* Compass (the map is always north-up in 2D) */}
+      <div
+        aria-hidden="true"
+        className={cn("pointer-events-none absolute left-3 z-30", !showChrome && "hidden")}
+        style={{ top: topOffset + 58 }}
+      >
+        <Compass />
+      </div>
+
+      {/* Gold frame */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-40 border-[3px]"
+        style={{ borderColor: PIN_GOLD, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.6)" }}
+      />
 
       {/* Legend */}
       <div
@@ -271,6 +390,25 @@ export default function LeonidaMap({
         )}
       </div>
 
+      {/* Map credit (CC BY 4.0 requires it) */}
+      <p
+        className={cn(
+          "pointer-events-auto absolute z-30 max-w-[60%] truncate rounded bg-white/80 px-1.5 py-0.5 text-right text-[10px] leading-tight text-[#495057] backdrop-blur transition-[bottom,right] duration-300",
+          !showChrome && "hidden",
+        )}
+        style={{ right: insets.right + 12, bottom: insets.bottom + 10 }}
+      >
+        Map:{" "}
+        <a href={LEONIDA_MAP_CREDIT.href} target="_blank" rel="noopener noreferrer" className="underline hover:text-[#212529]">
+          gtadb.org
+        </a>{" "}
+        &amp; GTA VI Community Mapping Project,{" "}
+        <a href={LEONIDA_MAP_CREDIT.license} target="_blank" rel="noopener noreferrer" className="underline hover:text-[#212529]">
+          CC BY 4.0
+        </a>{" "}
+        (legend removed)
+      </p>
+
       {children}
     </div>
   );
@@ -295,7 +433,7 @@ function ControlButton({
       aria-pressed={pressed}
       onClick={onClick}
       className={cn(
-        "grid size-10 place-items-center text-[#212529] transition-colors hover:bg-[#e9ecef] hover:text-[#212529] focus-visible:bg-[#e9ecef] focus-visible:outline-none [&+&]:border-t [&+&]:border-[#dee2e6] [&_svg]:size-4",
+        "grid size-9 place-items-center text-white transition-colors hover:bg-[#0f5a2d] focus-visible:bg-[#0f5a2d] focus-visible:outline-none [&+&]:border-t [&+&]:border-white/40 [&_svg]:size-4 [&_svg]:stroke-[3]",
         pressed === true && "text-tropic",
         pressed === false && "text-[#868e96]",
       )}
@@ -311,5 +449,32 @@ function LegendRow({ label, glyph }: { label: string; glyph: ReactNode }) {
       <span className="grid w-5 place-items-center">{glyph}</span>
       {label}
     </li>
+  );
+}
+
+/** North-up compass rose (original design). */
+function Compass() {
+  return (
+    <svg viewBox="-24 -24 48 48" className="size-12 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]">
+      <circle r={21} fill="rgba(255,255,255,0.85)" stroke={PIN_GREEN} strokeWidth={2} />
+      {/* Star sits a little low so the N has the gap between its tip and the rim to itself. */}
+      <g transform="translate(0 2.5)">
+        <path d="M0 -12 L3.2 -3.2 L15 0 L3.2 3.2 L0 15 L-3.2 3.2 L-15 0 L-3.2 -3.2 Z" fill={PIN_GREEN} />
+        <path d="M0 -12 L3.2 -3.2 L0 0 Z M15 0 L3.2 3.2 L0 0 Z M0 15 L-3.2 3.2 L0 0 Z M-15 0 L-3.2 -3.2 L0 0 Z" fill="#0f5a2d" />
+        <circle r={2.2} fill="#ffffff" />
+      </g>
+      <text
+        x={0}
+        y={-14.2}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontFamily="Arial, Helvetica, sans-serif"
+        fontSize={8}
+        fontWeight={800}
+        fill={PIN_GREEN}
+      >
+        N
+      </text>
+    </svg>
   );
 }
