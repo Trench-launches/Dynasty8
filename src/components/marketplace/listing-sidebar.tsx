@@ -35,12 +35,12 @@ export function ListingSidebar({
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
-      <div className="space-y-3 border-b border-white/10 p-4 pb-3">
+      <div className="space-y-3 border-b border-[#dee2e6] p-4 pb-3">
         <div className="flex items-end justify-between gap-2">
-          <h1 className="font-display text-[36px] leading-none font-bold text-white">
+          <h1 className="font-display text-[26px] leading-none font-bold text-[#212529]">
             PROPERTY <span className="text-sunset-gradient">LISTINGS</span>
           </h1>
-          <p className="pb-0.5 text-[11px] font-semibold text-white/45 tabular-nums" aria-live="polite">
+          <p className="pb-0.5 text-[11px] font-semibold text-[#868e96] tabular-nums" aria-live="polite">
             {visible.length} of {total}
           </p>
         </div>
@@ -57,13 +57,13 @@ export function ListingSidebar({
       <div className="scrollbar-thin min-h-0 flex-1 space-y-1.5 overflow-y-auto p-3" role="list" aria-label="Properties">
         {visible.length === 0 ? (
           <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-            <SearchX className="size-8 text-white/30" />
-            <p className="font-display text-2xl tracking-wide text-white/80">NO PROPERTIES FOUND</p>
-            <p className="text-sm text-white/50">Nothing matches those filters. Try a different area or clear the search.</p>
+            <SearchX className="size-8 text-[#adb5bd]" />
+            <p className="font-display text-2xl tracking-wide text-[#212529]">NO PROPERTIES FOUND</p>
+            <p className="text-sm text-[#6c757d]">Nothing matches those filters. Try a different area or clear the search.</p>
             <button
               type="button"
               onClick={() => onFiltersChange({ ...DEFAULT_FILTERS, sort: filters.sort })}
-              className="mt-1 rounded-full bg-sunset-gradient px-5 py-2.5 text-sm font-bold text-ink"
+              className="mt-1 rounded bg-sunset-gradient px-5 py-2.5 text-sm font-bold text-ink"
             >
               Clear filters
             </button>
@@ -82,7 +82,7 @@ export function ListingSidebar({
           ))
         )}
         {unmapped > 0 && (
-          <p className="px-2 pt-2 text-[11px] text-white/40">
+          <p className="px-2 pt-2 text-[11px] text-[#868e96]">
             {unmapped} listing{unmapped === 1 ? "" : "s"} without an agreed map placement {unmapped === 1 ? "is" : "are"} shown here only.
           </p>
         )}

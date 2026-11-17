@@ -34,10 +34,10 @@ async function MarketsContent() {
       <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-6 sm:px-6 sm:py-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="font-display text-5xl leading-none font-bold text-white sm:text-6xl">
+            <h1 className="font-display text-4xl leading-none font-bold text-[#212529] sm:text-5xl">
               PROPERTY <span className="text-sunset-gradient">MARKETS</span>
             </h1>
-            <p className="mt-2 max-w-xl text-sm text-white/55">
+            <p className="mt-2 max-w-xl text-sm text-[#6c757d]">
               Every listed property token on one board. Figures only appear for tokens that are live and verified.
             </p>
           </div>
@@ -54,17 +54,17 @@ async function MarketsContent() {
           </p>
         )}
 
-        <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-gradient-to-r from-violet-deep/60 to-card p-5">
+        <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#dee2e6] bg-gradient-to-r from-violet-deep/60 to-card p-5">
           <div>
-            <p className="text-[11px] font-bold tracking-[0.2em] text-white/45 uppercase">Ecosystem token</p>
-            <p className="font-display text-3xl leading-none tracking-wide text-white">
+            <p className="text-[11px] font-bold tracking-[0.2em] text-[#868e96] uppercase">Ecosystem token</p>
+            <p className="font-display text-3xl leading-none tracking-wide text-[#212529]">
               {ecosystem.name} <span className="text-sunset-gradient">${ecosystem.ticker}</span>
             </p>
-            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-white/55">{ecosystem.summary}</p>
+            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#6c757d]">{ecosystem.summary}</p>
           </div>
           <div className="flex items-center gap-4 text-sm">
             <TokenStatusBadge status={ecosystem.status} />
-            <span className="text-white/80 tabular-nums">{formatPrice(m?.priceUsd)}</span>
+            <span className="text-[#212529] tabular-nums">{formatPrice(m?.priceUsd)}</span>
             <ChangeText value={m?.change24hPct} />
             <MarketDataTag market={m} />
           </div>
@@ -72,7 +72,7 @@ async function MarketsContent() {
 
         <MarketsTable properties={properties} />
 
-        <p className="text-[11px] leading-relaxed text-white/40">
+        <p className="text-[11px] leading-relaxed text-[#868e96]">
           Property tokens are themed digital collectibles. Holding one does not grant ownership of any real or in-game
           property. Not affiliated with Rockstar Games or Take-Two Interactive. Nothing here is financial advice.
         </p>
@@ -83,8 +83,8 @@ async function MarketsContent() {
 
 function Summary({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-card px-3 py-2">
-      <dt className="text-[10px] tracking-wider text-white/45 uppercase">{label}</dt>
+    <div className="rounded-xl border border-[#dee2e6] bg-card px-3 py-2">
+      <dt className="text-[10px] tracking-wider text-[#868e96] uppercase">{label}</dt>
       <dd className="font-display text-2xl text-cream">{value}</dd>
     </div>
   );

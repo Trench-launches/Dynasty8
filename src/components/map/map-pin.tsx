@@ -105,7 +105,7 @@ export const MapPin = memo(function MapPin({ property, state, showLabel, onSelec
         <span
           className={cn(
             "pointer-events-none absolute top-full left-1/2 mt-1 -translate-x-1/2 rounded px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide whitespace-nowrap shadow",
-            state === "selected" ? "bg-sunset text-ink" : "bg-black/80 text-white",
+            state === "selected" ? "bg-sunset text-ink" : "bg-white/95 text-[#212529]",
           )}
         >
           {tickerLabel(property)}
@@ -115,19 +115,19 @@ export const MapPin = memo(function MapPin({ property, state, showLabel, onSelec
       {state === "hovered" && (
         <div
           role="tooltip"
-          className="pointer-events-none absolute bottom-full left-1/2 mb-3 w-56 -translate-x-1/2 rounded-xl border border-white/10 bg-[#17182c]/95 p-3 text-left shadow-2xl shadow-black/50 backdrop-blur"
+          className="pointer-events-none absolute bottom-full left-1/2 mb-3 w-56 -translate-x-1/2 rounded-xl border border-[#dee2e6] bg-white/95 p-3 text-left shadow-2xl shadow-black/50 backdrop-blur"
         >
-          <p className="truncate font-display text-[22px] leading-none text-cream">{property.name}</p>
-          <p className="mt-1 truncate text-xs text-white/55">{property.neighbourhood}</p>
+          <p className="truncate font-display text-[17px] leading-tight text-cream">{property.name}</p>
+          <p className="mt-1 truncate text-xs text-[#6c757d]">{property.neighbourhood}</p>
           <div className="mt-2 flex items-center justify-between gap-2 text-xs">
             <span className="font-bold text-tropic">{tickerLabel(property)}</span>
-            <span className="text-white/75">
+            <span className="text-[#495057]">
               {m ? `MC ${formatUsdCompact(m.marketCapUsd)}` : TOKEN_STATUS_LABELS[property.token.status]}
               {m?.source === "demo" && <span className="ml-1 text-[10px] font-bold text-neon">DEMO</span>}
               {m?.stale && <span className="ml-1 text-[10px] font-bold text-amber-200">DELAYED</span>}
             </span>
           </div>
-          <p className="mt-2 text-[10px] tracking-[0.18em] text-white/40 uppercase">Click to view listing</p>
+          <p className="mt-2 text-[10px] tracking-[0.18em] text-[#868e96] uppercase">Click to view listing</p>
         </div>
       )}
     </div>

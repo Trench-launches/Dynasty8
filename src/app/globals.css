@@ -5,26 +5,31 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  /* Dynasty 8 palette, Rockstar-site inspired: deep navy, blush-pink and lime pills,
-     cream headings, mint labels. (Legacy token names kept so existing classes restyle.) */
-  --color-sunset: #ffb2c6; /* blush pink: primary pills, active states */
-  --color-coral: #ff9fb8;
-  --color-tropic: #e1fa9e; /* lime: tickers, secondary pills */
-  --color-neon: #b89cff; /* demo-data tags */
-  --color-violet-deep: #2e2c55;
-  --color-navy: #141527;
-  --color-cream: #fff9cb; /* display headings */
-  --color-mint: #baf2ea; /* small uppercase labels */
-  --color-lime: #e1fa9e;
-  --color-blush: #ffb2c6;
-  --color-ink: #0c0d1b; /* text on pills */
+  /* Dynasty 8 Real Estate palette (after markdentoom/Dynasty-8-Real-Estate's Bootstrap theme):
+     Dynasty green #18713C on white, teal-green #20866b, dark grey #333, Bootstrap greys.
+     Legacy token names are kept so existing classes pick up the new colours. */
+  --color-d8-green: #18713c;
+  --color-d8-green-dark: #135c31;
+  --color-d8-teal: #20866b;
+  --color-d8-dark: #333333;
+  --color-sunset: #18713c; /* primary green: buttons, active states */
+  --color-coral: #20866b;
+  --color-tropic: #18713c; /* tickers */
+  --color-neon: #6f42c1; /* demo-data tags */
+  --color-violet-deep: #343a40;
+  --color-navy: #212529;
+  --color-cream: #18713c; /* headings */
+  --color-mint: #20866b; /* small labels */
+  --color-lime: #18713c;
+  --color-blush: #18713c;
+  --color-ink: #ffffff; /* text on filled buttons */
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-figtree);
+  --font-sans: var(--font-system);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-barlow);
-  --font-display: var(--font-barlow);
+  --font-heading: var(--font-system);
+  --font-display: var(--font-system);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -54,60 +59,63 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  /* Bootstrap-style corners: everything resolves to ~0.2-0.3rem. */
+  --radius-sm: 0.2rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.3rem;
+  --radius-2xl: 0.3rem;
+  --radius-3xl: 0.3rem;
+  --radius-4xl: 0.3rem;
 }
 
-/* The site is dark-only; both selectors carry the same palette so shadcn's dark: variants line up. */
-:root,
-.dark {
-  --background: #141527;
-  --foreground: #f8f8f8;
-  --card: #1c1d35;
-  --card-foreground: #f8f8f8;
-  --popover: #1c1d35;
-  --popover-foreground: #f8f8f8;
-  --primary: #ffb2c6;
-  --primary-foreground: #0c0d1b;
-  --secondary: #24254a;
-  --secondary-foreground: #f8f8f8;
-  --muted: #1d1e37;
-  --muted-foreground: #a9a9c0;
-  --accent: #2a2b50;
-  --accent-foreground: #f8f8f8;
-  --destructive: #ff6b7d;
-  --border: rgb(255 255 255 / 0.1);
-  --input: rgb(255 255 255 / 0.14);
-  --ring: #ffb2c6;
-  --chart-1: #ffb2c6;
-  --chart-2: #e1fa9e;
-  --chart-3: #baf2ea;
-  --chart-4: #fff9cb;
-  --chart-5: #b89cff;
-  --radius: 0.75rem;
-  --sidebar: #101122;
-  --sidebar-foreground: #f8f8f8;
-  --sidebar-primary: #ffb2c6;
-  --sidebar-primary-foreground: #0c0d1b;
-  --sidebar-accent: #24254a;
-  --sidebar-accent-foreground: #f8f8f8;
-  --sidebar-border: rgb(255 255 255 / 0.08);
-  --sidebar-ring: #ffb2c6;
+/* Light Dynasty 8 theme: white surfaces, dark grey text, green primary, grey borders. */
+:root {
+  --font-system:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --background: #ffffff;
+  --foreground: #212529;
+  --card: #ffffff;
+  --card-foreground: #212529;
+  --popover: #ffffff;
+  --popover-foreground: #212529;
+  --primary: #18713c;
+  --primary-foreground: #ffffff;
+  --secondary: #e9ecef;
+  --secondary-foreground: #212529;
+  --muted: #f8f9fa;
+  --muted-foreground: #6c757d;
+  --accent: #e9ecef;
+  --accent-foreground: #212529;
+  --destructive: #e94646;
+  --border: #dee2e6;
+  --input: #ced4da;
+  --ring: #18713c;
+  --chart-1: #18713c;
+  --chart-2: #20866b;
+  --chart-3: #ffc107;
+  --chart-4: #e94646;
+  --chart-5: #6c757d;
+  --radius: 0.25rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #212529;
+  --sidebar-primary: #18713c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e9ecef;
+  --sidebar-accent-foreground: #212529;
+  --sidebar-border: #dee2e6;
+  --sidebar-ring: #18713c;
 
-  /* Primary pill fill (flat blush pink, as on the reference site). */
-  --sunset-gradient: linear-gradient(#ffb2c6, #ffb2c6);
-  /* Header bar: dusk purple sweep. */
-  --header-gradient: linear-gradient(90deg, #3e3f73 0%, #585086 55%, #705d97 100%);
+  /* Filled button colour (Dynasty green). */
+  --sunset-gradient: linear-gradient(#18713c, #18713c);
+  /* Navbar: solid Dynasty green. */
+  --header-gradient: linear-gradient(#18713c, #18713c);
 
-  /* The map texture reads these two font variables; point them at the site fonts. */
+  /* The map texture reads these font variables for its labels. */
   --font-bebas: var(--font-barlow);
-  --font-manrope: var(--font-figtree);
-  color-scheme: dark;
+  --font-manrope: var(--font-system);
+  color-scheme: light;
 }
 
 @layer base {
@@ -124,16 +132,16 @@
   html {
     @apply font-sans;
   }
-  /* Display face: condensed uppercase headings (utilities can still override weight/tracking). */
+  /* Headings: Bootstrap-style system font, semi-bold, normal case. */
   .font-display {
-    text-transform: uppercase;
     font-weight: 600;
+    letter-spacing: normal;
   }
 }
 
-/* Accent heading text (cream). Legacy name kept so existing markup restyles. */
+/* Accent heading text (Dynasty green). Legacy name kept so existing markup restyles. */
 @utility text-sunset-gradient {
-  color: var(--color-cream);
+  color: var(--color-d8-green);
 }
 
 @utility bg-header-gradient {
@@ -146,7 +154,7 @@
 
 @utility scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: rgb(255 255 255 / 0.18) transparent;
+  scrollbar-color: #ced4da transparent;
 }
 
 /* Selected map marker pulse */

@@ -43,7 +43,7 @@ export function MarketsTable({ properties }: { properties: Property[] }) {
         <button
           type="button"
           onClick={() => setSort((s) => ({ col, dir: s.col === col ? ((s.dir * -1) as 1 | -1) : col === "name" ? 1 : -1 }))}
-          className={cn("inline-flex items-center gap-1 tracking-[0.14em] uppercase hover:text-white", active ? "text-white" : "text-white/45")}
+          className={cn("inline-flex items-center gap-1 tracking-[0.14em] uppercase hover:text-[#212529]", active ? "text-[#212529]" : "text-[#868e96]")}
         >
           {label}
           {active && (sort.dir === 1 ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />)}
@@ -53,12 +53,12 @@ export function MarketsTable({ properties }: { properties: Property[] }) {
   };
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-white/10 bg-card">
+    <div className="overflow-x-auto rounded-2xl border border-[#dee2e6] bg-card">
       <table className="w-full min-w-[760px] text-sm">
-        <thead className="border-b border-white/10 text-[11px]">
+        <thead className="border-b border-[#dee2e6] text-[11px]">
           <tr>
             {header("name", "Property", "left")}
-            <th scope="col" className="px-3 py-3 text-left font-semibold tracking-[0.14em] text-white/45 uppercase">Token</th>
+            <th scope="col" className="px-3 py-3 text-left font-semibold tracking-[0.14em] text-[#868e96] uppercase">Token</th>
             {header("price", "Price")}
             {header("market_cap", "Market cap")}
             {header("change", "24h")}
@@ -67,15 +67,15 @@ export function MarketsTable({ properties }: { properties: Property[] }) {
         </thead>
         <tbody>
           {rows.map((p) => (
-            <tr key={p.slug} className="border-b border-white/5 last:border-0 hover:bg-white/[0.03]">
+            <tr key={p.slug} className="border-b border-[#dee2e6] last:border-0 hover:bg-[#f8f9fa]">
               <td className="px-3 py-2.5">
                 <Link href={`/property/${p.slug}`} className="flex items-center gap-3 outline-none focus-visible:underline">
                   <span className="block h-10 w-14 shrink-0 overflow-hidden rounded-md">
                     <PropertyArt property={p} sizes="56px" className="h-full w-full" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate font-display text-xl leading-tight text-white">{p.name}</span>
-                    <span className="block truncate text-[11px] text-white/45">
+                    <span className="block truncate font-display text-base leading-tight text-cream">{p.name}</span>
+                    <span className="block truncate text-[11px] text-[#868e96]">
                       {[regionName(p.region), CATEGORY_LABELS[p.category]].filter(Boolean).join(" · ")}
                     </span>
                   </span>
@@ -88,12 +88,12 @@ export function MarketsTable({ properties }: { properties: Property[] }) {
                   <MarketDataTag market={p.market} />
                 </div>
               </td>
-              <td className="px-3 py-2.5 text-right text-white/85 tabular-nums">{formatPrice(p.market?.priceUsd)}</td>
-              <td className="px-3 py-2.5 text-right text-white/85 tabular-nums">{formatUsdCompact(p.market?.marketCapUsd)}</td>
+              <td className="px-3 py-2.5 text-right text-[#212529] tabular-nums">{formatPrice(p.market?.priceUsd)}</td>
+              <td className="px-3 py-2.5 text-right text-[#212529] tabular-nums">{formatUsdCompact(p.market?.marketCapUsd)}</td>
               <td className="px-3 py-2.5 text-right">
                 <ChangeText value={p.market?.change24hPct} />
               </td>
-              <td className="px-3 py-2.5 text-right text-white/85 tabular-nums">{formatUsdCompact(p.market?.volume24hUsd)}</td>
+              <td className="px-3 py-2.5 text-right text-[#212529] tabular-nums">{formatUsdCompact(p.market?.volume24hUsd)}</td>
             </tr>
           ))}
         </tbody>

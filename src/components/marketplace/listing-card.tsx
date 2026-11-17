@@ -41,15 +41,15 @@ export const ListingCard = memo(function ListingCard({ property, selected, hover
         selected
           ? "border-sunset/60 bg-gradient-to-r from-sunset/15 to-transparent"
           : hovered
-            ? "border-white/15 bg-white/[0.06]"
-            : "border-transparent bg-white/[0.025] hover:border-white/10 hover:bg-white/[0.05]",
+            ? "border-[#dee2e6] bg-[#f8f9fa]"
+            : "border-transparent bg-[#f8f9fa] hover:border-[#dee2e6] hover:bg-[#f8f9fa]",
       )}
     >
       {selected && <span aria-hidden className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-sunset" />}
-      <div className="relative h-[64px] w-[84px] shrink-0 overflow-hidden rounded-lg bg-black/40">
+      <div className="relative h-[64px] w-[84px] shrink-0 overflow-hidden rounded-lg bg-[#f8f9fa]">
         <PropertyArt property={property} sizes="84px" className="h-full w-full transition-transform duration-500 group-hover:scale-105" />
         {property.featured && (
-          <span className="absolute top-1 left-1 grid size-5 place-items-center rounded-full bg-black/70 text-tropic">
+          <span className="absolute top-1 left-1 grid size-5 place-items-center rounded-full bg-white/95 text-tropic">
             <Star className="size-3 fill-current" aria-label="Featured" />
           </span>
         )}
@@ -57,19 +57,19 @@ export const ListingCard = memo(function ListingCard({ property, selected, hover
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <p className="truncate font-display text-[21px] leading-tight text-white">{property.name}</p>
+          <p className="truncate font-display text-[16px] leading-tight text-cream">{property.name}</p>
           {!property.location && (
-            <MapPinOff className="mt-1 size-3.5 shrink-0 text-white/40" aria-label="Map placement pending" />
+            <MapPinOff className="mt-1 size-3.5 shrink-0 text-[#868e96]" aria-label="Map placement pending" />
           )}
         </div>
-        <p className="truncate text-[11px] text-white/50">
+        <p className="truncate text-[11px] text-[#6c757d]">
           {property.neighbourhood} · {CATEGORY_LABELS[property.category]}
         </p>
         <div className="mt-1.5 flex items-center justify-between gap-2">
           <span className="text-xs font-extrabold tracking-wide text-tropic">{tickerLabel(property)}</span>
           {m ? (
             <span className="flex items-center gap-1.5 text-[11px] tabular-nums">
-              <span className="text-white/80">{formatUsdCompact(m.marketCapUsd)}</span>
+              <span className="text-[#212529]">{formatUsdCompact(m.marketCapUsd)}</span>
               <ChangeText value={m.change24hPct} />
               <MarketDataTag market={m} />
             </span>

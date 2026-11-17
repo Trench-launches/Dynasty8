@@ -18,11 +18,11 @@ export function MarketPanel({ property }: { property: Property }) {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-2xl border border-white/10 bg-card p-5">
+      <section className="rounded-2xl border border-[#dee2e6] bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-bold tracking-[0.2em] text-white/45 uppercase">Property token</p>
-            <p className="font-display text-5xl leading-none text-lime">{tickerLabel(property)}</p>
+            <p className="text-[11px] font-bold tracking-[0.2em] text-[#868e96] uppercase">Property token</p>
+            <p className="font-display text-4xl leading-none text-lime">{tickerLabel(property)}</p>
           </div>
           <div className="flex items-center gap-2">
             <MarketDataTag market={market} />
@@ -39,7 +39,7 @@ export function MarketPanel({ property }: { property: Property }) {
           <Stat label="Launched" value={token.launchedAt ? new Date(token.launchedAt).toLocaleDateString() : "—"} />
         </dl>
         {!market && (
-          <p className="mt-3 text-sm text-white/55">
+          <p className="mt-3 text-sm text-[#6c757d]">
             {status === "loading"
               ? "Checking market…"
               : status === "error"
@@ -70,12 +70,12 @@ function MintRow({ property }: { property: Property }) {
   const verified = Boolean(mint && mintVerified);
 
   return (
-    <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mt-5 flex flex-col gap-3 border-t border-[#dee2e6] pt-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <p className="text-[10px] tracking-[0.18em] text-white/45 uppercase">Verified mint address</p>
+        <p className="text-[10px] tracking-[0.18em] text-[#868e96] uppercase">Verified mint address</p>
         {verified ? (
           <div className="mt-1 flex items-center gap-2">
-            <code className="truncate font-mono text-xs text-white/80">{mint}</code>
+            <code className="truncate font-mono text-xs text-[#212529]">{mint}</code>
             <button
               type="button"
               aria-label="Copy mint address"
@@ -85,13 +85,13 @@ function MintRow({ property }: { property: Property }) {
                   setTimeout(() => setCopied(false), 1500);
                 });
               }}
-              className="grid size-7 shrink-0 place-items-center rounded-md border border-white/10 text-white/60 hover:text-white"
+              className="grid size-7 shrink-0 place-items-center rounded-md border border-[#dee2e6] text-[#6c757d] hover:text-[#212529]"
             >
-              {copied ? <Check className="size-3.5 text-emerald-300" /> : <Copy className="size-3.5" />}
+              {copied ? <Check className="size-3.5 text-d8-green" /> : <Copy className="size-3.5" />}
             </button>
           </div>
         ) : (
-          <p className="mt-1 text-sm text-white/55">Pending verification — never trust an unverified mint.</p>
+          <p className="mt-1 text-sm text-[#6c757d]">Pending verification — never trust an unverified mint.</p>
         )}
       </div>
       {verified && pumpFunUrl ? (
@@ -99,12 +99,12 @@ function MintRow({ property }: { property: Property }) {
           href={pumpFunUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-sunset-gradient px-6 text-[15px] font-bold text-ink transition-transform hover:scale-[1.02]"
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded bg-sunset-gradient px-6 text-[15px] font-bold text-ink transition-transform hover:scale-[1.02]"
         >
           Trade on Pump.fun <ExternalLink className="size-4" />
         </a>
       ) : (
-        <span className="inline-flex h-11 shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-white/25 px-6 text-xs font-semibold text-white/45">
+        <span className="inline-flex h-11 shrink-0 items-center justify-center rounded border-[1.5px] border-dashed border-[#ced4da] px-6 text-xs font-semibold text-[#868e96]">
           Pump.fun link pending
         </span>
       )}
@@ -137,10 +137,10 @@ function PriceChart({ property, live }: { property: Property; live: boolean }) {
   const points = state.key === key ? state.points : null;
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-card p-5" aria-label="Price history">
+    <section className="rounded-2xl border border-[#dee2e6] bg-card p-5" aria-label="Price history">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-display text-[28px] text-cream">Price history</h2>
-        <div className="flex rounded-full border border-white/10 bg-black/30 p-0.5" role="group" aria-label="Chart range">
+        <h2 className="font-display text-2xl text-cream">Price history</h2>
+        <div className="flex rounded-full border border-[#dee2e6] bg-[#f8f9fa] p-0.5" role="group" aria-label="Chart range">
           {RANGES.map((r) => (
             <button
               key={r}
@@ -150,7 +150,7 @@ function PriceChart({ property, live }: { property: Property; live: boolean }) {
               onClick={() => setRange(r)}
               className={cn(
                 "rounded-md px-2.5 py-1 text-xs font-bold disabled:opacity-40",
-                range === r ? "bg-white/15 text-white" : "text-white/55 hover:text-white",
+                range === r ? "bg-[#e9ecef] text-[#212529]" : "text-[#6c757d] hover:text-[#212529]",
               )}
             >
               {r.toUpperCase()}
@@ -163,7 +163,7 @@ function PriceChart({ property, live }: { property: Property; live: boolean }) {
         {!live ? (
           <EmptyChart text="The chart appears once the token is live." />
         ) : loading ? (
-          <div className="h-full animate-pulse rounded-xl bg-white/[0.04]" />
+          <div className="h-full animate-pulse rounded-xl bg-[#f8f9fa]" />
         ) : state.error ? (
           <EmptyChart text="Chart data is temporarily unavailable." />
         ) : !points?.length ? (
@@ -173,11 +173,11 @@ function PriceChart({ property, live }: { property: Property; live: boolean }) {
             <AreaChart data={points} margin={{ top: 6, right: 4, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#ff6b9d" stopOpacity={0.45} />
-                  <stop offset="100%" stopColor="#ff6b9d" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#18713c" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#18713c" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+              <CartesianGrid stroke="#e9ecef" vertical={false} />
               <XAxis
                 dataKey="t"
                 tickFormatter={(t: string) =>
@@ -185,7 +185,7 @@ function PriceChart({ property, live }: { property: Property; live: boolean }) {
                     ? new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
                     : new Date(t).toLocaleDateString([], { day: "numeric", month: "short" })
                 }
-                tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
+                tick={{ fill: "#6c757d", fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 minTickGap={32}
@@ -193,19 +193,19 @@ function PriceChart({ property, live }: { property: Property; live: boolean }) {
               <YAxis
                 dataKey="priceUsd"
                 tickFormatter={(v: number) => formatPrice(v)}
-                tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
+                tick={{ fill: "#6c757d", fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 width={78}
                 domain={["auto", "auto"]}
               />
               <Tooltip
-                contentStyle={{ background: "#1c1d35", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12 }}
-                labelStyle={{ color: "rgba(255,255,255,0.6)" }}
+                contentStyle={{ background: "#ffffff", border: "1px solid #dee2e6", borderRadius: 4 }}
+                labelStyle={{ color: "#6c757d" }}
                 labelFormatter={(t) => new Date(String(t)).toLocaleString()}
                 formatter={(v) => [formatPrice(Number(v)), "Price"]}
               />
-              <Area type="monotone" dataKey="priceUsd" stroke="#ff6b9d" strokeWidth={2} fill="url(#chart-fill)" />
+              <Area type="monotone" dataKey="priceUsd" stroke="#18713c" strokeWidth={2} fill="url(#chart-fill)" />
             </AreaChart>
           </ResponsiveContainer>
         )}
@@ -216,7 +216,7 @@ function PriceChart({ property, live }: { property: Property; live: boolean }) {
 
 function EmptyChart({ text }: { text: string }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 text-sm text-white/45">
+    <div className="flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#dee2e6] text-sm text-[#868e96]">
       <LineChart className="size-6" />
       {text}
     </div>
@@ -225,9 +225,9 @@ function EmptyChart({ text }: { text: string }) {
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-xl bg-black/25 px-3 py-2.5">
-      <dt className="text-[10px] tracking-wider text-white/45 uppercase">{label}</dt>
-      <dd className="mt-0.5 text-sm font-semibold text-white tabular-nums">{value}</dd>
+    <div className="rounded-xl bg-[#f8f9fa] px-3 py-2.5">
+      <dt className="text-[10px] tracking-wider text-[#868e96] uppercase">{label}</dt>
+      <dd className="mt-0.5 text-sm font-semibold text-[#212529] tabular-nums">{value}</dd>
     </div>
   );
 }

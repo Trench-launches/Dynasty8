@@ -19,7 +19,7 @@ export function SiteHeader({ ecosystem }: { ecosystem: EcosystemToken }) {
   const isActive = (href: string) => (href === "/" ? pathname === "/" || pathname.startsWith("/property") : pathname.startsWith(href));
 
   return (
-    <header className="bg-header-gradient relative z-40 flex h-14 shrink-0 items-center gap-3 px-3 shadow-[0_6px_24px_rgba(8,8,24,0.45)] sm:h-16 sm:gap-6 sm:px-6">
+    <header className="bg-header-gradient relative z-40 flex h-14 shrink-0 items-center gap-3 px-3 shadow-[0_2px_8px_rgba(0,0,0,0.18)] sm:h-16 sm:gap-6 sm:px-6">
       <Link href="/" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="DYNASTY home">
         <Logo />
       </Link>
@@ -31,9 +31,9 @@ export function SiteHeader({ ecosystem }: { ecosystem: EcosystemToken }) {
             href={href}
             aria-current={isActive(href) ? "page" : undefined}
             className={cn(
-              "relative rounded-md px-3 py-2 text-[15px] font-bold tracking-[0.02em] text-[#dadae2] transition-colors outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-ring",
+              "relative rounded-md px-3 py-2 text-[15px] font-semibold tracking-[0.02em] text-white/85 transition-colors outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-ring",
               isActive(href) &&
-                "text-white after:absolute after:inset-x-3 after:-bottom-[9px] after:h-[3px] after:rounded-full after:bg-sunset",
+                "text-white after:absolute after:inset-x-3 after:-bottom-[9px] after:h-[3px] after:rounded-sm after:bg-white",
             )}
           >
             {label.toUpperCase()}
@@ -64,11 +64,11 @@ export function SiteHeader({ ecosystem }: { ecosystem: EcosystemToken }) {
         <Tooltip>
           <TooltipTrigger asChild>
             {/* span wrapper: disabled buttons don't emit hover events */}
-            <span tabIndex={0} className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <span tabIndex={0} className="rounded outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <button
                 type="button"
                 disabled
-                className="inline-flex h-9 items-center gap-2 rounded-full border-[1.5px] border-white/85 px-3 text-[15px] font-bold text-white opacity-70 sm:h-10 sm:px-5"
+                className="inline-flex h-9 items-center gap-2 rounded border border-white/85 px-3 text-[15px] font-semibold text-white opacity-80 sm:h-10 sm:px-5"
               >
                 <Wallet className="size-4" />
                 <span className="hidden sm:inline">Connect Wallet</span>
