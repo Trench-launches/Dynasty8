@@ -1,0 +1,367 @@
+openapi: 3.1.0
+info:
+  title: Dynasty 8 API
+  version: 0.1.0
+  description: |
+    Read API for the Dynasty 8 property-token marketplace, plus an authenticated admin API.
+    Property tokens are speculative digital assets and do not represent ownership of any real
+    or in-game property. `null` means "not available", never zero. Market payloads carry a
+    `freshness` field; clients must not present STALE or UNAVAILABLE data as live.
+servers:
+  - url: http://localhost:3530
+tags:
+  - name: public
+  - name: admin
+paths:
+  /api/health:
+    get:
+      tags: [public]
+      summary: Liveness and dependency summary
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } } }
+        "503": { description: Database unavailable, content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } } }
+  /api/properties:
+    get:
+      tags: [public]
+      summary: List published properties
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 24 } }
+        - { name: q, in: query, description: Name (contains) or exact ticker, "$" optional, schema: { type: string, maxLength: 60 } }
+        - { name: category, in: query, schema: { $ref: "#/components/schemas/Category" } }
+        - { name: region, in: query, schema: { type: string, maxLength: 60 } }
+        - { name: verification, in: query, schema: { $ref: "#/components/schemas/LocationVerification" } }
+        - { name: featured, in: query, schema: { type: string, enum: ["true", "false"] } }
+        - { name: sort, in: query, schema: { type: string, enum: [featured, name, marketCap, volume, change24h], default: featured } }
+        - { name: order, in: query, description: Default desc for market sorts, asc for name, schema: { type: string, enum: [asc, desc] } }
+      responses:
+        "200":
+          description: Page of properties. Properties without market data sort last.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, page, pageSize, total, totalPages]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/PropertySummary" } }
+                  page: { type: integer }
+                  pageSize: { type: integer }
+                  total: { type: integer }
+                  totalPages: { type: integer }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /api/properties/{slug}:
+    get:
+      tags: [public]
+      parameters: [{ $ref: "#/components/parameters/Slug" }]
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/PropertyDetail" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/properties/{slug}/market:
+    get:
+      tags: [public]
+      summary: Latest stored market snapshot (never triggers a provider call)
+      parameters: [{ $ref: "#/components/parameters/Slug" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [slug, token, market]
+                properties:
+                  slug: { type: string }
+                  token: { oneOf: [{ $ref: "#/components/schemas/Token" }, { type: "null" }] }
+                  market: { $ref: "#/components/schemas/Market" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/properties/{slug}/chart:
+    get:
+      tags: [public]
+      summary: Historical OHLCV candles from a provider, or an explicit UNAVAILABLE state
+      parameters:
+        - { $ref: "#/components/parameters/Slug" }
+        - { name: range, in: query, schema: { type: string, enum: ["1h", "24h", "7d", "30d", "all"], default: "24h" } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Chart" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/ecosystem:
+    get:
+      tags: [public]
+      summary: Native token (REALTY) and ecosystem totals
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Ecosystem" } } } }
+  /api/ecosystem/markets:
+    get:
+      tags: [public]
+      summary: Live property tokens with market snapshots, by market cap
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        property: { type: object, properties: { slug: { type: string }, name: { type: string }, category: { $ref: "#/components/schemas/Category" } } }
+                        token: { $ref: "#/components/schemas/Token" }
+                        market: { $ref: "#/components/schemas/Market" }
+  /api/admin/properties:
+    get:
+      tags: [admin]
+      summary: All listings incl. drafts (VIEWER)
+      security: [{ session: [] }]
+      responses: { "200": { description: OK }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" } }
+    post:
+      tags: [admin]
+      summary: Create listing (EDITOR). Token entry starts NOT_LAUNCHED.
+      security: [{ session: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/CreateProperty" } } } }
+      responses: { "201": { description: Created }, "400": { $ref: "#/components/responses/BadRequest" }, "409": { description: Slug exists } }
+  /api/admin/properties/{slug}:
+    get:
+      tags: [admin]
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/Slug" }]
+      responses: { "200": { description: OK } }
+    patch:
+      tags: [admin]
+      summary: Edit listing (EDITOR). locationVerification and status=DISABLED need ADMIN.
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/Slug" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/UpdateProperty" } } } }
+      responses: { "200": { description: OK }, "422": { description: Rule violation, e.g. VERIFIED without sources } }
+  /api/admin/properties/{slug}/token:
+    post:
+      tags: [admin]
+      summary: Register an existing mint (ADMIN). Verified on-chain; result PENDING_VERIFICATION. Never deploys or signs.
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/Slug" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [mintAddress]
+              properties:
+                mintAddress: { type: string, description: Solana public key }
+                creatorWallet: { type: string }
+      responses:
+        "200": { description: Registered with verification checks }
+        "409": { description: Mint already registered, or token already has a mint }
+        "422": { description: Account missing or not an SPL mint }
+        "503": { description: RPC or metadata provider unreachable }
+  /api/admin/tokens/{id}/verify:
+    post:
+      tags: [admin]
+      summary: Mark a reviewed PENDING_VERIFICATION token LIVE (ADMIN)
+      security: [{ session: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                acknowledgeMetadataMismatch: { type: boolean }
+                note: { type: string, maxLength: 500 }
+                launchedAt: { type: string, format: date-time }
+                creatorVerified: { type: boolean }
+      responses: { "200": { description: Token now LIVE }, "422": { description: Not pending, or unacknowledged metadata mismatch } }
+  /api/admin/tokens/{id}:
+    patch:
+      tags: [admin]
+      summary: Deactivate a compromised token / re-activate a verified one (ADMIN)
+      security: [{ session: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deploymentStatus, reason]
+              properties:
+                deploymentStatus: { type: string, enum: [INACTIVE, LIVE] }
+                reason: { type: string, maxLength: 500 }
+      responses: { "200": { description: OK } }
+  /api/admin/ecosystem/token:
+    post:
+      tags: [admin]
+      summary: Register the REALTY mint (ADMIN)
+      security: [{ session: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [mintAddress], properties: { mintAddress: { type: string } } } } } }
+      responses: { "200": { description: Registered, PENDING_VERIFICATION } }
+  /api/admin/audit:
+    get:
+      tags: [admin]
+      summary: Recent audit log (VIEWER)
+      security: [{ session: [] }]
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: entityType, in: query, schema: { type: string, enum: [Property, Token] } }
+        - { name: entityId, in: query, schema: { type: string } }
+      responses: { "200": { description: OK } }
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: Auth.js session cookie from GitHub sign-in. Mutations also require a same-origin Origin header.
+  parameters:
+    Slug: { name: slug, in: path, required: true, schema: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$", maxLength: 80 } }
+  responses:
+    BadRequest: { description: Invalid input, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    NotFound: { description: Not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    Unauthorized: { description: Not signed in, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    Forbidden: { description: Insufficient role or cross-origin, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    RateLimited: { description: Too many requests, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+  schemas:
+    Category: { type: string, enum: [RESIDENTIAL, SAFEHOUSE, GARAGE, MARINA, COMMERCIAL, INDUSTRIAL, LUXURY, ENTERTAINMENT, HOSPITALITY, RETAIL] }
+    LocationVerification: { type: string, enum: [VERIFIED, REPORTED, CONCEPT], description: Source evidence for the location, not token status }
+    NullableNumber: { type: [number, "null"] }
+    NullableString: { type: [string, "null"] }
+    Token:
+      type: object
+      properties:
+        id: { type: string }
+        mintAddress: { $ref: "#/components/schemas/NullableString" }
+        name: { type: string }
+        ticker: { type: string }
+        imageUrl: { $ref: "#/components/schemas/NullableString" }
+        pumpFunUrl: { $ref: "#/components/schemas/NullableString" }
+        deploymentStatus: { type: string, enum: [NOT_LAUNCHED, PENDING_VERIFICATION, LIVE, INACTIVE] }
+        launchedAt: { $ref: "#/components/schemas/NullableString" }
+        creatorWallet: { $ref: "#/components/schemas/NullableString" }
+        isNative: { type: boolean }
+        metadataStatus: { type: string, enum: [UNVERIFIED, VERIFIED, MISMATCH] }
+        venue: { type: string, enum: [UNKNOWN, PUMPFUN_BONDING_CURVE, PUMPSWAP, OTHER_DEX] }
+        decimals: { type: [integer, "null"] }
+        supplyRaw: { $ref: "#/components/schemas/NullableString" }
+    Market:
+      type: object
+      properties:
+        freshness: { type: string, enum: [FRESH, STALE, UNAVAILABLE] }
+        reason: { type: [string, "null"], enum: [NOT_LAUNCHED, TOKEN_INACTIVE, NO_DATA_YET, null] }
+        source: { $ref: "#/components/schemas/NullableString" }
+        priceUsd: { $ref: "#/components/schemas/NullableNumber" }
+        priceSol: { $ref: "#/components/schemas/NullableNumber" }
+        marketCapUsd: { $ref: "#/components/schemas/NullableNumber" }
+        fdvUsd: { $ref: "#/components/schemas/NullableNumber" }
+        volume24hUsd: { $ref: "#/components/schemas/NullableNumber" }
+        change24hPct: { $ref: "#/components/schemas/NullableNumber" }
+        liquidityUsd: { $ref: "#/components/schemas/NullableNumber" }
+        lastTradeAt: { $ref: "#/components/schemas/NullableString" }
+        updatedAt: { $ref: "#/components/schemas/NullableString" }
+    PropertySummary:
+      type: object
+      properties:
+        id: { type: string }
+        slug: { type: string }
+        name: { type: string }
+        category: { $ref: "#/components/schemas/Category" }
+        typeLabel: { $ref: "#/components/schemas/NullableString" }
+        region: { $ref: "#/components/schemas/NullableString" }
+        neighbourhood: { $ref: "#/components/schemas/NullableString" }
+        map: { oneOf: [{ type: object, properties: { x: { type: number }, y: { type: number } } }, { type: "null" }] }
+        imageUrl: { $ref: "#/components/schemas/NullableString" }
+        locationVerification: { $ref: "#/components/schemas/LocationVerification" }
+        featured: { type: boolean }
+        proposedTicker: { type: string }
+        token: { oneOf: [{ $ref: "#/components/schemas/Token" }, { type: "null" }] }
+        market: { $ref: "#/components/schemas/Market" }
+    PropertyDetail:
+      allOf:
+        - $ref: "#/components/schemas/PropertySummary"
+        - type: object
+          properties:
+            description: { type: string }
+            galleryImages: { type: array, items: { type: string } }
+            sources: { type: array, items: { type: object, properties: { url: { type: string }, title: { type: string }, note: { $ref: "#/components/schemas/NullableString" } } } }
+            createdAt: { type: string }
+            updatedAt: { type: string }
+    Chart:
+      type: object
+      properties:
+        range: { type: string, enum: ["1h", "24h", "7d", "30d", "all"] }
+        status: { type: string, enum: [OK, UNAVAILABLE] }
+        reason: { type: [string, "null"], enum: [NOT_LAUNCHED, NO_POOL, PROVIDER_UNAVAILABLE, RATE_LIMITED, NO_HISTORY, null] }
+        interval: { $ref: "#/components/schemas/NullableString" }
+        source: { $ref: "#/components/schemas/NullableString" }
+        candles:
+          type: array
+          items:
+            type: object
+            properties:
+              t: { type: integer, description: Bucket start, unix seconds }
+              open: { type: number }
+              high: { type: number }
+              low: { type: number }
+              close: { type: number }
+              volumeUsd: { $ref: "#/components/schemas/NullableNumber" }
+        fetchedAt: { type: string }
+    Ecosystem:
+      type: object
+      properties:
+        nativeToken: { allOf: [{ $ref: "#/components/schemas/Token" }, { type: object, properties: { market: { $ref: "#/components/schemas/Market" } } }] }
+        totals:
+          type: object
+          properties:
+            listedProperties: { type: integer }
+            launchedPropertyTokens: { type: integer }
+            aggregateVolume24hUsd: { $ref: "#/components/schemas/NullableNumber" }
+            aggregateMarketCapUsd: { $ref: "#/components/schemas/NullableNumber" }
+            tokensWithFreshData: { type: integer }
+        disclaimer: { type: string }
+    Health:
+      type: object
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        time: { type: string }
+        database: { type: string, enum: [ok, error] }
+        providers: { type: object, additionalProperties: { type: string, enum: [enabled, disabled] } }
+        marketData: { type: object, properties: { lastSnapshotAt: { $ref: "#/components/schemas/NullableString" }, stale: { type: boolean } } }
+    CreateProperty:
+      type: object
+      additionalProperties: false
+      required: [slug, name, description, category, proposedTicker]
+      properties:
+        slug: { type: string }
+        name: { type: string, maxLength: 120 }
+        description: { type: string, maxLength: 4000 }
+        category: { $ref: "#/components/schemas/Category" }
+        typeLabel: { type: string }
+        region: { type: string }
+        neighbourhood: { type: string }
+        mapX: { type: number }
+        mapY: { type: number }
+        imageUrl: { type: string, description: https only }
+        galleryImages: { type: array, items: { type: string }, maxItems: 20 }
+        locationVerification: { $ref: "#/components/schemas/LocationVerification" }
+        proposedTicker: { type: string, pattern: "^[A-Z0-9]{1,10}$" }
+        featured: { type: boolean }
+        status: { type: string, enum: [DRAFT, PUBLISHED, UNPUBLISHED, DISABLED] }
+        sources: { type: array, items: { type: object, required: [url, title], properties: { url: { type: string }, title: { type: string }, note: { type: string } } } }
+    UpdateProperty:
+      description: Any subset of CreateProperty fields except slug and proposedTicker.
+      type: object
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string, enum: [BAD_REQUEST, NOT_FOUND, UNAUTHORIZED, FORBIDDEN, RATE_LIMITED, CONFLICT, UNPROCESSABLE, INTERNAL] }
+            message: { type: string }
+            details: { type: array, items: { type: object, properties: { path: { type: string }, message: { type: string } } } }

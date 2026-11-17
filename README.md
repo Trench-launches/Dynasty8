@@ -1,8 +1,28 @@
-# DYNASTY 8 (placeholder name): frontend prototype
+# DYNASTY 8 (placeholder name)
 
-A GTA-inspired property-token marketplace for Solana, styled like an in-game real estate website and painted in a Vice City sunset palette. **Frontend only.** Every market figure is demo data.
+A GTA-inspired property-token marketplace for Solana, styled like an in-game real estate website and painted in a Vice City sunset palette. The UI prototype still renders demo data from `src/data/properties.ts`; the backend below serves the real registry and is not wired into the UI yet (see the integration guide).
 
-## Run it
+## Backend (branch `backend/foundation`)
+
+Next.js API routes + PostgreSQL (Prisma) + read-only Solana/market-data adapters. Launch catalogue: 15 proposed properties, all NOT_LAUNCHED, no mints, no coordinates, no market data.
+
+- Architecture and providers: [docs/BACKEND.md](docs/BACKEND.md)
+- Frontend integration (types, client, states): [docs/FRONTEND-INTEGRATION.md](docs/FRONTEND-INTEGRATION.md)
+- API spec: [docs/openapi.yaml](docs/openapi.yaml)
+- Security review: [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md)
+- Deployment, backups, rollback, monitoring: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+
+```bash
+cp .env.example .env        # then edit
+npm install
+npm run db:local            # terminal 1: embedded PostgreSQL on :54329
+npm run db:migrate && npm run db:seed
+npm run dev                 # terminal 2: app + API on :3530
+npm run sync:markets        # terminal 3 (optional): market-data worker
+npm test                    # unit + integration tests on a throwaway PostgreSQL
+```
+
+## Run the frontend only
 
 ```bash
 npm install
