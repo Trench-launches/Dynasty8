@@ -51,8 +51,8 @@ let cached: AppConfig | null = null;
 
 export function getConfig(): AppConfig {
   if (cached) return cached;
-  // Empty strings (e.g. copied from .env.example) mean "not set".
-  const env = Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== undefined && v !== ""));
+  // Empty values (e.g. `NEXTAUTH_SECRET=""` copied from .env.example) mean "not set".
+  const env = Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== ""));
   const parsed = schema.safeParse(env);
   if (!parsed.success) {
     const fields = parsed.error.issues.map((i) => i.path.join(".")).join(", ");

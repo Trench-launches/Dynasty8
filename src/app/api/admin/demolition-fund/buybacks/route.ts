@@ -4,9 +4,6 @@ import { prisma } from "@/server/db";
 import { createBuybackRequest } from "@/server/demolition/buyback";
 import { handle, json, readJsonBody } from "@/server/http/responses";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 const body = z
   .object({
     /** Client-generated key; replaying the same key returns the same request. */

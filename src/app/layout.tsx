@@ -1,39 +1,40 @@
 import type { Metadata, Viewport } from "next";
-import { Anton, Manrope } from "next/font/google";
-import { brand } from "@/config/brand";
-import { SiteHeader } from "@/components/layout/site-header";
-import { TokenTape } from "@/components/layout/token-tape";
-import { SiteFooter } from "@/components/layout/site-footer";
+import { Barlow_Condensed, Geist_Mono, Righteous } from "next/font/google";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
-const anton = Anton({ subsets: ["latin"], weight: "400", variable: "--font-anton", display: "swap" });
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
+// The UI uses the system font stack (Dynasty 8 / Bootstrap style, see globals.css).
+// Barlow Condensed is only loaded for the map's region labels.
+const barlow = Barlow_Condensed({
+  variable: "--font-barlow",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+// Rounded retro display face for the DYNASTY 15 wordmark only.
+const righteous = Righteous({ variable: "--font-righteous", subsets: ["latin"], weight: "400" });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: `${brand.name} · ${brand.subtitle}`, template: `%s · ${brand.name}` },
-  description: brand.description,
+  title: {
+    default: "DYNASTY — Leonida Property Market",
+    template: "%s · DYNASTY",
+  },
+  description:
+    "Browse Leonida's most notorious properties on an interactive map and discover their Solana property tokens.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#FF6B9D",
-  width: "device-width",
-  initialScale: 1,
+  themeColor: "#18713c",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${anton.variable} ${manrope.variable}`}>
-      <body className="min-h-dvh antialiased">
-        <a
-          href="#main"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[200] focus:rounded-lg focus:bg-white focus:px-3 focus:py-2"
-        >
-          Skip to content
-        </a>
-        <SiteHeader />
-        <TokenTape />
-        <main id="main">{children}</main>
-        <SiteFooter />
+    <html
+      lang="en"
+      className={`${barlow.variable} ${righteous.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <body className="flex min-h-full flex-col">
+        <TooltipProvider delayDuration={150}>{children}</TooltipProvider>
       </body>
     </html>
   );

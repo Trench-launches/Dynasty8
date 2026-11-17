@@ -20,6 +20,7 @@ paths:
       responses:
         "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } } }
         "503": { description: Database unavailable, content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } } }
+        "429": { $ref: "#/components/responses/RateLimited" }
   /api/properties:
     get:
       tags: [public]
@@ -90,7 +91,7 @@ paths:
   /api/ecosystem:
     get:
       tags: [public]
-      summary: Native token (REALTY) and ecosystem totals
+      summary: Native token (DYNASTY) and ecosystem totals
       responses:
         "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Ecosystem" } } } }
   /api/ecosystem/markets:
@@ -198,7 +199,7 @@ paths:
   /api/admin/ecosystem/token:
     post:
       tags: [admin]
-      summary: Register the REALTY mint (ADMIN)
+      summary: Register the DYNASTY mint (ADMIN)
       security: [{ session: [] }]
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [mintAddress], properties: { mintAddress: { type: string } } } } } }
       responses: { "200": { description: Registered, PENDING_VERIFICATION } }
@@ -279,6 +280,8 @@ components:
         locationVerification: { $ref: "#/components/schemas/LocationVerification" }
         featured: { type: boolean }
         proposedTicker: { type: string }
+        description: { type: string }
+        launchOrder: { oneOf: [{ type: integer, minimum: 1 }, { type: "null" }], description: Position in the launch catalogue; null for listings added later }
         token: { oneOf: [{ $ref: "#/components/schemas/Token" }, { type: "null" }] }
         market: { $ref: "#/components/schemas/Market" }
     PropertyDetail:
@@ -286,7 +289,6 @@ components:
         - $ref: "#/components/schemas/PropertySummary"
         - type: object
           properties:
-            description: { type: string }
             galleryImages: { type: array, items: { type: string } }
             sources: { type: array, items: { type: object, properties: { url: { type: string }, title: { type: string }, note: { $ref: "#/components/schemas/NullableString" } } } }
             createdAt: { type: string }

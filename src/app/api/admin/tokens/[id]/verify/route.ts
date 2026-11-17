@@ -4,9 +4,6 @@ import { requireAdmin } from "@/server/auth/admin";
 import { handle, json, readJsonBody } from "@/server/http/responses";
 import { verifyToken } from "@/server/services/admin-tokens";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 const idSchema = z.string().regex(/^[a-z0-9]{20,40}$/);
 
 /** POST /api/admin/tokens/:id/verify (ADMIN): mark a reviewed PENDING_VERIFICATION token LIVE. */

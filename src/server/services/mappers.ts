@@ -1,5 +1,6 @@
 import type { MarketSnapshot, Property, SourceReference, Token } from "@prisma/client";
 import type { MarketDto, PropertyDetailDto, PropertySummaryDto, TokenDto } from "@/contracts/api";
+import { launchOrder } from "@/data/catalogue";
 
 export type TokenWithSnapshot = Token & { snapshots: MarketSnapshot[] };
 export type PropertyRow = Property & { token: TokenWithSnapshot | null; sources?: SourceReference[] };
@@ -80,6 +81,8 @@ export function toPropertySummary(p: PropertyRow, now: number, staleAfterMs: num
     locationVerification: p.locationVerification,
     featured: p.featured,
     proposedTicker: p.proposedTicker,
+    description: p.description,
+    launchOrder: launchOrder(p.slug),
     token: p.token ? toTokenDto(p.token) : null,
     market: toMarketDto(p.token, now, staleAfterMs),
   };
@@ -88,7 +91,6 @@ export function toPropertySummary(p: PropertyRow, now: number, staleAfterMs: num
 export function toPropertyDetail(p: PropertyRow, now: number, staleAfterMs: number): PropertyDetailDto {
   return {
     ...toPropertySummary(p, now, staleAfterMs),
-    description: p.description,
     galleryImages: p.galleryImages,
     sources: (p.sources ?? []).map((s) => ({ url: s.url, title: s.title, note: s.note })),
     createdAt: p.createdAt.toISOString(),

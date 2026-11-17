@@ -3,9 +3,6 @@ import { requireAdmin } from "@/server/auth/admin";
 import { prisma } from "@/server/db";
 import { handle, json, queryObject } from "@/server/http/responses";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 /** GET /api/admin/audit (VIEWER): review recent changes. */
 export const GET = handle(async (req: Request) => {
   await requireAdmin(req, "VIEWER");

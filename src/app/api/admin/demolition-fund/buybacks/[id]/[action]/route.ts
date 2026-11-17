@@ -14,9 +14,6 @@ import {
 } from "@/server/demolition/buyback";
 import { ApiError, handle, json, readJsonBody } from "@/server/http/responses";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 const idSchema = z.string().regex(/^[a-z0-9]{20,40}$/);
 const sig = z.object({ signature: z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{64,88}$/) }).strict();
 const note = z.object({ note: z.string().trim().max(300).optional() }).strict();

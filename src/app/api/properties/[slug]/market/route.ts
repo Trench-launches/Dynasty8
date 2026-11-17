@@ -5,9 +5,6 @@ import { enforceRateLimit, handle, json, queryObject } from "@/server/http/respo
 import { toMarketDto, toTokenDto } from "@/server/services/mappers";
 import { getPublishedPropertyRow } from "@/server/services/properties";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 /** GET /api/properties/:slug/market: latest stored snapshot with freshness. Never calls providers. */
 export const GET = handle(async (req: Request, ctx: { params: Promise<{ slug: string }> }) => {
   enforceRateLimit(publicApiLimiter, req, "public");

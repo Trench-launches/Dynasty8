@@ -1,162 +1,83 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
-import { Menu, Wallet, X } from "lucide-react";
-import { ECOSYSTEM_TOKEN } from "@/data/properties";
-import { cn, formatPrice, formatUsdCompact } from "@/lib/utils";
-import { Change } from "@/components/ui/change";
-import { Button } from "@/components/ui/button";
-import { Logo } from "./logo";
-import { WalletDialog } from "./wallet-dialog";
+import { usePathname } from "next/navigation";
+import { BarChart3, Map, Wallet } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Logo } from "@/components/brand/logo";
+import { EcosystemChip } from "@/components/layout/ecosystem-chip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { EcosystemToken } from "@/lib/types";
 
 const NAV = [
-  { label: "Properties", href: "/?view=grid", match: (p: string, v: string | null) => p === "/" && v === "grid" },
-  { label: "Map", href: "/?view=map", match: (p: string, v: string | null) => p === "/" && v !== "grid" },
-  { label: "Markets", href: "/markets", match: (p: string) => p.startsWith("/markets") },
-  { label: "About", href: "/about", match: (p: string) => p.startsWith("/about") },
+  { href: "/", label: "Properties", icon: Map },
+  { href: "/markets", label: "Markets", icon: BarChart3 },
 ];
 
-function NavLinks({ onNavigate, vertical = false }: { onNavigate?: () => void; vertical?: boolean }) {
+export function SiteHeader({ ecosystem }: { ecosystem: EcosystemToken }) {
   const pathname = usePathname();
-  const view = useSearchParams().get("view");
-  return <NavList pathname={pathname} view={view} onNavigate={onNavigate} vertical={vertical} />;
-}
+  const isActive = (href: string) => (href === "/" ? pathname === "/" || pathname.startsWith("/property") : pathname.startsWith(href));
 
-function NavList({
-  pathname,
-  view,
-  onNavigate,
-  vertical,
-}: {
-  pathname: string;
-  view: string | null;
-  onNavigate?: () => void;
-  vertical?: boolean;
-}) {
   return (
-    <nav aria-label="Main" className={cn("flex", vertical ? "flex-col gap-1" : "items-center gap-1")}>
-      {NAV.map((n) => {
-        const active = n.match(pathname, view);
-        return (
+    <header className="bg-header-gradient relative z-40 flex h-14 shrink-0 items-center gap-2 px-3 shadow-[0_2px_8px_rgba(0,0,0,0.18)] sm:h-16 sm:gap-6 sm:px-6">
+      <Link href="/" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="DYNASTY home">
+        <Logo />
+      </Link>
+
+      <nav aria-label="Main" className="ml-4 hidden items-center gap-2 md:flex">
+        {NAV.map(({ href, label }) => (
           <Link
-            key={n.label}
-            href={n.href}
-            onClick={onNavigate}
-            aria-current={active ? "page" : undefined}
+            key={href}
+            href={href}
+            aria-current={isActive(href) ? "page" : undefined}
             className={cn(
-              "rounded-xl px-3 py-2 text-sm font-extrabold transition-colors",
-              vertical && "px-4 py-3 text-base",
-              active ? "bg-violet text-cream" : "text-violet/75 hover:bg-violet/8 hover:text-violet",
+              "relative rounded-md px-3 py-2 text-[15px] font-semibold tracking-[0.02em] text-white/85 transition-colors outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-ring",
+              isActive(href) &&
+                "text-white after:absolute after:inset-x-3 after:-bottom-[9px] after:h-[3px] after:rounded-sm after:bg-white",
             )}
           >
-            {n.label}
+            {label.toUpperCase()}
           </Link>
-        );
-      })}
-    </nav>
-  );
-}
+        ))}
+      </nav>
 
-function NavLinksSuspended(props: { onNavigate?: () => void; vertical?: boolean }) {
-  const pathname = usePathname();
-  return (
-    <Suspense fallback={<NavList pathname={pathname} view={null} {...props} />}>
-      <NavLinks {...props} />
-    </Suspense>
-  );
-}
-
-export function RealtyPanel({ className }: { className?: string }) {
-  const m = ECOSYSTEM_TOKEN.market;
-  return (
-    <Link
-      href="/markets#realty"
-      className={cn(
-        "flex items-center gap-2 rounded-2xl bg-white/80 px-2.5 py-1.5 ring-1 ring-violet/10 transition hover:ring-sunset/60",
-        className,
-      )}
-      title="Native ecosystem token. Demo values, not live."
-    >
-      <span className="bg-sunset grid h-8 w-8 place-items-center rounded-full font-display text-[10px] text-white">RLT</span>
-      <span className="leading-tight">
-        <span className="flex items-center gap-1.5 text-xs font-extrabold text-violet">
-          ${m.ticker}
-          <span className="rounded bg-tangerine/30 px-1 text-[9px] uppercase tracking-wide text-[#9a4a10]">Demo</span>
-        </span>
-        <span className="flex items-center gap-2 text-[11px] font-bold tabular-nums text-violet/70">
-          {formatPrice(m.priceUsd)}
-          <span className="text-violet/40">·</span>
-          {formatUsdCompact(m.marketCapUsd)} mcap
-          <Change value={m.change24hPct} className="text-[11px]" />
-        </span>
-      </span>
-    </Link>
-  );
-}
-
-export function SiteHeader() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [walletOpen, setWalletOpen] = useState(false);
-  const pathname = usePathname();
-
-  useEffect(() => setMenuOpen(false), [pathname]);
-
-  return (
-    <>
-      <header className="sticky top-0 z-50 border-b border-violet/10 bg-cream/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-3 px-4 lg:px-6">
-          <Link href="/" aria-label="Home" className="shrink-0">
-            <Logo />
-          </Link>
-          <div className="ml-4 hidden lg:block">
-            <NavLinksSuspended />
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <RealtyPanel className="hidden md:flex" />
-            <Button onClick={() => setWalletOpen(true)} className="hidden sm:inline-flex">
-              <Wallet /> Connect Wallet
-            </Button>
-            <Button
-              variant="soft"
-              size="icon"
-              className="lg:hidden"
-              aria-label={menuOpen ? "Close menu" : "Open menu"}
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((o) => !o)}
+      <div className="ml-auto flex items-center gap-2 sm:gap-3">
+        <nav aria-label="Main (compact)" className="flex items-center gap-1 md:hidden">
+          {NAV.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              aria-label={label}
+              aria-current={isActive(href) ? "page" : undefined}
+              className={cn(
+                "grid size-9 place-items-center rounded-full text-[#dadae2] hover:text-white",
+                isActive(href) && "bg-white/15 text-white",
+              )}
             >
-              {menuOpen ? <X /> : <Menu />}
-            </Button>
-          </div>
-        </div>
-        <AnimatePresence>
-          {menuOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden border-t border-violet/10 bg-cream lg:hidden"
-            >
-              <div className="space-y-3 px-4 py-4">
-                <NavLinksSuspended vertical onNavigate={() => setMenuOpen(false)} />
-                <RealtyPanel className="md:hidden" />
-                <Button
-                  className="w-full sm:hidden"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    setWalletOpen(true);
-                  }}
-                >
-                  <Wallet /> Connect Wallet
-                </Button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </header>
-      <WalletDialog open={walletOpen} onClose={() => setWalletOpen(false)} />
-    </>
+              <Icon className="size-4.5" />
+            </Link>
+          ))}
+        </nav>
+
+        <EcosystemChip token={ecosystem} />
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {/* span wrapper: disabled buttons don't emit hover events */}
+            <span tabIndex={0} className="rounded outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <button
+                type="button"
+                disabled
+                className="inline-flex h-9 items-center gap-2 rounded border border-white/85 px-3 text-[15px] font-semibold text-white opacity-80 sm:h-10 sm:px-5"
+              >
+                <Wallet className="size-4" />
+                <span className="hidden sm:inline">Connect Wallet</span>
+              </button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Wallet connection is coming soon</TooltipContent>
+        </Tooltip>
+      </div>
+    </header>
   );
 }

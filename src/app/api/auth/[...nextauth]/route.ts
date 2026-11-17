@@ -3,9 +3,6 @@ import { adminAuthConfigured } from "@/server/config";
 import { buildAuthOptions } from "@/server/auth/options";
 import { ApiError, errorResponse } from "@/server/http/responses";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 type Ctx = { params: Promise<{ nextauth: string[] }> };
 
 async function handler(req: Request, ctx: Ctx) {

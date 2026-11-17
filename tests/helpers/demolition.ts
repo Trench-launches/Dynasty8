@@ -203,12 +203,12 @@ export function installDemolitionDeps(signer?: TransactionSigner): DemolitionHar
   return { chain, swap, now };
 }
 
-/** Registers wallets, makes REALTY live with a fresh liquid market, and unpauses the fund. */
-export async function setupFund(opts: { realtyMint?: string; liquidityUsd?: number; paused?: boolean } = {}) {
+/** Registers wallets, makes DYNASTY live with a fresh liquid market, and unpauses the fund. */
+export async function setupFund(opts: { dynastyMint?: string; liquidityUsd?: number; paused?: boolean } = {}) {
   const fund = newKey();
   const ecosystem = newKey();
   const operations = newKey();
-  const realty = opts.realtyMint ?? newKey();
+  const dynasty = opts.dynastyMint ?? newKey();
   await db().treasuryWallet.createMany({
     data: [
       { role: "FUND", address: fund, label: "Demolition Fund (multisig)", isMultisig: true },
@@ -217,14 +217,14 @@ export async function setupFund(opts: { realtyMint?: string; liquidityUsd?: numb
     ],
   });
   const native = await db().token.findFirstOrThrow({ where: { isNative: true } });
-  await db().token.update({ where: { id: native.id }, data: { mintAddress: realty, deploymentStatus: "LIVE", metadataStatus: "VERIFIED", decimals: 6 } });
+  await db().token.update({ where: { id: native.id }, data: { mintAddress: dynasty, deploymentStatus: "LIVE", metadataStatus: "VERIFIED", decimals: 6 } });
   await db().marketSnapshot.create({ data: { tokenId: native.id, source: "test", liquidityUsd: opts.liquidityUsd ?? 250_000, priceUsd: 0.001 } });
   await db().fundConfig.upsert({
     where: { id: 1 },
     create: { id: 1, paused: opts.paused ?? false, pausedReason: null, requiredApprovals: 1, cooldownSeconds: 60 },
     update: { paused: opts.paused ?? false, pausedReason: null, requiredApprovals: 1, cooldownSeconds: 60 },
   });
-  return { fund, ecosystem, operations, realty, nativeId: native.id };
+  return { fund, ecosystem, operations, dynasty, nativeId: native.id };
 }
 
 /** A recording, non-broadcasting sender for executor tests. */

@@ -21,11 +21,15 @@ describe("migrations and seed", () => {
     const props = await db().property.findMany({ include: { token: true } });
     expect(props).toHaveLength(15);
     expect(new Set(props.map((p) => p.slug))).toEqual(new Set(CATALOGUE.map((c) => slugify(c.name))));
+    const bySlug = new Map(CATALOGUE.map((c) => [slugify(c.name), c]));
     for (const p of props) {
+      const entry = bySlug.get(p.slug)!;
       expect(p.status).toBe("PUBLISHED");
       expect(p.locationVerification).toBe("CONCEPT");
-      expect(p.mapX).toBeNull();
-      expect(p.mapY).toBeNull();
+      // Approximate district placement from the catalogue (or none), never invented.
+      expect([p.mapX, p.mapY]).toEqual(entry.map ?? [null, null]);
+      expect(p.region).toBe(entry.region ?? null);
+      expect(p.featured).toBe(entry.featured ?? false);
       expect(p.token?.deploymentStatus).toBe("NOT_LAUNCHED");
       expect(p.token?.ticker).toBe(p.proposedTicker);
     }
@@ -40,10 +44,10 @@ describe("migrations and seed", () => {
     expect(await db().adminUser.count()).toBe(0);
   });
 
-  it("has exactly one native REALTY token, not tied to a property", async () => {
+  it("has exactly one native DYNASTY token, not tied to a property", async () => {
     const natives = await db().token.findMany({ where: { isNative: true } });
     expect(natives).toHaveLength(1);
-    expect(natives[0]).toMatchObject({ ticker: "REALTY", propertyId: null, mintAddress: null, deploymentStatus: "NOT_LAUNCHED" });
+    expect(natives[0]).toMatchObject({ ticker: "DYNASTY", propertyId: null, mintAddress: null, deploymentStatus: "NOT_LAUNCHED" });
   });
 
   it("is idempotent", async () => {
@@ -58,7 +62,7 @@ describe("migrations and seed", () => {
     await expect(db().token.create({ data: { name: "x", ticker: "X", deploymentStatus: "LIVE" } })).rejects.toThrow(); // LIVE without mint
     await expect(db().token.create({ data: { name: "x", ticker: "X", mintAddress: newKey() } })).rejects.toThrow(); // NOT_LAUNCHED with mint
     const p = await db().property.findFirstOrThrow();
-    await expect(db().property.update({ where: { id: p.id }, data: { mapX: 10 } })).rejects.toThrow(); // x without y
+    await expect(db().property.update({ where: { id: p.id }, data: { mapX: 10, mapY: null } })).rejects.toThrow(); // x without y
     const mint = newKey();
     await db().token.create({ data: { name: "a", ticker: "A", mintAddress: mint, deploymentStatus: "PENDING_VERIFICATION" } });
     await expect(db().token.create({ data: { name: "b", ticker: "A", mintAddress: mint, deploymentStatus: "PENDING_VERIFICATION" } })).rejects.toThrow(); // duplicate mint

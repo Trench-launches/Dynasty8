@@ -5,7 +5,7 @@ import { getConfig } from "@/server/config";
 import { toMarketDto, toTokenDto } from "./mappers";
 
 export const ECOSYSTEM_DISCLAIMER =
-  "REALTY is the ecosystem's native token. It does not own, control or back any property token, and property-token trading fees do not accrue to it. Property tokens are independent speculative assets and do not represent ownership of any real or in-game property.";
+  "DYNASTY is the ecosystem's native token. It does not own, control or back any property token, and property-token trading fees do not accrue to it. Property tokens are independent speculative assets and do not represent ownership of any real or in-game property.";
 
 const latest = { snapshots: { orderBy: { fetchedAt: "desc" as const }, take: 1 } };
 

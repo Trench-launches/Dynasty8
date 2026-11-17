@@ -73,6 +73,23 @@ export async function listProperties(q: ListPropertiesQuery): Promise<Paginated<
   };
 }
 
+/**
+ * Every published listing, unpaginated, in launch order. Used by server-rendered pages,
+ * which read the database directly instead of calling this app's own HTTP API.
+ */
+export async function listAllProperties(): Promise<PropertySummaryDto[]> {
+  const { MARKET_STALE_AFTER_MS } = getConfig();
+  const rows = await prisma.property.findMany({
+    where: { status: "PUBLISHED" },
+    include: tokenInclude,
+    orderBy: { name: "asc" },
+  });
+  const now = Date.now();
+  return rows
+    .map((r) => toPropertySummary(r, now, MARKET_STALE_AFTER_MS))
+    .sort((a, b) => (a.launchOrder ?? Infinity) - (b.launchOrder ?? Infinity) || a.name.localeCompare(b.name));
+}
+
 export async function getPublishedPropertyRow(slug: string) {
   const row = await prisma.property.findFirst({
     where: { slug, status: "PUBLISHED" },

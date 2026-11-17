@@ -1,5 +1,5 @@
 /**
- * Idempotent seed: creates the 33 catalogue listings and the REALTY native-token entry.
+ * Idempotent seed: creates the 15 launch-catalogue listings and the DYNASTY native-token entry.
  * Existing rows are left untouched so admin edits are never overwritten.
  * Creates no mint addresses, no admins and no market data.
  */
@@ -23,8 +23,12 @@ export async function seed(prisma: PrismaClient) {
         proposedTicker: e.ticker,
         locationVerification: "CONCEPT",
         status: "PUBLISHED",
-        mapX: null,
-        mapY: null,
+        region: e.region ?? null,
+        neighbourhood: e.neighbourhood ?? null,
+        // Approximate district placement (CONCEPT); null keeps the listing off the map.
+        mapX: e.map?.[0] ?? null,
+        mapY: e.map?.[1] ?? null,
+        featured: e.featured ?? false,
         token: { create: { name: e.name, ticker: e.ticker, deploymentStatus: "NOT_LAUNCHED" } },
       },
     });

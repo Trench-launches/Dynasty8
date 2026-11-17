@@ -4,9 +4,6 @@ import { requireAdmin } from "@/server/auth/admin";
 import { handle, json, readJsonBody } from "@/server/http/responses";
 import { setTokenStatus } from "@/server/services/admin-tokens";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 const idSchema = z.string().regex(/^[a-z0-9]{20,40}$/);
 
 /** PATCH /api/admin/tokens/:id (ADMIN): deactivate a compromised token or re-activate a verified one. */

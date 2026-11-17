@@ -1,6 +1,6 @@
-# Demolition Fund: Property Tax → $REALTY buyback & burn
+# Demolition Fund: Property Tax → $DYNASTY buyback & burn
 
-Branch `feature/demolition-fund` (based on `backend/foundation`). Nothing here has been deployed, no wallet has been created or funded, and no transaction has been signed or sent.
+Built on branch `feature/demolition-fund` and merged into the integrated app on `main`. Nothing here has been deployed, no wallet has been created or funded, and no transaction has been signed or sent.
 
 ## 1. Discovery (2026-11-17)
 
@@ -79,12 +79,12 @@ PLANNED ──quote──▶ QUOTED ──approvals──▶ APPROVED ──sign
 ```
 
 1. **Plan** (`POST …/buybacks`): idempotency key; one active buyback at a time; budget = min(request, verified unreserved buyback revenue, per-tx cap, daily cap remaining, fund SOL − reserve); ≥ minimum size; cooldown since last swap. Reserved FIFO against allocations, so every lamport traces to receipts and properties. Serialised by a Postgres advisory lock.
-2. **Quote** (`…/quote`): fresh REALTY liquidity snapshot ≥ `minLiquidityUsd`; Jupiter Swap V2 `GET /build`; response validated (mints, exact input, integer amounts, min-out ≥ our slippage floor, route endpoints, addresses); policy: SOL in, REALTY out, exact budget, price impact ≤ max, slippage ≤ tolerance, swap program on the allowlist (`BUYBACK_SWAP_PROGRAMS`, default Jupiter v6), only Compute Budget / System (SOL wrap from the fund within budget) / Token / Token-2022 / ATA support instructions, no signer other than the fund.
+2. **Quote** (`…/quote`): fresh DYNASTY liquidity snapshot ≥ `minLiquidityUsd`; Jupiter Swap V2 `GET /build`; response validated (mints, exact input, integer amounts, min-out ≥ our slippage floor, route endpoints, addresses); policy: SOL in, DYNASTY out, exact budget, price impact ≤ max, slippage ≤ tolerance, swap program on the allowlist (`BUYBACK_SWAP_PROGRAMS`, default Jupiter v6), only Compute Budget / System (SOL wrap from the fund within budget) / Token / Token-2022 / ATA support instructions, no signer other than the fund.
 3. **Approve** (`…/approve`): quote ≤ 10 min old; distinct admins; fund SOL ≥ budget + reserve.
 4. **Swap** (`…/swap-proposal` → multisig executes → `…/swap-submitted {signature}`): the proposal is re-built and must not be worse than the approved minimum output.
-5. **Settle swap** (worker or `…/settle`): only finalized data. Not found → stays submitted (confirmation delay); dead only when past `lastValidBlockHeight` (executor) or unknown after 5 min (multisig-reported). Failed tx → back to APPROVED, failure counted. Success → tokens received = finalized balance delta for the fund + REALTY (≥ approved min-out), SOL spent = fund delta (≤ budget + 0.01 SOL overhead), tx not older than the request. A successful tx that does not match the approval opens the circuit breaker. Unspent budget is released back to pending.
+5. **Settle swap** (worker or `…/settle`): only finalized data. Not found → stays submitted (confirmation delay); dead only when past `lastValidBlockHeight` (executor) or unknown after 5 min (multisig-reported). Failed tx → back to APPROVED, failure counted. Success → tokens received = finalized balance delta for the fund + DYNASTY (≥ approved min-out), SOL spent = fund delta (≤ budget + 0.01 SOL overhead), tx not older than the request. A successful tx that does not match the approval opens the circuit breaker. Unspent budget is released back to pending.
 6. **Burn** (`…/burn-proposal` → multisig → `…/burn-submitted`): exactly the purchased, unburned amount; fund must hold it; BurnChecked with the mint's token program (SPL or Token-2022, detected on-chain) and decimals.
-7. **Settle burn**: finalized, successful, parsed burn/burnChecked of REALTY by the fund (top-level or inner), amount equal to the fund's balance drop and ≤ outstanding. Partial → stays SWAP_CONFIRMED with the remainder; failed → back to SWAP_CONFIRMED with tokens retained; a second swap is impossible from that state.
+7. **Settle burn**: finalized, successful, parsed burn/burnChecked of DYNASTY by the fund (top-level or inner), amount equal to the fund's balance drop and ≤ outstanding. Partial → stays SWAP_CONFIRMED with the remainder; failed → back to SWAP_CONFIRMED with tokens retained; a second swap is impossible from that state.
 
 Safety controls: per-tx cap, daily cap, minimum size, reserve, min liquidity, max price impact, slippage, cooldown, circuit breaker (N consecutive failures, mismatched executions, reconciliation shortfall), emergency pause (any EDITOR can pause, only ADMIN resumes; verification continues while paused), idempotent jobs, single-flight worker lock, block-height expiry.
 
@@ -94,7 +94,7 @@ All amounts are `BigInt` columns (lamports / raw token units); database CHECKs e
 
 Tables: `TreasuryWallet`, `FundConfig`, `FeeReceipt` (unique signature+event), `RevenueAllocation` (one per receipt), `BuybackRequest` (state machine, unique swap signature), `BuybackFunding` (allocation → request), `BuybackApproval` (unique per admin), `ChainTransaction` (every swap/burn/disbursement signature with status, slot, attempt, last-valid height), `Disbursement`, `ReconciliationRun`, plus `AuditLog` for every action. Migration: `prisma/migrations/20261117133901_demolition_fund`.
 
-Reconciliation (worker every pass, or `POST …/reconcile`): the fund's on-chain SOL must be ≥ liabilities (unspent buyback allocations + undisbursed ecosystem/operations shares) and its REALTY balance ≥ purchased-but-unburned tokens. A shortfall opens the circuit breaker.
+Reconciliation (worker every pass, or `POST …/reconcile`): the fund's on-chain SOL must be ≥ liabilities (unspent buyback allocations + undisbursed ecosystem/operations shares) and its DYNASTY balance ≥ purchased-but-unburned tokens. A shortfall opens the circuit breaker.
 
 ## 6. API
 
@@ -102,9 +102,9 @@ Public (no auth, rate-limited, amounts as decimal strings in base units; types i
 
 | Endpoint | Returns |
 |---|---|
-| `GET /api/demolition-fund/summary` | Total creator fees, allocations, pending buyback, SOL spent, REALTY purchased/burned, counts, latest buyback/burn, pause/breaker/reconciliation status |
+| `GET /api/demolition-fund/summary` | Total creator fees, allocations, pending buyback, SOL spent, DYNASTY purchased/burned, counts, latest buyback/burn, pause/breaker/reconciliation status |
 | `GET /api/demolition-fund/history?limit&before` | Receipts, buybacks, burns, disbursements, newest first |
-| `GET /api/demolition-fund/properties` | All published properties ranked by verified creator fees contributed; REALTY burned attributed pro rata; map position when verified |
+| `GET /api/demolition-fund/properties` | All published properties ranked by verified creator fees contributed; DYNASTY burned attributed pro rata; map position when verified |
 | `GET /api/demolition-fund/burns?limit` | Verified burns with their buyback |
 | `GET /api/demolition-fund/transactions/{signature}` | What the fund knows about a signature |
 
@@ -125,7 +125,7 @@ Before any real buyback:
 1. **Final token list.** The brief lists CROSSTOWN; the seeded launch catalogue has BOATWORKS instead. The fund works off registered mints, so either list works once decided.
 2. **Fee-sharing setup** for every property coin with the FUND multisig as shareholder (and locked). Coins launched without it pay a per-creator vault; their fees cannot be attributed per property and would need a different (manual, unattributed) workflow.
 3. **Multisig** for FUND / ECOSYSTEM / OPERATIONS (e.g. Squads), members and threshold decided by the owner; register addresses via `PUT …/wallets`.
-4. **REALTY launched and verified** in the registry (buybacks refuse otherwise), with a fresh market snapshot (run `npm run sync:markets`).
+4. **DYNASTY launched and verified** in the registry (buybacks refuse otherwise), with a fresh market snapshot (run `npm run sync:markets`).
 5. **Multisig proposal tooling:** the API returns validated instructions; turning them into Squads proposals (e.g. `@sqds/multisig`) is not implemented. Until then members create the transaction in Squads' transaction builder from the proposal JSON.
 6. **Keyed RPC** (`SOLANA_RPC_URL`) and optionally `JUPITER_API_KEY` (keyless Jupiter is 0.5 RPS).
 7. **Confirm the Jupiter program allowlist.** `JUP6Lkb…` appears in Jupiter's documented v1 examples; v2 `/build` docs do not state the program id. Check a real `/build` response and set `BUYBACK_SWAP_PROGRAMS`.

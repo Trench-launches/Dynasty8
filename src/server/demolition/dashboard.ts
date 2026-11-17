@@ -35,8 +35,8 @@ export async function getFundSummary(): Promise<FundSummaryDto> {
   const latestBurn = burns[0];
   return {
     fundWallet: fund?.address ?? null,
-    realty: {
-      ticker: native?.ticker ?? "REALTY",
+    dynasty: {
+      ticker: native?.ticker ?? "DYNASTY",
       mint: native?.deploymentStatus === "LIVE" ? native.mintAddress : null,
       decimals: native?.decimals ?? null,
       live: native?.deploymentStatus === "LIVE",
@@ -49,8 +49,8 @@ export async function getFundSummary(): Promise<FundSummaryDto> {
       operationsAllocatedLamports: s(totals.operationsAllocated),
       pendingBuybackLamports: s(pending),
       solSpentOnBuybacksLamports: s(totals.spentOnBuybacks),
-      realtyPurchasedRaw: s(sumBig(swaps.map((r) => r.tokensReceivedRaw ?? 0n))),
-      realtyBurnedRaw: s(sumBig(burns.map((b) => b.amount ?? 0n))),
+      dynastyPurchasedRaw: s(sumBig(swaps.map((r) => r.tokensReceivedRaw ?? 0n))),
+      dynastyBurnedRaw: s(sumBig(burns.map((b) => b.amount ?? 0n))),
       successfulBuybacks: swaps.length,
       successfulBurns: burns.length,
       feeReceipts: receipts._count,
@@ -61,12 +61,12 @@ export async function getFundSummary(): Promise<FundSummaryDto> {
         ? {
             signature: latestSwap.swapSignature,
             solSpentLamports: s(latestSwap.solSpentLamports),
-            realtyReceivedRaw: s(latestSwap.tokensReceivedRaw),
+            dynastyReceivedRaw: s(latestSwap.tokensReceivedRaw),
             confirmedAt: latestSwap.swapConfirmedAt.toISOString(),
           }
         : null,
     latestBurn: latestBurn
-      ? { signature: latestBurn.signature, realtyBurnedRaw: s(latestBurn.amount), burnedAt: (latestBurn.resolvedAt ?? latestBurn.submittedAt).toISOString() }
+      ? { signature: latestBurn.signature, dynastyBurnedRaw: s(latestBurn.amount), burnedAt: (latestBurn.resolvedAt ?? latestBurn.submittedAt).toISOString() }
       : null,
     status: {
       paused: cfg.paused,
@@ -95,10 +95,10 @@ export async function getFundHistory(limit: number, before: Date | null): Promis
     return p ? { slug: p.slug, name: p.name, ticker: p.token?.ticker ?? p.proposedTicker } : null;
   };
   const events: (FundEventDto & { sortAt: Date })[] = [
-    ...receipts.map((r) => ({ type: "FEE_RECEIPT" as const, signature: r.signature, sortAt: r.createdAt, at: (r.blockTime ?? r.createdAt).toISOString(), amount: s(r.lamports), realtyRaw: null, property: prop(r.propertyId), explorerUrl: explorer(r.signature) })),
-    ...swaps.map((r) => ({ type: "BUYBACK" as const, signature: r.swapSignature!, sortAt: r.swapConfirmedAt!, at: r.swapConfirmedAt!.toISOString(), amount: s(r.solSpentLamports), realtyRaw: s(r.tokensReceivedRaw), property: null, explorerUrl: explorer(r.swapSignature!) })),
-    ...burns.map((b) => ({ type: "BURN" as const, signature: b.signature, sortAt: b.resolvedAt!, at: b.resolvedAt!.toISOString(), amount: s(b.amount), realtyRaw: null, property: null, explorerUrl: explorer(b.signature) })),
-    ...disbs.map((d) => ({ type: "DISBURSEMENT" as const, signature: d.signature, sortAt: d.verifiedAt, at: d.verifiedAt.toISOString(), amount: s(d.lamports), realtyRaw: null, property: null, explorerUrl: explorer(d.signature) })),
+    ...receipts.map((r) => ({ type: "FEE_RECEIPT" as const, signature: r.signature, sortAt: r.createdAt, at: (r.blockTime ?? r.createdAt).toISOString(), amount: s(r.lamports), dynastyRaw: null, property: prop(r.propertyId), explorerUrl: explorer(r.signature) })),
+    ...swaps.map((r) => ({ type: "BUYBACK" as const, signature: r.swapSignature!, sortAt: r.swapConfirmedAt!, at: r.swapConfirmedAt!.toISOString(), amount: s(r.solSpentLamports), dynastyRaw: s(r.tokensReceivedRaw), property: null, explorerUrl: explorer(r.swapSignature!) })),
+    ...burns.map((b) => ({ type: "BURN" as const, signature: b.signature, sortAt: b.resolvedAt!, at: b.resolvedAt!.toISOString(), amount: s(b.amount), dynastyRaw: null, property: null, explorerUrl: explorer(b.signature) })),
+    ...disbs.map((d) => ({ type: "DISBURSEMENT" as const, signature: d.signature, sortAt: d.verifiedAt, at: d.verifiedAt.toISOString(), amount: s(d.lamports), dynastyRaw: null, property: null, explorerUrl: explorer(d.signature) })),
   ].sort((a, b) => b.sortAt.getTime() - a.sortAt.getTime());
   const page = events.slice(0, limit);
   return {
@@ -133,7 +133,7 @@ export async function getPropertyContributions(): Promise<PropertyContributionDt
     const at = r.blockTime ?? r.createdAt;
     if (!last.get(r.propertyId) || last.get(r.propertyId)! < at) last.set(r.propertyId, at);
   }
-  // Burned REALTY attributed pro rata to the receipts that funded each buyback (integer floor).
+  // Burned DYNASTY attributed pro rata to the receipts that funded each buyback (integer floor).
   const burned = new Map<string, bigint>();
   for (const req of burnedRequests) {
     const total = sumBig(req.fundings.map((f) => f.lamports));
@@ -156,7 +156,7 @@ export async function getPropertyContributions(): Promise<PropertyContributionDt
     fees: fees.get(p.id) ?? 0n,
     creatorFeesLamports: s(fees.get(p.id)),
     buybackAllocatedLamports: s(buyback.get(p.id)),
-    realtyBurnedRaw: s(burned.get(p.id)),
+    dynastyBurnedRaw: s(burned.get(p.id)),
     feeReceipts: count.get(p.id) ?? 0,
     lastReceiptAt: last.get(p.id)?.toISOString() ?? null,
   }));
@@ -169,12 +169,12 @@ export async function getFundBurns(limit: number): Promise<FundBurnDto[]> {
   const burns = await prisma.chainTransaction.findMany({ where: { purpose: "BURN", status: "FINALIZED" }, orderBy: { resolvedAt: "desc" }, take: limit, include: { request: true } });
   return burns.map((b) => ({
     signature: b.signature,
-    realtyBurnedRaw: s(b.amount),
+    dynastyBurnedRaw: s(b.amount),
     burnedAt: b.resolvedAt?.toISOString() ?? null,
     buyback: {
       swapSignature: b.request?.swapSignature ?? null,
       solSpentLamports: b.request?.solSpentLamports != null ? s(b.request.solSpentLamports) : null,
-      realtyReceivedRaw: b.request?.tokensReceivedRaw != null ? s(b.request.tokensReceivedRaw) : null,
+      dynastyReceivedRaw: b.request?.tokensReceivedRaw != null ? s(b.request.tokensReceivedRaw) : null,
     },
     explorerUrl: explorer(b.signature),
   }));

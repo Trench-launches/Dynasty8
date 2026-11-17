@@ -3,9 +3,6 @@ import { publicApiLimiter } from "@/server/http/rate-limit";
 import { enforceRateLimit, handle, json, queryObject } from "@/server/http/responses";
 import { getProperty } from "@/server/services/properties";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 /** GET /api/properties/:slug */
 export const GET = handle(async (req: Request, ctx: { params: Promise<{ slug: string }> }) => {
   enforceRateLimit(publicApiLimiter, req, "public");

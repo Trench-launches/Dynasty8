@@ -64,7 +64,7 @@ beforeEach(async () => {
   starlet = await makeLive("starlet-motel");
   ocean = await makeLive("ocean-view-hotel");
   h.chain.balances.set(f.fund, 100n * SOL);
-  mocks.mints.set(f.realty, { ...validMint(), program: "TOKEN_2022" });
+  mocks.mints.set(f.dynasty, { ...validMint(), program: "TOKEN_2022" });
 });
 afterEach(() => setSessionResolverForTests(null));
 
@@ -78,7 +78,7 @@ async function receive(mint: string, lamports: bigint) {
 /** Drives a buyback to APPROVED with a good quote. */
 async function approved(budget?: bigint, out = 5_000_000n) {
   const r = await createBuybackRequest({ idempotencyKey: `key-${Math.random().toString(36).slice(2, 12)}`, budgetLamports: budget }, ADMIN);
-  h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.realty, amount: req.amount, out });
+  h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.dynasty, amount: req.amount, out });
   await quoteBuyback(r.id, ADMIN);
   return approveBuyback(r.id, OTHER_ADMIN, undefined, ADMIN);
 }
@@ -200,7 +200,7 @@ describe("buyback planning and safety controls", () => {
   it("emergency pause blocks new actions but still lets executed transactions be verified", async () => {
     await receive(starlet.mint, 10n * SOL);
     const r = await approved();
-    await recordSwapSubmission(r.id, (h.chain.add(swapTx({ fund: f.fund, mint: f.realty, spent: r.budgetLamports, received: 5_000_000n })), [...h.chain.txs.keys()].pop()!), ADMIN);
+    await recordSwapSubmission(r.id, (h.chain.add(swapTx({ fund: f.fund, mint: f.dynasty, spent: r.budgetLamports, received: 5_000_000n })), [...h.chain.txs.keys()].pop()!), ADMIN);
     await setPaused(true, "incident", ADMIN);
     await expect(createBuybackRequest({ idempotencyKey: "paused-1" }, ADMIN)).rejects.toMatchObject({ status: 423 });
     await expect(swapProposal(r.id)).rejects.toMatchObject({ status: 423 });
@@ -216,7 +216,7 @@ describe("quotes, liquidity, slippage, providers", () => {
   it("rejects insufficient or stale liquidity", async () => {
     const r = await createBuybackRequest({ idempotencyKey: "liq-1" }, ADMIN);
     await db().marketSnapshot.create({ data: { tokenId: f.nativeId, source: "test", liquidityUsd: 500 } });
-    h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.realty, amount: req.amount });
+    h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.dynasty, amount: req.amount });
     await expect(quoteBuyback(r.id, ADMIN)).rejects.toThrow(/Liquidity below/);
     await db().marketSnapshot.deleteMany();
     await expect(quoteBuyback(r.id, ADMIN)).rejects.toThrow(/No fresh liquidity/);
@@ -225,13 +225,13 @@ describe("quotes, liquidity, slippage, providers", () => {
 
   it("rejects excessive price impact and slippage, wrong mints and unknown programs", async () => {
     const r = await createBuybackRequest({ idempotencyKey: "pol-1" }, ADMIN);
-    h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.realty, amount: req.amount, impactBps: 900 });
+    h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.dynasty, amount: req.amount, impactBps: 900 });
     await expect(quoteBuyback(r.id, ADMIN)).rejects.toThrow(/Price impact/);
-    h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.realty, amount: req.amount, slippageBps: 900 });
+    h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.dynasty, amount: req.amount, slippageBps: 900 });
     await expect(quoteBuyback(r.id, ADMIN)).rejects.toThrow(/Slippage/);
     h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: newKey(), amount: req.amount });
     await expect(quoteBuyback(r.id, ADMIN)).rejects.toThrow(/not the target/);
-    h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.realty, amount: req.amount }, { instructions: { ...jupiterBuild({ fund: f.fund, mint: f.realty, amount: req.amount }).instructions, swap: { programId: newKey(), accounts: [], data: "" } } });
+    h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.dynasty, amount: req.amount }, { instructions: { ...jupiterBuild({ fund: f.fund, mint: f.dynasty, amount: req.amount }).instructions, swap: { programId: newKey(), accounts: [], data: "" } } });
     await expect(quoteBuyback(r.id, ADMIN)).rejects.toThrow(/not allowlisted/);
     expect((await getRequest(r.id)).status).toBe("PLANNED");
   });
@@ -248,15 +248,15 @@ describe("quotes, liquidity, slippage, providers", () => {
   it("requires a fresh quote and enough approvals, and blocks executing a worse price than approved", async () => {
     await updateFundConfig({ requiredApprovals: 2 }, ADMIN);
     const r = await createBuybackRequest({ idempotencyKey: "appr-1" }, ADMIN);
-    h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.realty, amount: req.amount, out: 5_000_000n });
+    h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.dynasty, amount: req.amount, out: 5_000_000n });
     await quoteBuyback(r.id, ADMIN);
     expect((await approveBuyback(r.id, "approver-a", undefined, ADMIN)).status).toBe("QUOTED");
     await expect(approveBuyback(r.id, "approver-a", undefined, ADMIN)).rejects.toMatchObject({ status: 409 });
     expect((await approveBuyback(r.id, "approver-b", undefined, ADMIN)).status).toBe("APPROVED");
-    h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.realty, amount: req.amount, out: 4_000_000n });
+    h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.dynasty, amount: req.amount, out: 4_000_000n });
     await expect(swapProposal(r.id)).rejects.toThrow(/below the approved minimum/);
 
-    const r2 = await db().buybackRequest.create({ data: { idempotencyKey: "stale-q", targetMint: f.realty, budgetLamports: SOL, slippageBps: 100, status: "QUOTED", quotedAt: new Date(Date.now() - 11 * 60_000) } });
+    const r2 = await db().buybackRequest.create({ data: { idempotencyKey: "stale-q", targetMint: f.dynasty, budgetLamports: SOL, slippageBps: 100, status: "QUOTED", quotedAt: new Date(Date.now() - 11 * 60_000) } });
     await expect(approveBuyback(r2.id, "approver-a", undefined, ADMIN)).rejects.toThrow(/older than 10 minutes/);
   });
 });
@@ -270,17 +270,17 @@ describe("swap and burn execution (multisig flow)", () => {
     const r = await approved();
     const proposal = await swapProposal(r.id);
     expect(proposal.build.inAmount).toBe(r.budgetLamports);
-    const s = swapTx({ fund: f.fund, mint: f.realty, spent: r.budgetLamports, received: 5_000_000n });
+    const s = swapTx({ fund: f.fund, mint: f.dynasty, spent: r.budgetLamports, received: 5_000_000n });
     await recordSwapSubmission(r.id, s.signature, ADMIN);
     expect((await settleSwap(r.id)).status).toBe("SWAP_SUBMITTED"); // not finalized yet: submitted != confirmed
     h.chain.add(s);
     const confirmed = await settleSwap(r.id);
     expect(confirmed).toMatchObject({ status: "SWAP_CONFIRMED", tokensReceivedRaw: 5_000_000n, solSpentLamports: r.budgetLamports });
 
-    h.chain.tokens.set(`${f.fund}:${f.realty}`, 5_000_000n);
+    h.chain.tokens.set(`${f.fund}:${f.dynasty}`, 5_000_000n);
     const bp = await burnProposal(r.id);
     expect(bp.amount).toBe(5_000_000n);
-    const b = burnTx({ fund: f.fund, mint: f.realty, amount: 5_000_000n });
+    const b = burnTx({ fund: f.fund, mint: f.dynasty, amount: 5_000_000n });
     await recordBurnSubmission(r.id, b.signature, ADMIN);
     h.chain.add(b);
     const burned = await settleBurn(r.id);
@@ -292,7 +292,7 @@ describe("swap and burn execution (multisig flow)", () => {
   it("returns a failed swap to APPROVED without spending, and trips the breaker after repeated failures", async () => {
     const r = await approved();
     for (let i = 0; i < 3; i++) {
-      const s = swapTx({ fund: f.fund, mint: f.realty, spent: 0n, received: 0n, err: { InstructionError: [2, { Custom: 6001 }] } });
+      const s = swapTx({ fund: f.fund, mint: f.dynasty, spent: 0n, received: 0n, err: { InstructionError: [2, { Custom: 6001 }] } });
       h.chain.add(s);
       await recordSwapSubmission(r.id, s.signature, ADMIN);
       expect((await settleSwap(r.id)).status).toBe("APPROVED");
@@ -313,14 +313,14 @@ describe("swap and burn execution (multisig flow)", () => {
 
   it("rejects reusing a signature for a second request", async () => {
     const r = await approved();
-    const s = swapTx({ fund: f.fund, mint: f.realty, spent: r.budgetLamports, received: 5_000_000n });
+    const s = swapTx({ fund: f.fund, mint: f.dynasty, spent: r.budgetLamports, received: 5_000_000n });
     await recordSwapSubmission(r.id, s.signature, ADMIN);
     await expect(recordSwapSubmission(r.id, s.signature, ADMIN)).rejects.toMatchObject({ status: 409 });
   });
 
   it("handles confirmation delays and expiry by block height", async () => {
     const r = await approved();
-    const s = swapTx({ fund: f.fund, mint: f.realty, spent: r.budgetLamports, received: 5_000_000n });
+    const s = swapTx({ fund: f.fund, mint: f.dynasty, spent: r.budgetLamports, received: 5_000_000n });
     await recordSwapSubmission(r.id, s.signature, ADMIN, 1_500n);
     h.chain.states.set(s.signature, { status: "confirmed", err: null });
     expect((await settleSwap(r.id)).status).toBe("SWAP_SUBMITTED"); // confirmed but not finalized
@@ -335,21 +335,21 @@ describe("swap and burn execution (multisig flow)", () => {
 
   it("keeps purchased tokens and retries only the burn when a burn fails (no second swap)", async () => {
     const r = await approved();
-    const s = swapTx({ fund: f.fund, mint: f.realty, spent: r.budgetLamports, received: 5_000_000n });
+    const s = swapTx({ fund: f.fund, mint: f.dynasty, spent: r.budgetLamports, received: 5_000_000n });
     h.chain.add(s);
     await recordSwapSubmission(r.id, s.signature, ADMIN);
     await settleSwap(r.id);
-    h.chain.tokens.set(`${f.fund}:${f.realty}`, 5_000_000n);
+    h.chain.tokens.set(`${f.fund}:${f.dynasty}`, 5_000_000n);
     const swapsBefore = h.swap.calls;
 
-    const bad = burnTx({ fund: f.fund, mint: f.realty, amount: 5_000_000n, err: { InstructionError: [0, "InsufficientFunds"] } });
+    const bad = burnTx({ fund: f.fund, mint: f.dynasty, amount: 5_000_000n, err: { InstructionError: [0, "InsufficientFunds"] } });
     h.chain.add(bad);
     await recordBurnSubmission(r.id, bad.signature, ADMIN);
     const back = await settleBurn(r.id);
     expect(back).toMatchObject({ status: "SWAP_CONFIRMED", tokensReceivedRaw: 5_000_000n, tokensBurnedRaw: 0n });
     await expect(swapProposal(r.id)).rejects.toMatchObject({ status: 409 }); // cannot buy again
 
-    const good = burnTx({ fund: f.fund, mint: f.realty, amount: 5_000_000n });
+    const good = burnTx({ fund: f.fund, mint: f.dynasty, amount: 5_000_000n });
     h.chain.add(good);
     await recordBurnSubmission(r.id, good.signature, ADMIN);
     expect((await settleBurn(r.id)).status).toBe("BURNED");
@@ -359,30 +359,30 @@ describe("swap and burn execution (multisig flow)", () => {
 
   it("handles partial burns and refuses burns that do not match", async () => {
     const r = await approved();
-    const s = swapTx({ fund: f.fund, mint: f.realty, spent: r.budgetLamports, received: 5_000_000n });
+    const s = swapTx({ fund: f.fund, mint: f.dynasty, spent: r.budgetLamports, received: 5_000_000n });
     h.chain.add(s);
     await recordSwapSubmission(r.id, s.signature, ADMIN);
     await settleSwap(r.id);
-    h.chain.tokens.set(`${f.fund}:${f.realty}`, 5_000_000n);
+    h.chain.tokens.set(`${f.fund}:${f.dynasty}`, 5_000_000n);
 
-    const part = burnTx({ fund: f.fund, mint: f.realty, amount: 2_000_000n, balanceBefore: 5_000_000n });
+    const part = burnTx({ fund: f.fund, mint: f.dynasty, amount: 2_000_000n, balanceBefore: 5_000_000n });
     h.chain.add(part);
     await recordBurnSubmission(r.id, part.signature, ADMIN);
     expect(await settleBurn(r.id)).toMatchObject({ status: "SWAP_CONFIRMED", tokensBurnedRaw: 2_000_000n });
-    h.chain.tokens.set(`${f.fund}:${f.realty}`, 3_000_000n);
+    h.chain.tokens.set(`${f.fund}:${f.dynasty}`, 3_000_000n);
     expect((await burnProposal(r.id)).amount).toBe(3_000_000n);
 
-    const wrongAuthority = burnTx({ fund: f.fund, mint: f.realty, amount: 3_000_000n, authority: newKey() });
+    const wrongAuthority = burnTx({ fund: f.fund, mint: f.dynasty, amount: 3_000_000n, authority: newKey() });
     h.chain.add(wrongAuthority);
     await recordBurnSubmission(r.id, wrongAuthority.signature, ADMIN);
     expect(await settleBurn(r.id)).toMatchObject({ status: "SWAP_CONFIRMED", tokensBurnedRaw: 2_000_000n });
 
-    const tooMuch = burnTx({ fund: f.fund, mint: f.realty, amount: 9_000_000n });
+    const tooMuch = burnTx({ fund: f.fund, mint: f.dynasty, amount: 9_000_000n });
     h.chain.add(tooMuch);
     await recordBurnSubmission(r.id, tooMuch.signature, ADMIN);
     expect((await settleBurn(r.id)).failureReason).toMatch(/exceeds purchased/);
 
-    const rest = burnTx({ fund: f.fund, mint: f.realty, amount: 3_000_000n });
+    const rest = burnTx({ fund: f.fund, mint: f.dynasty, amount: 3_000_000n });
     h.chain.add(rest);
     await recordBurnSubmission(r.id, rest.signature, ADMIN);
     expect(await settleBurn(r.id)).toMatchObject({ status: "BURNED", tokensBurnedRaw: 5_000_000n });
@@ -390,17 +390,17 @@ describe("swap and burn execution (multisig flow)", () => {
 
   it("refuses to propose a burn when the fund holds fewer tokens than purchased (invalid token account)", async () => {
     const r = await approved();
-    const s = swapTx({ fund: f.fund, mint: f.realty, spent: r.budgetLamports, received: 5_000_000n });
+    const s = swapTx({ fund: f.fund, mint: f.dynasty, spent: r.budgetLamports, received: 5_000_000n });
     h.chain.add(s);
     await recordSwapSubmission(r.id, s.signature, ADMIN);
     await settleSwap(r.id);
-    h.chain.tokens.set(`${f.fund}:${f.realty}`, 1_000n);
+    h.chain.tokens.set(`${f.fund}:${f.dynasty}`, 1_000n);
     await expect(burnProposal(r.id)).rejects.toThrow(/fewer tokens/);
   });
 
   it("leaves state untouched during an RPC outage while settling", async () => {
     const r = await approved();
-    const s = swapTx({ fund: f.fund, mint: f.realty, spent: r.budgetLamports, received: 5_000_000n });
+    const s = swapTx({ fund: f.fund, mint: f.dynasty, spent: r.budgetLamports, received: 5_000_000n });
     await recordSwapSubmission(r.id, s.signature, ADMIN);
     h.chain.outage = true;
     await expect(settleAll()).rejects.toThrow(/RPC outage/);
@@ -463,11 +463,11 @@ describe("reconciliation and disbursements", () => {
   it("flags purchased tokens missing from the fund", async () => {
     await receive(starlet.mint, 10n * SOL);
     const r = await approved();
-    const s = swapTx({ fund: f.fund, mint: f.realty, spent: r.budgetLamports, received: 5_000_000n });
+    const s = swapTx({ fund: f.fund, mint: f.dynasty, spent: r.budgetLamports, received: 5_000_000n });
     h.chain.add(s);
     await recordSwapSubmission(r.id, s.signature, ADMIN);
     await settleSwap(r.id);
-    h.chain.tokens.set(`${f.fund}:${f.realty}`, 4_000_000n);
+    h.chain.tokens.set(`${f.fund}:${f.dynasty}`, 4_000_000n);
     expect((await reconcile()).note).toMatch(/token shortfall 1000000/);
   });
 
@@ -503,7 +503,7 @@ describe("admin API authorisation", () => {
     await receive(starlet.mint, 10n * SOL);
     await signInAs("ADMIN");
     const created = await (await buybacksRoute(send("POST", "/api/admin/demolition-fund/buybacks", { idempotencyKey: "self-appr-1" }))).json();
-    h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.realty, amount: req.amount });
+    h.swap.next = (req) => jupiterBuild({ fund: f.fund, mint: f.dynasty, amount: req.amount });
     expect((await actionRoute(send("POST", `/api/admin/demolition-fund/buybacks/${created.id}/quote`, {}), params({ id: created.id, action: "quote" }))).status).toBe(200);
     const self = await actionRoute(send("POST", `/api/admin/demolition-fund/buybacks/${created.id}/approve`, {}), params({ id: created.id, action: "approve" }));
     expect(self.status).toBe(403);
@@ -522,7 +522,7 @@ describe("admin API authorisation", () => {
 describe("public Demolition Fund API", () => {
   it("shows only verified figures and an empty state before any activity", async () => {
     const empty = await (await summaryRoute(get("/api/demolition-fund/summary"))).json();
-    expect(empty.totals).toMatchObject({ creatorFeesLamports: "0", realtyBurnedRaw: "0", successfulBurns: 0, feeReceipts: 0 });
+    expect(empty.totals).toMatchObject({ creatorFeesLamports: "0", dynastyBurnedRaw: "0", successfulBurns: 0, feeReceipts: 0 });
     expect(empty.latestBurn).toBeNull();
     const board = (await (await propertiesRoute(get("/api/demolition-fund/properties"))).json()).items;
     expect(board).toHaveLength(15);
@@ -533,12 +533,12 @@ describe("public Demolition Fund API", () => {
     await receive(ocean.mint, 4n * SOL);
     await receive(starlet.mint, 1n * SOL);
     const r = await approved(undefined, 3_000_000n);
-    const s = swapTx({ fund: f.fund, mint: f.realty, spent: r.budgetLamports, received: 3_000_000n });
+    const s = swapTx({ fund: f.fund, mint: f.dynasty, spent: r.budgetLamports, received: 3_000_000n });
     h.chain.add(s);
     await recordSwapSubmission(r.id, s.signature, ADMIN);
     await settleSwap(r.id);
-    h.chain.tokens.set(`${f.fund}:${f.realty}`, 3_000_000n);
-    const b = burnTx({ fund: f.fund, mint: f.realty, amount: 3_000_000n });
+    h.chain.tokens.set(`${f.fund}:${f.dynasty}`, 3_000_000n);
+    const b = burnTx({ fund: f.fund, mint: f.dynasty, amount: 3_000_000n });
     h.chain.add(b);
     await recordBurnSubmission(r.id, b.signature, ADMIN);
     await settleBurn(r.id);
@@ -550,21 +550,21 @@ describe("public Demolition Fund API", () => {
       ecosystemAllocatedLamports: "1250000000",
       operationsAllocatedLamports: "750000000",
       pendingBuybackLamports: "0",
-      realtyPurchasedRaw: "3000000",
-      realtyBurnedRaw: "3000000",
+      dynastyPurchasedRaw: "3000000",
+      dynastyBurnedRaw: "3000000",
       successfulBurns: 1,
       contributingProperties: 2,
     });
     expect(sum.latestBurn.signature).toBe(b.signature);
 
     const board = (await (await propertiesRoute(get("/api/demolition-fund/properties"))).json()).items;
-    expect(board.slice(0, 2).map((p: { property: { ticker: string }; rank: number; realtyBurnedRaw: string }) => [p.property.ticker, p.rank, p.realtyBurnedRaw])).toEqual([
+    expect(board.slice(0, 2).map((p: { property: { ticker: string }; rank: number; dynastyBurnedRaw: string }) => [p.property.ticker, p.rank, p.dynastyBurnedRaw])).toEqual([
       ["OCEAN", 1, "2400000"],
       ["STARLET", 2, "600000"],
     ]);
 
     const burns = (await (await burnsRoute(get("/api/demolition-fund/burns"))).json()).items;
-    expect(burns[0]).toMatchObject({ signature: b.signature, realtyBurnedRaw: "3000000", buyback: { swapSignature: s.signature } });
+    expect(burns[0]).toMatchObject({ signature: b.signature, dynastyBurnedRaw: "3000000", buyback: { swapSignature: s.signature } });
     const hist = (await (await historyRoute(get("/api/demolition-fund/history?limit=10"))).json()).items;
     expect(hist.map((e: { type: string }) => e.type).sort()).toEqual(["BURN", "BUYBACK", "FEE_RECEIPT", "FEE_RECEIPT"]);
     const lookup = await (await txRoute(get(`/api/demolition-fund/transactions/${s.signature}`), params({ signature: s.signature }))).json();

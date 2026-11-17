@@ -3,9 +3,6 @@ import { requireAdmin } from "@/server/auth/admin";
 import { setPaused } from "@/server/demolition/fund";
 import { ApiError, handle, json, readJsonBody } from "@/server/http/responses";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 const body = z.object({ paused: z.boolean(), reason: z.string().trim().min(3).max(300) }).strict();
 
 /** POST: emergency pause. Any EDITOR may pause; only an ADMIN may resume. */

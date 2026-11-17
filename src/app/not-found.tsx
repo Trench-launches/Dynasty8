@@ -1,15 +1,20 @@
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { Logo } from "@/components/brand/logo";
 
 export default function NotFound() {
   return (
-    <div className="mx-auto flex min-h-[60dvh] max-w-md flex-col items-center justify-center px-4 text-center">
-      <p className="text-sunset font-display text-7xl">404</p>
-      <h1 className="mt-2 font-display text-3xl tracking-wide text-violet">This property is off the market</h1>
-      <p className="mt-2 text-sm text-violet/70">The listing you are looking for does not exist or was removed.</p>
-      <Link href="/" className={buttonVariants({ className: "mt-5" })}>
-        Back to Map
-      </Link>
+    <div className="grid min-h-dvh place-items-center bg-background p-6 text-center">
+      <div className="max-w-md space-y-4">
+        <Logo variant="dark" className="mb-6 justify-center" />
+        <p className="font-display text-6xl tracking-wide text-sunset-gradient">NOT ON THE MARKET</p>
+        <p className="text-[#6c757d]">We couldn&apos;t find that listing. It may have been renamed or removed.</p>
+        <Link
+          href="/"
+          className="inline-flex rounded-lg bg-sunset-gradient px-5 py-2.5 text-sm font-extrabold text-ink"
+        >
+          Back to the map
+        </Link>
+      </div>
     </div>
   );
 }

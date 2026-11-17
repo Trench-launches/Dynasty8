@@ -189,7 +189,7 @@ model AuditLog {
   @@index([entityType, entityId])
 }
 
-// ─── Demolition Fund: Property Tax -> $REALTY buyback & burn ──────────────────
+// ─── Demolition Fund: Property Tax -> $DYNASTY buyback & burn ──────────────────
 // Every amount is an integer in base units (lamports, raw token units). No floats.
 // Every allocation traces to one verified on-chain fee receipt.
 

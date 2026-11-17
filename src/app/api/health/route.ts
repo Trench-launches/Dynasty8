@@ -1,14 +1,15 @@
 import type { HealthDto } from "@/contracts/api";
 import { getConfig } from "@/server/config";
 import { prisma } from "@/server/db";
-import { json } from "@/server/http/responses";
+import { publicApiLimiter } from "@/server/http/rate-limit";
+import { enforceRateLimit, handle, json } from "@/server/http/responses";
 import { providerStatus } from "@/server/providers/registry";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 /** GET /api/health: liveness + dependency summary. Reveals no versions, hosts or secrets. */
-export async function GET() {
+export const GET = handle(async (req: Request) => {
+  // Rate limited like the other public endpoints (each call queries the database). Reading the
+  // request also keeps the build from prerendering this route, so it never touches the database.
+  enforceRateLimit(publicApiLimiter, req, "public");
   let database: HealthDto["database"] = "ok";
   let lastSnapshotAt: Date | null = null;
   let liveTokens = 0;
@@ -33,4 +34,4 @@ export async function GET() {
     marketData: { lastSnapshotAt: lastSnapshotAt?.toISOString() ?? null, stale },
   };
   return json(body, { status: database === "ok" ? 200 : 503 });
-}
+});

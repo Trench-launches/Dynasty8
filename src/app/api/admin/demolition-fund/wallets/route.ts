@@ -5,9 +5,6 @@ import { setWallet } from "@/server/demolition/fund";
 import { handle, json, readJsonBody } from "@/server/http/responses";
 import { publicKeySchema } from "@/server/solana/address";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 const body = z
   .object({
     role: z.enum(["FUND", "ECOSYSTEM", "OPERATIONS"]),

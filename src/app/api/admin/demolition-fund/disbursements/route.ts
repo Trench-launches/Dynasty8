@@ -4,9 +4,6 @@ import { prisma } from "@/server/db";
 import { recordDisbursement } from "@/server/demolition/reconcile";
 import { handle, json, readJsonBody } from "@/server/http/responses";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 const body = z
   .object({ signature: z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{64,88}$/), role: z.enum(["ECOSYSTEM", "OPERATIONS"]) })
   .strict();

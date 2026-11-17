@@ -2,9 +2,6 @@ import { requireAdmin } from "@/server/auth/admin";
 import { scanFundWallet } from "@/server/demolition/receipts";
 import { handle, json } from "@/server/http/responses";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 /** POST (ADMIN): scan the fund wallet's finalized history for new fee receipts now. */
 export const POST = handle(async (req: Request) => {
   await requireAdmin(req, "ADMIN");

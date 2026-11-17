@@ -11,7 +11,7 @@ export type RawAmount = string;
 
 export interface FundSummaryDto {
   fundWallet: string | null;
-  realty: { ticker: string; mint: string | null; decimals: number | null; live: boolean };
+  dynasty: { ticker: string; mint: string | null; decimals: number | null; live: boolean };
   allocation: { buybackBps: number; ecosystemBps: number; operationsBps: number };
   totals: {
     creatorFeesLamports: Lamports;
@@ -21,15 +21,15 @@ export interface FundSummaryDto {
     /** Verified buyback revenue not yet reserved by a buyback. */
     pendingBuybackLamports: Lamports;
     solSpentOnBuybacksLamports: Lamports;
-    realtyPurchasedRaw: RawAmount;
-    realtyBurnedRaw: RawAmount;
+    dynastyPurchasedRaw: RawAmount;
+    dynastyBurnedRaw: RawAmount;
     successfulBuybacks: number;
     successfulBurns: number;
     feeReceipts: number;
     contributingProperties: number;
   };
-  latestBuyback: { signature: string; solSpentLamports: Lamports; realtyReceivedRaw: RawAmount; confirmedAt: string } | null;
-  latestBurn: { signature: string; realtyBurnedRaw: RawAmount; burnedAt: string } | null;
+  latestBuyback: { signature: string; solSpentLamports: Lamports; dynastyReceivedRaw: RawAmount; confirmedAt: string } | null;
+  latestBurn: { signature: string; dynastyBurnedRaw: RawAmount; burnedAt: string } | null;
   status: { paused: boolean; circuitOpen: boolean; lastReconciliation: { ok: boolean; at: string } | null };
 }
 
@@ -39,10 +39,10 @@ export interface FundEventDto {
   type: FundEventType;
   signature: string;
   at: string | null;
-  /** Lamports for FEE_RECEIPT / BUYBACK (SOL spent) / DISBURSEMENT; raw REALTY for BURN. */
+  /** Lamports for FEE_RECEIPT / BUYBACK (SOL spent) / DISBURSEMENT; raw DYNASTY for BURN. */
   amount: string;
-  /** REALTY received, for BUYBACK only. */
-  realtyRaw: RawAmount | null;
+  /** DYNASTY received, for BUYBACK only. */
+  dynastyRaw: RawAmount | null;
   property: { slug: string; name: string; ticker: string } | null;
   explorerUrl: string;
 }
@@ -59,17 +59,17 @@ export interface PropertyContributionDto {
   mintAddress: string | null;
   creatorFeesLamports: Lamports;
   buybackAllocatedLamports: Lamports;
-  /** REALTY burned with this property's revenue (pro rata across each funded buyback). */
-  realtyBurnedRaw: RawAmount;
+  /** DYNASTY burned with this property's revenue (pro rata across each funded buyback). */
+  dynastyBurnedRaw: RawAmount;
   feeReceipts: number;
   lastReceiptAt: string | null;
 }
 
 export interface FundBurnDto {
   signature: string;
-  realtyBurnedRaw: RawAmount;
+  dynastyBurnedRaw: RawAmount;
   burnedAt: string | null;
-  buyback: { swapSignature: string | null; solSpentLamports: Lamports | null; realtyReceivedRaw: RawAmount | null };
+  buyback: { swapSignature: string | null; solSpentLamports: Lamports | null; dynastyReceivedRaw: RawAmount | null };
   explorerUrl: string;
 }
 

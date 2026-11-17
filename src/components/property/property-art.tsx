@@ -1,294 +1,315 @@
-"use client";
-
-import { useId } from "react";
-import type { PropertyArt as ArtSpec } from "@/data/types";
-import { cn, seededRandom } from "@/lib/utils";
+import { useId, type ReactNode } from "react";
+import Image from "next/image";
+import { bundledPropertyImage } from "@/data/property-images";
+import { cn } from "@/lib/utils";
+import type { Property, PropertyCategory } from "@/lib/types";
 
 /**
- * Original generated property illustrations: a sunset scene plus a building
- * silhouette per style. Pure SVG, so it is sharp at any size and loads instantly.
- * Replace with photography/renders later by giving the property an image URL.
+ * Generated sunset "postcard" illustration for a property. Used whenever the
+ * backend has no image for a listing. Deterministic per slug.
  */
-export function PropertyArt({
-  art,
-  seed,
-  className,
-  title,
-}: {
-  art: ArtSpec;
-  seed: string;
-  className?: string;
-  title?: string;
-}) {
-  const uid = useId().replace(/:/g, "");
-  const id = (s: string) => `${uid}-${s}`;
-  const rand = seededRandom(seed);
-  const dark = "#1d1436";
-  const mid = "#3a2763";
 
-  /** Grid of windows, some lit. */
-  const windows = (x: number, y: number, cols: number, rows: number, w: number, h: number, gx: number, gy: number) => {
-    const out = [];
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const lit = rand() > 0.45;
-        out.push(
-          <rect
-            key={`${x}-${y}-${r}-${c}`}
-            x={x + c * (w + gx)}
-            y={y + r * (h + gy)}
-            width={w}
-            height={h}
-            rx={0.6}
-            fill={lit ? art.accent : "#2c1f4f"}
-            opacity={lit ? 0.55 + rand() * 0.45 : 0.9}
-          />,
-        );
-      }
+const SKIES = [
+  ["#1d1640", "#7a3fd1", "#ff6b9d", "#ffb36b"],
+  ["#15152e", "#30204f", "#ff8066", "#ffb36b"],
+  ["#221a48", "#a45cff", "#ff6b9d", "#ff8066"],
+  ["#15152e", "#4b2a7a", "#ff6b9d", "#ffd29b"],
+];
+
+const SILHOUETTE = "#1a1233";
+const LIT = "#ffb36b";
+
+function hash(s: string) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function windows(x: number, y: number, cols: number, rows: number, w: number, h: number, gx: number, gy: number, seed: number) {
+  const out: ReactNode[] = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const lit = (seed * (r + 3) * (c + 7)) % 5 > 1;
+      out.push(
+        <rect
+          key={`${r}-${c}`}
+          x={x + c * (w + gx)}
+          y={y + r * (h + gy)}
+          width={w}
+          height={h}
+          fill={lit ? LIT : "#2c2050"}
+          opacity={lit ? 0.85 : 1}
+        />,
+      );
     }
-    return out;
-  };
+  }
+  return out;
+}
 
-  const palm = (x: number, base: number, h: number, flip = 1) => (
-    <g key={`palm-${x}`} transform={`translate(${x} ${base}) scale(${flip} 1)`} fill={dark}>
-      <path d={`M0 0 C 3 ${-h * 0.4} 2 ${-h * 0.7} 8 ${-h}`} stroke={dark} strokeWidth={3} fill="none" strokeLinecap="round" />
-      <g transform={`translate(8 ${-h})`}>
-        <path d="M0 0 C -10 -8 -24 -6 -30 4 C -20 -2 -10 -1 0 0Z" />
-        <path d="M0 0 C 10 -10 24 -8 30 2 C 20 -3 10 -2 0 0Z" />
-        <path d="M0 0 C -4 -12 -14 -18 -24 -16 C -14 -12 -6 -6 0 0Z" />
-        <path d="M0 0 C 6 -12 16 -18 26 -14 C 16 -11 7 -6 0 0Z" />
-        <path d="M0 0 C -2 6 -10 14 -18 18 C -10 10 -5 5 0 0Z" />
-        <path d="M0 0 C 4 6 12 13 20 16 C 12 9 6 5 0 0Z" />
-      </g>
+function Palm({ x, h, flip = false }: { x: number; h: number; flip?: boolean }) {
+  const top = 160 - h;
+  const lean = flip ? -10 : 10;
+  return (
+    <g fill={SILHOUETTE} stroke={SILHOUETTE}>
+      <path d={`M${x} 160 Q${x + lean * 0.4} ${160 - h / 2} ${x + lean} ${top}`} fill="none" strokeWidth={4} strokeLinecap="round" />
+      {[-60, -25, 15, 50, 85, 130].map((a) => {
+        const rad = (a * Math.PI) / 180;
+        const len = 26;
+        const ex = x + lean + Math.cos(rad) * len;
+        const ey = top + Math.sin(rad) * len * 0.55 + 8;
+        const cx = x + lean + Math.cos(rad) * len * 0.5;
+        const cy = top - 10;
+        return <path key={a} d={`M${x + lean} ${top} Q${cx} ${cy} ${ex} ${ey}`} fill="none" strokeWidth={3.2} strokeLinecap="round" />;
+      })}
     </g>
   );
+}
 
-  const skyline = (y: number, opacity: number) => {
-    const out = [];
-    let x = -5;
-    while (x < 405) {
-      const w = 14 + rand() * 22;
-      const h = 20 + rand() * 50;
-      out.push(<rect key={`sky-${x}`} x={x} y={y - h} width={w} height={h + 60} fill={mid} opacity={opacity} />);
-      x += w + 2;
-    }
-    return out;
-  };
-
-  const ground = (color: string) => <rect x={0} y={210} width={400} height={50} fill={color} />;
-
-  let scene: React.ReactNode;
-  switch (art.style) {
-    case "twin-towers":
-      scene = (
-        <>
-          {skyline(200, 0.55)}
-          <path d="M138 212 V70 L170 54 V212Z" fill={dark} />
-          <path d="M170 54 L182 62 V212 H170Z" fill={mid} />
-          {windows(144, 76, 3, 16, 6, 4, 3, 4.5)}
-          <path d="M214 212 V88 L246 72 V212Z" fill={dark} />
-          <path d="M246 72 L258 80 V212 H246Z" fill={mid} />
-          {windows(220, 94, 3, 14, 6, 4, 3, 4.5)}
-          <rect x={120} y={196} width={160} height={16} fill={dark} />
-          {ground("#24183f")}
-          {palm(92, 214, 62)}
-          {palm(305, 214, 70, -1)}
-        </>
-      );
-      break;
-    case "skyscraper":
-      scene = (
-        <>
-          {skyline(200, 0.6)}
-          <line x1={200} y1={8} x2={200} y2={34} stroke={dark} strokeWidth={2.5} />
-          <circle cx={200} cy={8} r={2.4} fill="#ff4f6d" />
-          <path d="M176 212 V48 L200 30 L224 48 V212Z" fill={dark} />
-          <path d="M200 30 L224 48 V212 H200Z" fill={mid} opacity={0.7} />
-          {windows(182, 56, 4, 24, 6, 3, 3, 3.5)}
-          <path d="M120 212 V120 H160 V212Z" fill={dark} />
-          {windows(126, 128, 3, 12, 7, 3, 4, 3.5)}
-          <path d="M244 212 V138 H290 V212Z" fill={dark} />
-          {windows(250, 146, 3, 10, 8, 3, 4, 3.5)}
-          {ground("#1d1436")}
-        </>
-      );
-      break;
-    case "mansion":
-      scene = (
-        <>
-          <path d="M0 170 C 80 140 160 160 220 150 S 340 140 400 160 V260 H0Z" fill={mid} opacity={0.65} />
-          <path d="M90 150 L200 108 L310 150Z" fill={dark} />
-          <rect x={100} y={150} width={200} height={56} fill={dark} />
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <rect key={i} x={118 + i * 30} y={156} width={4} height={50} fill={mid} />
+function Building({ category, seed }: { category: PropertyCategory; seed: number }) {
+  switch (category) {
+    case "motel":
+      return (
+        <g>
+          <rect x={36} y={126} width={190} height={34} fill={SILHOUETTE} />
+          <rect x={30} y={120} width={202} height={8} fill={SILHOUETTE} />
+          {Array.from({ length: 8 }, (_, i) => (
+            <rect key={i} x={44 + i * 23} y={136} width={9} height={24} fill={i % 3 === 1 ? LIT : "#2c2050"} />
           ))}
-          {windows(126, 160, 6, 2, 12, 14, 18, 6)}
-          <rect x={186} y={182} width={28} height={24} fill={art.accent} opacity={0.85} />
-          {ground("#24183f")}
-          <rect x={130} y={222} width={140} height={14} rx={7} fill="#5ad6e0" opacity={0.85} />
-          <rect x={146} y={226} width={60} height={2} rx={1} fill="#fff" opacity={0.6} />
-          {[40, 66, 334, 360].map((x) => (
-            <ellipse key={x} cx={x} cy={204} rx={16} ry={12} fill="#2b1d4d" />
+          <rect x={250} y={60} width={5} height={100} fill={SILHOUETTE} />
+          <rect x={232} y={60} width={50} height={34} rx={4} fill={SILHOUETTE} stroke="#ff6b9d" strokeWidth={2} />
+          <path d="M257 69 l3 7 7 0 -5.5 4.5 2 7 -6.5 -4 -6.5 4 2 -7 -5.5 -4.5 7 0 z" fill="#ff6b9d" />
+        </g>
+      );
+    case "hotel":
+      return (
+        <g fill={SILHOUETTE}>
+          <rect x={118} y={62} width={84} height={98} />
+          <rect x={128} y={50} width={64} height={14} />
+          <rect x={142} y={38} width={36} height={14} />
+          <rect x={158} y={18} width={4} height={22} />
+          <rect x={84} y={110} width={40} height={50} />
+          <rect x={196} y={104} width={40} height={56} />
+          <rect x={158} y={66} width={4} height={90} fill="#ff6b9d" opacity={0.9} />
+          {windows(126, 72, 3, 8, 6, 5, 4, 5, seed)}
+          {windows(166, 72, 3, 8, 6, 5, 4, 5, seed + 3)}
+          {windows(90, 118, 3, 4, 6, 5, 4, 5, seed + 5)}
+          {windows(202, 112, 3, 5, 6, 5, 4, 5, seed + 7)}
+        </g>
+      );
+    case "garage":
+    case "automotive":
+    case "industrial":
+      return (
+        <g>
+          <rect x={64} y={108} width={192} height={52} fill={SILHOUETTE} />
+          <rect x={58} y={100} width={204} height={10} fill={SILHOUETTE} />
+          <rect x={120} y={86} width={80} height={16} rx={3} fill={SILHOUETTE} stroke="#ff8066" strokeWidth={1.5} />
+          {[78, 140, 202].map((x) => (
+            <g key={x}>
+              <rect x={x} y={122} width={42} height={38} fill="#2c2050" />
+              {Array.from({ length: 6 }, (_, i) => (
+                <rect key={i} x={x} y={124 + i * 6} width={42} height={2} fill={LIT} opacity={0.35} />
+              ))}
+            </g>
           ))}
-          {palm(70, 214, 72)}
-          {palm(330, 214, 66, -1)}
-        </>
+        </g>
       );
-      break;
-    case "casino":
-      scene = (
-        <>
-          {skyline(196, 0.45)}
-          <rect x={60} y={140} width={280} height={72} fill={dark} />
-          <path d="M150 212 V170 A50 50 0 0 1 250 170 V212Z" fill={art.accent} opacity={0.2} />
-          <path d="M200 92 L222 116 L200 140 L178 116Z" fill={art.accent} />
-          <path d="M200 98 L216 116 L200 134 L184 116Z" fill="#ff6b9d" />
-          {Array.from({ length: 28 }).map((_, i) => (
-            <circle key={i} cx={66 + i * 10} cy={146} r={1.6} fill={art.accent} opacity={i % 2 ? 1 : 0.5} />
+    case "marina":
+      return (
+        <g>
+          <rect x={40} y={150} width={240} height={6} fill={SILHOUETTE} />
+          {[70, 140, 210].map((x, i) => (
+            <g key={x} fill={SILHOUETTE}>
+              <path d={`M${x - 26} 150 L${x + 26} 150 L${x + 18} 160 L${x - 18} 160 Z`} />
+              <rect x={x - 1.5} y={70 + i * 8} width={3} height={80 - i * 8} />
+              <path d={`M${x + 2} ${74 + i * 8} L${x + 2} 146 L${x + 30} 146 Z`} fill="#2c2050" />
+              <path d={`M${x - 2} ${84 + i * 8} L${x - 2} 146 L${x - 22} 146 Z`} fill="#2c2050" />
+            </g>
           ))}
-          {windows(72, 156, 6, 3, 8, 6, 6, 6)}
-          {windows(260, 156, 5, 3, 8, 6, 6, 6)}
-          {ground("#1d1436")}
-          {palm(40, 214, 70)}
-          {palm(366, 214, 64, -1)}
-        </>
+          <rect x={250} y={112} width={44} height={40} fill={SILHOUETTE} />
+          <path d="M246 112 L272 96 L298 112 Z" fill={SILHOUETTE} />
+          <rect x={258} y={122} width={8} height={8} fill={LIT} />
+          <rect x={276} y={122} width={8} height={8} fill={LIT} />
+        </g>
       );
-      break;
-    case "midrise":
-      scene = (
-        <>
-          <rect x={0} y={190} width={400} height={30} fill="#5ad6e0" opacity={0.35} />
-          <path d="M140 212 V80 H262 V212Z" fill={dark} />
-          {Array.from({ length: 11 }).map((_, i) => (
-            <rect key={i} x={136} y={92 + i * 11} width={130} height={2} fill={mid} />
+    case "apartment":
+      return (
+        <g fill={SILHOUETTE}>
+          <rect x={86} y={70} width={150} height={90} />
+          <rect x={80} y={64} width={162} height={8} />
+          {Array.from({ length: 6 }, (_, i) => (
+            <rect key={i} x={80} y={84 + i * 13} width={162} height={2.5} fill="#ff8066" opacity={0.5} />
           ))}
-          {windows(148, 84, 8, 11, 9, 6, 5.5, 5)}
-          {ground("#24183f")}
-          {palm(100, 214, 76)}
-          {palm(300, 214, 60, -1)}
-        </>
+          {windows(94, 74, 9, 6, 9, 7, 6, 6, seed)}
+        </g>
       );
-      break;
-    case "hill-villa":
-      scene = (
-        <>
-          <path d="M0 160 C 70 120 120 110 190 130 S 320 110 400 130 V260 H0Z" fill={mid} opacity={0.6} />
-          <path d="M0 230 C 120 190 230 170 400 150 V260 H0Z" fill={dark} />
-          <rect x={150} y={128} width={150} height={30} fill={dark} />
-          <rect x={156} y={134} width={138} height={18} fill={art.accent} opacity={0.75} />
-          <rect x={120} y={158} width={120} height={26} fill={dark} />
-          <rect x={126} y={164} width={108} height={14} fill={art.accent} opacity={0.55} />
-          <rect x={232} y={158} width={70} height={6} fill="#5ad6e0" />
-          <path d="M200 184 L196 230 H206Z" fill={dark} />
-          {palm(330, 170, 50, -1)}
-        </>
-      );
-      break;
-    case "beach-house":
-      scene = (
-        <>
-          <rect x={0} y={178} width={400} height={40} fill="#4fc3d9" opacity={0.85} />
-          {[186, 196, 206].map((y) => (
-            <rect key={y} x={150 + (y % 20)} y={y} width={100 - (y - 186) * 2} height={1.5} fill="#fff3e8" opacity={0.6} />
+    case "luxury":
+      return (
+        <g fill={SILHOUETTE}>
+          <rect x={60} y={116} width={200} height={44} />
+          <rect x={120} y={96} width={80} height={64} />
+          <path d="M112 98 L160 70 L208 98 Z" />
+          {[128, 144, 160, 176, 192].map((x) => (
+            <rect key={x} x={x - 2} y={102} width={4} height={58} fill="#3b2a66" />
           ))}
-          <path d="M0 214 C 120 204 260 206 400 214 V260 H0Z" fill="#ffd9a8" />
-          <rect x={120} y={156} width={110} height={56} fill="#ffb3c8" />
-          <path d="M112 158 L175 122 L238 158Z" fill="#ff6b9d" />
-          <rect x={136} y={172} width={22} height={18} fill={art.accent} />
-          <rect x={192} y={172} width={22} height={18} fill={art.accent} />
-          <rect x={164} y={186} width={22} height={26} fill="#7a3d6b" />
-          <rect x={112} y={208} width={126} height={5} fill="#c98a6a" />
-          {palm(60, 222, 84)}
-          {palm(300, 222, 92, -1)}
-          {palm(340, 224, 70)}
-        </>
+          {windows(70, 124, 4, 2, 8, 9, 6, 8, seed)}
+          {windows(212, 124, 4, 2, 8, 9, 6, 8, seed + 2)}
+          <rect x={56} y={110} width={208} height={6} />
+        </g>
       );
-      break;
-    case "penthouse":
-      scene = (
-        <>
-          {skyline(204, 0.7)}
-          <rect x={164} y={58} width={84} height={160} fill={dark} />
-          <rect x={160} y={42} width={92} height={18} fill={art.accent} opacity={0.9} />
-          <rect x={168} y={46} width={76} height={2} fill="#fff" opacity={0.7} />
-          {windows(172, 68, 5, 18, 8, 4, 6, 4)}
-          {ground("#15152e")}
-        </>
+    case "offices":
+      return (
+        <g fill={SILHOUETTE}>
+          <rect x={128} y={34} width={64} height={126} />
+          <rect x={196} y={82} width={40} height={78} />
+          <rect x={86} y={100} width={38} height={60} />
+          <ellipse cx={160} cy={32} rx={26} ry={5} fill="#2c2050" stroke="#ffb36b" strokeWidth={1.5} />
+          <text x={160} y={35} fontSize={7} textAnchor="middle" fill="#ffb36b" fontWeight={700}>
+            H
+          </text>
+          {windows(134, 44, 5, 11, 7, 6, 4.5, 4.5, seed)}
+          {windows(202, 90, 3, 6, 6, 6, 5, 5, seed + 4)}
+          {windows(92, 108, 3, 5, 6, 6, 5, 5, seed + 9)}
+        </g>
       );
-      break;
-    case "lofts":
-      scene = (
-        <>
-          {skyline(190, 0.5)}
-          <rect x={70} y={130} width={260} height={82} fill="#4a2a4a" />
-          {[0, 1, 2, 3, 4].map((i) => (
-            <path
-              key={i}
-              d={`M${92 + i * 48} 200 V160 a14 14 0 0 1 28 0 V200Z`}
-              fill={rand() > 0.3 ? art.accent : "#2c1f4f"}
-              opacity={0.85}
-            />
+    case "nightlife":
+      return (
+        <g>
+          <path d="M120 112 L80 30 L100 30 Z" fill="#a45cff" opacity={0.25} />
+          <path d="M200 112 L250 26 L232 24 Z" fill="#ff6b9d" opacity={0.25} />
+          <rect x={86} y={112} width={150} height={48} fill={SILHOUETTE} />
+          <rect x={110} y={92} width={102} height={22} rx={6} fill={SILHOUETTE} stroke="#a45cff" strokeWidth={2} />
+          <path d="M120 103 q8 -8 16 0 t16 0 t16 0 t16 0 t16 0" fill="none" stroke="#ff6b9d" strokeWidth={2.5} />
+          <rect x={146} y={132} width={30} height={28} fill="#ff6b9d" opacity={0.75} />
+        </g>
+      );
+    case "house":
+      return (
+        <g fill={SILHOUETTE}>
+          {[118, 146, 174, 202].map((x) => (
+            <rect key={x} x={x} y={130} width={4} height={36} />
           ))}
-          <rect x={70} y={124} width={260} height={8} fill={dark} />
-          <rect x={286} y={86} width={30} height={26} rx={4} fill={dark} />
-          <path d="M290 112 L286 124 M312 112 L316 124" stroke={dark} strokeWidth={3} />
-          {ground("#24183f")}
-        </>
+          <rect x={106} y={128} width={110} height={5} />
+          <rect x={114} y={98} width={94} height={32} />
+          <path d="M104 100 L161 70 L218 100 Z" />
+          <rect x={150} y={108} width={14} height={22} fill="#2c2050" />
+          <rect x={124} y={106} width={16} height={12} fill={LIT} opacity={0.85} />
+          <rect x={176} y={106} width={16} height={12} fill={LIT} opacity={0.85} />
+          <rect x={216} y={128} width={70} height={4} />
+          {[232, 256, 280].map((x) => (
+            <rect key={x} x={x} y={130} width={3} height={30} />
+          ))}
+        </g>
       );
-      break;
-    case "ranch":
-      scene = (
-        <>
-          <path d="M0 180 L60 120 L110 160 L170 100 L240 170 L300 130 L400 176 V260 H0Z" fill={mid} opacity={0.55} />
-          <path d="M0 206 C 130 196 260 198 400 206 V260 H0Z" fill="#e8956a" />
-          <rect x={120} y={170} width={130} height={40} fill={dark} />
-          <path d="M110 172 L185 146 L260 172Z" fill="#4a2a4a" />
-          {windows(132, 182, 4, 1, 14, 12, 16, 0)}
-          <line x1={310} y1={210} x2={310} y2={120} stroke={dark} strokeWidth={3} />
-          <g transform="translate(310 118)" fill={dark}>
-            {[0, 60, 120, 180, 240, 300].map((a) => (
-              <rect key={a} x={-1.5} y={-22} width={3} height={22} transform={`rotate(${a})`} />
-            ))}
-          </g>
-          <path d="M60 210 V184 M60 196 H52 V188 M60 192 H68 V184" stroke={dark} strokeWidth={4} strokeLinecap="round" fill="none" />
-        </>
+    case "studio":
+      return (
+        <g>
+          <rect x={92} y={104} width={140} height={56} fill={SILHOUETTE} />
+          <rect x={86} y={98} width={152} height={8} fill={SILHOUETTE} />
+          <circle cx={162} cy={70} r={30} fill={SILHOUETTE} stroke="#ff6b9d" strokeWidth={2} />
+          <circle cx={162} cy={70} r={20} fill="none" stroke="#3a2a60" strokeWidth={1.5} />
+          <circle cx={162} cy={70} r={7} fill="#ff6b9d" />
+          <rect x={104} y={120} width={30} height={12} fill={LIT} opacity={0.8} />
+          <rect x={190} y={120} width={30} height={12} fill={LIT} opacity={0.8} />
+          <rect x={148} y={128} width={28} height={32} fill="#2c2050" />
+        </g>
       );
-      break;
+    case "safehouse":
+    case "retail":
+    default:
+      return (
+        <g fill={SILHOUETTE}>
+          <rect x={108} y={116} width={104} height={44} />
+          <path d="M98 118 L160 82 L222 118 Z" />
+          <rect x={192} y={88} width={10} height={20} />
+          <rect x={150} y={132} width={20} height={28} fill="#2c2050" />
+          <rect x={120} y={126} width={18} height={14} fill={LIT} opacity={0.85} />
+          <rect x={182} y={126} width={18} height={14} fill={LIT} opacity={0.85} />
+        </g>
+      );
   }
+}
+
+interface PropertyArtProps {
+  property: Pick<Property, "slug" | "name" | "category" | "image">;
+  className?: string;
+  /** Rendered width hint for responsive image loading, e.g. "84px" or "(max-width: 1024px) 100vw, 380px". */
+  sizes?: string;
+  /** Load eagerly (above-the-fold hero images). */
+  preload?: boolean;
+}
+
+/**
+ * Property image. Uses the listing's photo when it has one, otherwise a generated
+ * sunset illustration. `className` sizes the outer box in both cases.
+ */
+export function PropertyArt({ property, className, sizes = "(max-width: 768px) 100vw, 400px", preload }: PropertyArtProps) {
+  const id = useId().replace(/:/g, "");
+  // A backend image wins; otherwise use the bundled photo for this slug (mock and DB mode).
+  const src = property.image ?? bundledPropertyImage(property.slug);
+  if (src) {
+    return (
+      <div className={cn("relative overflow-hidden bg-white", className)}>
+        <Image
+          src={src}
+          alt={property.name}
+          fill
+          sizes={sizes}
+          preload={preload}
+          // Admin-entered photos live on arbitrary https hosts that are not in images.remotePatterns;
+          // serve them as-is instead of through the optimizer. Local /properties/*.jpg stay optimized.
+          unoptimized={/^https?:\/\//.test(src)}
+          className="object-cover"
+        />
+      </div>
+    );
+  }
+  const seed = hash(property.slug);
+  const sky = SKIES[seed % SKIES.length];
+  const sunX = 70 + (seed % 180);
+  const palmLeft = 26 + (seed % 30);
+  const palmRight = 270 + (seed % 30);
 
   return (
     <svg
-      viewBox="0 0 400 260"
+      viewBox="0 0 320 200"
       preserveAspectRatio="xMidYMid slice"
-      className={cn("block h-full w-full", className)}
       role="img"
-      aria-label={title ?? "Property illustration"}
+      aria-label={`Illustration of ${property.name}`}
+      className={cn("block", className)}
     >
       <defs>
-        <linearGradient id={id("sky")} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={art.sky[0]} />
-          <stop offset="0.55" stopColor={art.sky[1]} />
-          <stop offset="1" stopColor={art.sky[2]} />
+        <linearGradient id={`sky-${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={sky[0]} />
+          <stop offset="0.45" stopColor={sky[1]} />
+          <stop offset="0.75" stopColor={sky[2]} />
+          <stop offset="1" stopColor={sky[3]} />
         </linearGradient>
-        <linearGradient id={id("sun")} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#FFE6A8" />
-          <stop offset="1" stopColor="#FF6B9D" />
+        <linearGradient id={`sun-${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffe3a3" />
+          <stop offset="1" stopColor="#ff6b9d" />
         </linearGradient>
-        <linearGradient id={id("fade")} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0.6" stopColor="#15152E" stopOpacity="0" />
-          <stop offset="1" stopColor="#15152E" stopOpacity="0.45" />
+        <linearGradient id={`sea-${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#3a2470" />
+          <stop offset="1" stopColor="#15152e" />
         </linearGradient>
-        <clipPath id={id("sunclip")}>
-          <rect x="0" y="0" width="400" height="118" />
-          {[124, 134, 146, 160].map((y, i) => (
-            <rect key={y} x="0" y={y} width="400" height={5 + i * 1.5} />
+        <mask id={`stripes-${id}`}>
+          <rect width="320" height="200" fill="white" />
+          {[104, 114, 123, 131, 138].map((y, i) => (
+            <rect key={y} x={0} y={y} width={320} height={2 + i * 0.8} fill="black" />
           ))}
-        </clipPath>
+        </mask>
       </defs>
-      <rect width="400" height="260" fill={`url(#${id("sky")})`} />
-      <circle cx="250" cy="150" r="66" fill={`url(#${id("sun")})`} clipPath={`url(#${id("sunclip")})`} opacity="0.95" />
-      {scene}
-      <rect width="400" height="260" fill={`url(#${id("fade")})`} />
+      <rect width="320" height="200" fill={`url(#sky-${id})`} />
+      <circle cx={sunX} cy={124} r={56} fill={`url(#sun-${id})`} mask={`url(#stripes-${id})`} opacity={0.95} />
+      <rect y={160} width="320" height="40" fill={`url(#sea-${id})`} />
+      {[168, 176, 186].map((y, i) => (
+        <rect key={y} x={sunX - 40 + i * 8} y={y} width={80 - i * 16} height={2} fill="#ff6b9d" opacity={0.5 - i * 0.12} />
+      ))}
+      <rect y={156} width="320" height="5" fill={SILHOUETTE} />
+      <Building category={property.category} seed={seed} />
+      <Palm x={palmLeft} h={88} />
+      <Palm x={palmRight} h={74} flip />
     </svg>
   );
 }

@@ -3,9 +3,6 @@ import { requireAdmin } from "@/server/auth/admin";
 import { getFundConfig, updateFundConfig } from "@/server/demolition/fund";
 import { handle, json, readJsonBody } from "@/server/http/responses";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 const lamports = z
   .string()
   .regex(/^\d{1,19}$/)
