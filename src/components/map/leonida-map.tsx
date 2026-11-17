@@ -150,7 +150,7 @@ export default function LeonidaMap({
         onPointerMissed={() => onSelect(null)}
         className="!absolute inset-0 touch-none"
         fallback={
-          <div className="grid h-full place-items-center p-6 text-center text-sm text-white/70">
+          <div className="grid h-full place-items-center p-6 text-center text-sm text-[#495057]">
             Your browser can&apos;t display the 3D map. The property list still works.
           </div>
         }
@@ -198,10 +198,10 @@ export default function LeonidaMap({
       </div>
 
       {!ready && (
-        <div className="pointer-events-none absolute inset-0 z-40 grid place-items-center bg-[#10111f]/70 backdrop-blur-sm">
+        <div className="pointer-events-none absolute inset-0 z-40 grid place-items-center bg-white/70 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3">
-            <span className="size-10 animate-spin rounded-full border-2 border-white/15 border-t-sunset" />
-            <p className="font-display text-xl tracking-[0.25em] text-white/80">LOADING LEONIDA</p>
+            <span className="size-10 animate-spin rounded-full border-2 border-[#dee2e6] border-t-sunset" />
+            <p className="font-display text-xl tracking-[0.25em] text-[#212529]">LOADING LEONIDA</p>
           </div>
         </div>
       )}
@@ -217,7 +217,7 @@ export default function LeonidaMap({
             key={r.id}
             type="button"
             onClick={() => rig.current?.flyToRegion(r.id)}
-            className="shrink-0 rounded-full border border-white/15 bg-[#141527]/80 px-3.5 py-2 font-display text-[15px] leading-none tracking-[0.08em] text-white/85 backdrop-blur transition-colors hover:border-sunset/60 hover:bg-black/80 hover:text-white"
+            className="shrink-0 rounded border border-[#dee2e6] bg-white/80 px-3.5 py-2 font-display text-[15px] leading-none tracking-[0.08em] text-[#212529] backdrop-blur transition-colors hover:border-sunset/60 hover:bg-white/95 hover:text-[#212529]"
           >
             {r.name.toUpperCase()}
           </button>
@@ -232,7 +232,7 @@ export default function LeonidaMap({
         )}
         style={{ right: insets.right + 12, bottom: insets.bottom + 12 }}
       >
-        <div className="flex flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#141527]/85 backdrop-blur">
+        <div className="flex flex-col overflow-hidden rounded-2xl border border-[#dee2e6] bg-white/85 backdrop-blur">
           <ControlButton label="Zoom in" onClick={() => rig.current?.zoomBy(1 / 1.6)}>
             <Plus />
           </ControlButton>
@@ -254,19 +254,19 @@ export default function LeonidaMap({
           type="button"
           onClick={() => setLegendOpen((o) => !o)}
           aria-expanded={legendOpen}
-          className="flex items-center gap-1.5 rounded-md border border-white/10 bg-black/70 px-2.5 py-1.5 text-[11px] font-bold tracking-[0.16em] text-white/75 uppercase backdrop-blur hover:text-white"
+          className="flex items-center gap-1.5 rounded-md border border-[#dee2e6] bg-white/95 px-2.5 py-1.5 text-[11px] font-bold tracking-[0.16em] text-[#495057] uppercase backdrop-blur hover:text-[#212529]"
         >
           {mapped} on map
           <ChevronDown className={cn("size-3.5 transition-transform", legendOpen && "rotate-180")} />
         </button>
         {legendOpen && (
-          <ul className="mt-1.5 space-y-1.5 rounded-lg border border-white/10 bg-black/80 p-3 text-xs text-white/80 backdrop-blur">
+          <ul className="mt-1.5 space-y-1.5 rounded-lg border border-[#dee2e6] bg-white/95 p-3 text-xs text-[#212529] backdrop-blur">
             <LegendRow label="Token coming soon" glyph={<PinGlyph status="coming_soon" state="default" featured={false} className="h-5 w-4" />} />
             <LegendRow label="Token live" glyph={<PinGlyph status="live" state="default" featured={false} className="h-5 w-4" />} />
             <LegendRow label="Featured" glyph={<PinGlyph status="coming_soon" state="default" featured className="h-5 w-4" />} />
             <LegendRow label="Unavailable" glyph={<PinGlyph status="unavailable" state="default" featured={false} className="h-5 w-4" />} />
             <LegendRow label="Selected" glyph={<PinGlyph status="coming_soon" state="selected" featured={false} className="h-5 w-4" />} />
-            <li className="pt-1 text-[10px] leading-snug text-white/45">Pins show approximate district placement.</li>
+            <li className="pt-1 text-[10px] leading-snug text-[#868e96]">Pins show approximate district placement.</li>
           </ul>
         )}
       </div>
@@ -295,9 +295,9 @@ function ControlButton({
       aria-pressed={pressed}
       onClick={onClick}
       className={cn(
-        "grid size-10 place-items-center text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:bg-white/10 focus-visible:outline-none [&+&]:border-t [&+&]:border-white/10 [&_svg]:size-4",
+        "grid size-10 place-items-center text-[#212529] transition-colors hover:bg-[#e9ecef] hover:text-[#212529] focus-visible:bg-[#e9ecef] focus-visible:outline-none [&+&]:border-t [&+&]:border-[#dee2e6] [&_svg]:size-4",
         pressed === true && "text-tropic",
-        pressed === false && "text-white/40",
+        pressed === false && "text-[#868e96]",
       )}
     >
       {children}

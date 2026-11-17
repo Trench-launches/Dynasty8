@@ -5,16 +5,16 @@ import { formatChange } from "@/lib/format";
 import type { MarketSnapshot, Property, TokenStatus } from "@/lib/types";
 
 const STATUS_STYLES: Record<TokenStatus, string> = {
-  live: "border-coral/40 bg-coral/15 text-tropic",
-  coming_soon: "border-white/15 bg-white/5 text-cream/75",
-  unavailable: "border-white/10 bg-white/5 text-cream/45 line-through decoration-cream/40",
+  live: "border-d8-green bg-d8-green text-white",
+  coming_soon: "border-[#ced4da] bg-[#f8f9fa] text-[#495057]",
+  unavailable: "border-destructive/40 bg-destructive/10 text-destructive line-through decoration-destructive/40",
 };
 
 export function TokenStatusBadge({ status, className }: { status: TokenStatus; className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wider whitespace-nowrap uppercase",
+        "inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] font-semibold tracking-wider whitespace-nowrap uppercase",
         STATUS_STYLES[status],
         className,
       )}
@@ -31,7 +31,7 @@ export function FeaturedBadge({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full bg-tropic/15 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-tropic uppercase",
+        "inline-flex items-center gap-1 rounded bg-[#ffc107] px-2 py-0.5 text-[10px] font-semibold tracking-wider text-[#212529] uppercase",
         className,
       )}
     >
@@ -44,7 +44,7 @@ export function VerificationBadge({ property, className }: { property: Property;
   const { status } = property.verification;
   if (status === "confirmed") {
     return (
-      <span className={cn("inline-flex items-center gap-1 text-[11px] text-emerald-300", className)}>
+      <span className={cn("inline-flex items-center gap-1 text-[11px] text-d8-green", className)}>
         <BadgeCheck className="size-3.5" /> Confirmed location
       </span>
     );
@@ -98,7 +98,7 @@ export function ChangeText({ value, className }: { value: number | null | undefi
     <span
       className={cn(
         "tabular-nums",
-        value == null ? "text-cream/50" : value >= 0 ? "text-emerald-300" : "text-rose-300",
+        value == null ? "text-cream/50" : value >= 0 ? "text-d8-green" : "text-destructive",
         className,
       )}
     >

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { Logo } from "@/components/brand/logo";
 
 export default function Error({ error, retry }: { error: unknown; retry: () => void }) {
   useEffect(() => {
@@ -11,8 +12,9 @@ export default function Error({ error, retry }: { error: unknown; retry: () => v
   return (
     <div className="grid min-h-dvh place-items-center bg-background p-6 text-center">
       <div className="max-w-md space-y-4">
-        <p className="font-display text-5xl tracking-wide text-white">WASTED</p>
-        <p className="text-white/60">Something went wrong loading the property market. The listings service may be unavailable.</p>
+        <Logo variant="dark" className="mb-6 justify-center" />
+        <p className="font-display text-5xl tracking-wide text-[#212529]">WASTED</p>
+        <p className="text-[#6c757d]">Something went wrong loading the property market. The listings service may be unavailable.</p>
         <div className="flex justify-center gap-3">
           <button
             type="button"
@@ -21,7 +23,7 @@ export default function Error({ error, retry }: { error: unknown; retry: () => v
           >
             Try again
           </button>
-          <Link href="/" className="rounded-lg border border-white/15 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/5">
+          <Link href="/" className="rounded-lg border border-[#dee2e6] px-5 py-2.5 text-sm font-bold text-[#212529] hover:bg-[#f8f9fa]">
             Back to map
           </Link>
         </div>

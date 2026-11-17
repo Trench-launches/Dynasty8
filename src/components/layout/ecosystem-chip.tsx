@@ -15,26 +15,20 @@ export function EcosystemChip({ token }: { token: EcosystemToken }) {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="flex h-9 items-center gap-2 rounded-full border border-white/25 bg-white/10 pr-3.5 pl-1.5 text-sm transition-colors outline-none hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-ring sm:h-10"
+          className="flex h-9 shrink-0 items-center gap-2 rounded-full border border-[#ced4da] bg-[#e9ecef] pr-1.5 pl-1.5 min-[420px]:pr-3.5 text-sm transition-colors outline-none hover:bg-[#e9ecef] focus-visible:ring-2 focus-visible:ring-ring sm:h-10"
           aria-label={`${token.ticker} ecosystem token details`}
         >
           <LogoMark className="size-6" />
-          <span className="font-bold text-white">${token.ticker}</span>
-          <span className="hidden text-xs text-cream/60 lg:inline">
-            {m ? (
-              <>
-                {formatPrice(m.priceUsd)} <ChangeText value={m.change24hPct} />
-              </>
-            ) : token.status === "coming_soon" ? (
-              "Launching soon"
-            ) : (
-              "No market data"
-            )}
-          </span>
+          <span className="hidden font-bold text-[#212529] min-[420px]:inline">${token.ticker}</span>
+          {m && (
+            <span className="hidden text-xs text-cream/60 lg:inline">
+              {formatPrice(m.priceUsd)} <ChangeText value={m.change24hPct} />
+            </span>
+          )}
           <MarketDataTag market={m} className="hidden lg:inline" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 border border-white/10 bg-[#1c1d35] p-4">
+      <PopoverContent align="end" className="w-80 border border-[#dee2e6] bg-white p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="font-display text-2xl leading-none tracking-wide">
@@ -57,7 +51,7 @@ export function EcosystemChip({ token }: { token: EcosystemToken }) {
           <p className="mt-2 text-[11px] text-neon">Demo figures for design preview — not real market data.</p>
         )}
 
-        <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/10 pt-3 text-xs">
+        <div className="mt-4 flex items-center justify-between gap-2 border-t border-[#dee2e6] pt-3 text-xs">
           <span className="text-cream/50">
             Mint: {token.mint && token.mintVerified ? shortAddress(token.mint) : "pending verification"}
           </span>
@@ -81,7 +75,7 @@ export function EcosystemChip({ token }: { token: EcosystemToken }) {
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-lg bg-white/5 px-2.5 py-2">
+    <div className="rounded-lg bg-[#f8f9fa] px-2.5 py-2">
       <dt className="text-[10px] tracking-wider text-cream/45 uppercase">{label}</dt>
       <dd className="mt-0.5 font-semibold text-cream tabular-nums">{value}</dd>
     </div>

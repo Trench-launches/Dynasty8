@@ -249,7 +249,7 @@ export function PropertyArt({ property, className, sizes = "(max-width: 768px) 1
   const src = property.image ?? bundledPropertyImage(property.slug);
   if (src) {
     return (
-      <div className={cn("relative overflow-hidden bg-[#1c1d35]", className)}>
+      <div className={cn("relative overflow-hidden bg-white", className)}>
         <Image
           src={src}
           alt={property.name}

@@ -1,16 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow_Condensed, Figtree, Geist_Mono } from "next/font/google";
+import { Barlow_Condensed, Geist_Mono, Righteous } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
-// Open-licence lookalikes for the reference site's type: a bold grotesque for UI/body and
-// a condensed uppercase face for display headings. (Rockstar's own fonts are proprietary.)
-const figtree = Figtree({ variable: "--font-figtree", subsets: ["latin"] });
+// The UI uses the system font stack (Dynasty 8 / Bootstrap style, see globals.css).
+// Barlow Condensed is only loaded for the map's region labels.
 const barlow = Barlow_Condensed({
   variable: "--font-barlow",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
+// Rounded retro display face for the DYNASTY 15 wordmark only.
+const righteous = Righteous({ variable: "--font-righteous", subsets: ["latin"], weight: "400" });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -23,14 +24,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#141527",
+  themeColor: "#18713c",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`dark ${figtree.variable} ${barlow.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${barlow.variable} ${righteous.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <TooltipProvider delayDuration={150}>{children}</TooltipProvider>
