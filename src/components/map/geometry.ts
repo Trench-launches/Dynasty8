@@ -144,8 +144,12 @@ export const GRASSRIVERS_WETLAND: Pt[] = [
 
 /* -------------------------------------------------------------- urban areas */
 
+export type UrbanStyle = "downtown" | "residential" | "resort" | "town";
+
 export interface UrbanArea {
   id: string;
+  /** What the blocks are filled with: towers, houses with pools, beach hotels, or a mix. */
+  style: UrbanStyle;
   poly: Pt[];
   cell: number;
   density: number;
@@ -159,6 +163,7 @@ export const DOWNTOWN: { x: number; y: number; r: number } = { x: 985, y: 1052, 
 export const URBAN_AREAS: UrbanArea[] = [
   {
     id: "vice-city",
+    style: "downtown",
     poly: [
       [860, 890], [1050, 890], [1034, 940], [1024, 1000], [1020, 1060], [1016, 1120], [1002, 1180],
       [978, 1232], [930, 1250], [880, 1222], [852, 1100], [846, 980],
@@ -170,6 +175,7 @@ export const URBAN_AREAS: UrbanArea[] = [
   },
   {
     id: "vice-suburbs",
+    style: "residential",
     poly: [[905, 580], [1056, 575], [1060, 700], [1058, 820], [1044, 884], [870, 884], [890, 760], [920, 650]],
     cell: 13,
     density: 0.5,
@@ -178,6 +184,7 @@ export const URBAN_AREAS: UrbanArea[] = [
   },
   {
     id: "ocean-beach",
+    style: "resort",
     poly: OCEAN_BEACH_PTS,
     cell: 9,
     density: 0.85,
@@ -186,6 +193,7 @@ export const URBAN_AREAS: UrbanArea[] = [
   },
   {
     id: "port-gellhorn",
+    style: "town",
     poly: [[178, 335], [330, 325], [352, 410], [340, 480], [290, 505], [205, 492], [172, 455]],
     cell: 12,
     density: 0.62,
@@ -194,6 +202,7 @@ export const URBAN_AREAS: UrbanArea[] = [
   },
   {
     id: "ambrosia",
+    style: "town",
     poly: [[720, 430], [830, 425], [840, 505], [760, 520], [718, 490]],
     cell: 11,
     density: 0.6,
@@ -202,6 +211,7 @@ export const URBAN_AREAS: UrbanArea[] = [
   },
   {
     id: "keys-town",
+    style: "residential",
     poly: [[282, 1494], [352, 1490], [356, 1506], [286, 1512]],
     cell: 8,
     density: 0.7,
@@ -209,15 +219,6 @@ export const URBAN_AREAS: UrbanArea[] = [
     seed: 41,
   },
 ];
-
-export interface Block {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  height: number;
-  tone: number;
-}
 
 /** True if a point is on dry land (mainland or any island) and not in a lake/harbour. */
 export function onLand(pt: Pt): boolean {
@@ -227,38 +228,6 @@ export function onLand(pt: Pt): boolean {
     pointInPolygon(pt, OCEAN_BEACH_PTS) ||
     KEYS.some((k) => inIslet(pt, k, 0.85))
   );
-}
-
-/** City blocks on a street grid; every 4th row/column is left open as an avenue. */
-export function urbanBlocks(area: UrbanArea): Block[] {
-  const r = seeded(area.seed);
-  const xs = area.poly.map((p) => p[0]);
-  const ys = area.poly.map((p) => p[1]);
-  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-  const blocks: Block[] = [];
-  let row = 0;
-  for (let y = y0; y < y1; y += area.cell, row++) {
-    let col = 0;
-    for (let x = x0; x < x1; x += area.cell, col++) {
-      const roll = r();
-      const tone = r();
-      const hRoll = r();
-      if (row % 4 === 3 || col % 4 === 3) continue;
-      if (roll > area.density) continue;
-      const inset = area.cell * 0.17;
-      const centre: Pt = [x + area.cell / 2, y + area.cell / 2];
-      if (!pointInPolygon(centre, area.poly) || !onLand(centre)) continue;
-      const [hMin, hMax] = area.height;
-      let height = hMin + hRoll * (hMax - hMin);
-      if (area.id === "vice-city") {
-        const d = Math.hypot(centre[0] - DOWNTOWN.x, centre[1] - DOWNTOWN.y);
-        if (d < DOWNTOWN.r) height += (1 - d / DOWNTOWN.r) * (25 + hRoll * 55);
-        else if (hRoll > 0.95) height += 12;
-      }
-      blocks.push({ x: x + inset, y: y + inset, w: area.cell - inset * 2, h: area.cell - inset * 2, height, tone });
-    }
-  }
-  return blocks;
 }
 
 /* --------------------------------------------------------------- transport */
@@ -299,6 +268,63 @@ export const RUNWAYS: [number, number, number, number, number][] = [
   [862, 1186, 40, 4, 40],
   [395, 360, 50, 4, 10],
 ];
+
+/** Rotated rectangle as a polygon. */
+export function rectPoly(cx: number, cy: number, w: number, h: number, rotateDeg: number): Pt[] {
+  const a = (rotateDeg * Math.PI) / 180;
+  const c = Math.cos(a);
+  const s = Math.sin(a);
+  return [
+    [-w / 2, -h / 2],
+    [w / 2, -h / 2],
+    [w / 2, h / 2],
+    [-w / 2, h / 2],
+  ].map(([x, y]) => [cx + x * c - y * s, cy + x * s + y * c] as Pt);
+}
+
+/** Vice City International: no city blocks are built inside this zone. */
+export const AIRPORT_ZONE: Pt[] = rectPoly(873, 1174, 104, 58, -20);
+
+/* -------------------------------------------------------------- lighting */
+
+/**
+ * Sun position in scene units (X east, Y up, Z south) — an afternoon sun from the south-west.
+ * The 3D light and the shadows baked into the ground texture both use it.
+ */
+export const SUN = { x: -900, y: 1200, z: 700 } as const;
+/** Ground-shadow offset per unit of building height, in map units (x east, y south). */
+export const SHADOW_STEP: Pt = [-SUN.x / SUN.y, -SUN.z / SUN.y];
+
+/* ---------------------------------------------------------- water & coast */
+
+/** Shallow sand banks: water here stays turquoise far from shore. */
+export const WATER_BANKS: Islet[] = [
+  { cx: 640, cy: 1420, rx: 360, ry: 120, rotate: -6 },
+  { cx: 960, cy: 1300, rx: 160, ry: 70, rotate: 0 },
+  { cx: 1068, cy: 1060, rx: 40, ry: 190, rotate: 0 },
+  { cx: 1098, cy: 600, rx: 24, ry: 320, rotate: 0 },
+];
+
+/** Stretches of coast with sandy beaches (land inside these boxes gets a sand rim). */
+export const BEACH_ZONES: Pt[][] = [
+  [[960, 100], [1200, 100], [1200, 915], [960, 915]],
+  [[1076, 900], [1200, 900], [1200, 1230], [1076, 1230]],
+  [[100, 480], [330, 480], [330, 820], [100, 820]],
+  [[250, 1395], [800, 1395], [800, 1560], [250, 1560]],
+];
+
+/* ------------------------------------------------------------ detail tiles */
+
+/**
+ * Areas re-rendered at high resolution on top of the base map so close zooms stay sharp.
+ * `pxPerUnit` is the desktop target; it is scaled down on small screens / small GPUs.
+ */
+export const DETAIL_VIEWS = [
+  { id: "vice-core", x: 836, y: 876, w: 284, h: 388, pxPerUnit: 8 },
+  { id: "vice-north", x: 858, y: 564, w: 212, h: 330, pxPerUnit: 6 },
+] as const;
+
+export type MapView = { x: number; y: number; w: number; h: number };
 
 /* ------------------------------------------------------------------ regions */
 

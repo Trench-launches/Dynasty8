@@ -1,31 +1,36 @@
 import type { Metadata, Viewport } from "next";
-import { Bebas_Neue, Geist_Mono, Manrope, Yellowtail } from "next/font/google";
+import { Barlow_Condensed, Figtree, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
-const manrope = Manrope({ variable: "--font-manrope", subsets: ["latin"] });
-const bebas = Bebas_Neue({ variable: "--font-bebas", subsets: ["latin"], weight: "400" });
-const yellowtail = Yellowtail({ variable: "--font-yellowtail", subsets: ["latin"], weight: "400" });
+// Open-licence lookalikes for the reference site's type: a bold grotesque for UI/body and
+// a condensed uppercase face for display headings. (Rockstar's own fonts are proprietary.)
+const figtree = Figtree({ variable: "--font-figtree", subsets: ["latin"] });
+const barlow = Barlow_Condensed({
+  variable: "--font-barlow",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: {
-    default: "Dynasty 8 — Leonida Property Market",
-    template: "%s · Dynasty 8",
+    default: "DYNASTY — Leonida Property Market",
+    template: "%s · DYNASTY",
   },
   description:
     "Browse Leonida's most notorious properties on an interactive map and discover their Solana property tokens.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#000000",
+  themeColor: "#141527",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`dark ${manrope.variable} ${bebas.variable} ${yellowtail.variable} ${geistMono.variable} h-full antialiased`}
+      className={`dark ${figtree.variable} ${barlow.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <TooltipProvider delayDuration={150}>{children}</TooltipProvider>

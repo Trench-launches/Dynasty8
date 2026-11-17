@@ -37,7 +37,7 @@ export function ListingSidebar({
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
       <div className="space-y-3 border-b border-white/10 p-4 pb-3">
         <div className="flex items-end justify-between gap-2">
-          <h1 className="font-display text-[34px] leading-none tracking-[0.06em] text-white">
+          <h1 className="font-display text-[36px] leading-none font-bold text-white">
             PROPERTY <span className="text-sunset-gradient">LISTINGS</span>
           </h1>
           <p className="pb-0.5 text-[11px] font-semibold text-white/45 tabular-nums" aria-live="polite">
@@ -63,7 +63,7 @@ export function ListingSidebar({
             <button
               type="button"
               onClick={() => onFiltersChange({ ...DEFAULT_FILTERS, sort: filters.sort })}
-              className="mt-1 rounded-md bg-sunset-gradient px-4 py-2 text-sm font-bold text-ink"
+              className="mt-1 rounded-full bg-sunset-gradient px-5 py-2.5 text-sm font-bold text-ink"
             >
               Clear filters
             </button>
@@ -87,11 +87,6 @@ export function ListingSidebar({
           </p>
         )}
       </div>
-
-      <p className="border-t border-white/10 px-4 py-3 text-[10px] leading-relaxed text-white/40">
-        Property tokens are themed digital collectibles traded on Pump.fun. Holding one does not grant ownership of any
-        real or in-game property. Not affiliated with Rockstar Games or Take-Two Interactive.
-      </p>
     </div>
   );
 }

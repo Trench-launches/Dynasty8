@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { CATEGORY_LABELS } from "@/data/regions";
 import { formatUsdCompact, tickerLabel } from "@/lib/format";
 import { PropertyArt } from "@/components/property/property-art";
-import { ChangeText, DemoTag, TokenStatusBadge } from "@/components/property/badges";
+import { ChangeText, MarketDataTag, TokenStatusBadge } from "@/components/property/badges";
 import type { Property } from "@/lib/types";
 
 interface ListingCardProps {
@@ -37,7 +37,7 @@ export const ListingCard = memo(function ListingCard({ property, selected, hover
       onFocus={() => onHover(property.slug)}
       onBlur={() => onHover(null)}
       className={cn(
-        "group relative flex w-full gap-3 rounded-lg border p-2 text-left transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "group relative flex w-full gap-3 rounded-xl border p-2 text-left transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring",
         selected
           ? "border-sunset/60 bg-gradient-to-r from-sunset/15 to-transparent"
           : hovered
@@ -46,8 +46,8 @@ export const ListingCard = memo(function ListingCard({ property, selected, hover
       )}
     >
       {selected && <span aria-hidden className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-sunset" />}
-      <div className="relative h-[64px] w-[84px] shrink-0 overflow-hidden rounded-md bg-black/40">
-        <PropertyArt property={property} className="h-full w-full transition-transform duration-500 group-hover:scale-105" />
+      <div className="relative h-[64px] w-[84px] shrink-0 overflow-hidden rounded-lg bg-black/40">
+        <PropertyArt property={property} sizes="84px" className="h-full w-full transition-transform duration-500 group-hover:scale-105" />
         {property.featured && (
           <span className="absolute top-1 left-1 grid size-5 place-items-center rounded-full bg-black/70 text-tropic">
             <Star className="size-3 fill-current" aria-label="Featured" />
@@ -57,7 +57,7 @@ export const ListingCard = memo(function ListingCard({ property, selected, hover
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <p className="truncate font-display text-[19px] leading-tight tracking-wide text-white">{property.name}</p>
+          <p className="truncate font-display text-[21px] leading-tight text-white">{property.name}</p>
           {!property.location && (
             <MapPinOff className="mt-1 size-3.5 shrink-0 text-white/40" aria-label="Map placement pending" />
           )}
@@ -71,7 +71,7 @@ export const ListingCard = memo(function ListingCard({ property, selected, hover
             <span className="flex items-center gap-1.5 text-[11px] tabular-nums">
               <span className="text-white/80">{formatUsdCompact(m.marketCapUsd)}</span>
               <ChangeText value={m.change24hPct} />
-              <DemoTag market={m} />
+              <MarketDataTag market={m} />
             </span>
           ) : (
             <TokenStatusBadge status={property.token.status} />

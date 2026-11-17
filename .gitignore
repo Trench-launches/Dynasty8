@@ -43,3 +43,6 @@ next-env.d.ts
 
 # local tooling
 .claude/
+
+# local embedded PostgreSQL data (npm run db:local)
+.data

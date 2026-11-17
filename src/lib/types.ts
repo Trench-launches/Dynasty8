@@ -1,16 +1,9 @@
 /**
- * Shared data contracts for the Dynasty 8 frontend.
+ * View models used by the Dynasty 8 UI components.
  *
- * These mirror the expected backend responses:
- *   GET /api/properties               -> Property[]
- *   GET /api/properties/:slug         -> Property
- *   GET /api/properties/:slug/market  -> MarketSnapshot | null
- *   GET /api/properties/:slug/chart   -> ChartPoint[]
- *   GET /api/ecosystem                -> EcosystemToken
- *   GET /api/ecosystem/markets        -> EcosystemMarkets
- *
- * Keep this file as the single source of truth for shapes. If the backend
- * changes a field, change it here first and let TypeScript find the call sites.
+ * The backend's wire format lives in src/contracts/api.ts. src/lib/api-client/adapter.ts
+ * converts those DTOs into these shapes, and the mock (src/lib/mock-api.ts) produces them
+ * directly. If the backend changes a field, update the adapter; components only see these.
  */
 
 export type RegionId =
@@ -33,7 +26,9 @@ export type PropertyCategory =
   | "offices"
   | "studio"
   | "automotive"
-  | "nightlife";
+  | "nightlife"
+  | "retail"
+  | "industrial";
 
 /** Lifecycle of the property's Pump.fun token. */
 export type TokenStatus = "coming_soon" | "live" | "unavailable";
@@ -71,15 +66,19 @@ export interface PropertyToken {
 /**
  * Market figures for a token. `source` must be "live" for real data.
  * "demo" values are generated for design work and are always labelled as such in the UI.
+ * A metric is null when no provider supplied it (never shown as zero).
+ * `stale` is true when the backend's last snapshot is older than its freshness window:
+ * show the numbers with their age, never as live.
  */
 export interface MarketSnapshot {
-  priceUsd: number;
-  marketCapUsd: number;
-  volume24hUsd: number;
-  change24hPct: number;
+  priceUsd: number | null;
+  marketCapUsd: number | null;
+  volume24hUsd: number | null;
+  change24hPct: number | null;
   holders: number | null;
   updatedAt: string;
   source: "live" | "demo";
+  stale: boolean;
 }
 
 export interface Property {
@@ -87,7 +86,8 @@ export interface Property {
   slug: string;
   name: string;
   neighbourhood: string;
-  region: RegionId;
+  /** null until a region is entered for the listing. */
+  region: RegionId | null;
   category: PropertyCategory;
   description: string;
   /** Remote image URL. null renders the generated illustration instead. */
@@ -108,7 +108,7 @@ export interface ChartPoint {
   /** ISO timestamp */
   t: string;
   priceUsd: number;
-  volumeUsd: number;
+  volumeUsd: number | null;
 }
 
 export type ChartRange = "24h" | "7d" | "30d";

@@ -19,21 +19,21 @@ export function SiteHeader({ ecosystem }: { ecosystem: EcosystemToken }) {
   const isActive = (href: string) => (href === "/" ? pathname === "/" || pathname.startsWith("/property") : pathname.startsWith(href));
 
   return (
-    <header className="relative z-40 flex h-14 shrink-0 items-center gap-3 border-b border-white/10 bg-black px-3 sm:h-16 sm:gap-6 sm:px-5">
-      <div aria-hidden className="bg-sunset-gradient absolute inset-x-0 bottom-0 h-px opacity-60" />
-      <Link href="/" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Dynasty 8 home">
-        <Logo className="max-sm:[&_.font-script]:hidden" />
+    <header className="bg-header-gradient relative z-40 flex h-14 shrink-0 items-center gap-3 px-3 shadow-[0_6px_24px_rgba(8,8,24,0.45)] sm:h-16 sm:gap-6 sm:px-6">
+      <Link href="/" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="DYNASTY home">
+        <Logo />
       </Link>
 
-      <nav aria-label="Main" className="ml-2 hidden items-center gap-1 md:flex">
+      <nav aria-label="Main" className="ml-4 hidden items-center gap-2 md:flex">
         {NAV.map(({ href, label }) => (
           <Link
             key={href}
             href={href}
             aria-current={isActive(href) ? "page" : undefined}
             className={cn(
-              "relative rounded-md px-3 py-2 font-display text-lg tracking-[0.12em] text-cream/65 transition-colors outline-none hover:text-cream focus-visible:ring-2 focus-visible:ring-ring",
-              isActive(href) && "text-cream after:absolute after:inset-x-3 after:-bottom-[13px] after:h-0.5 after:rounded-full after:bg-sunset",
+              "relative rounded-md px-3 py-2 text-[15px] font-bold tracking-[0.02em] text-[#dadae2] transition-colors outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-ring",
+              isActive(href) &&
+                "text-white after:absolute after:inset-x-3 after:-bottom-[9px] after:h-[3px] after:rounded-full after:bg-sunset",
             )}
           >
             {label.toUpperCase()}
@@ -50,8 +50,8 @@ export function SiteHeader({ ecosystem }: { ecosystem: EcosystemToken }) {
               aria-label={label}
               aria-current={isActive(href) ? "page" : undefined}
               className={cn(
-                "grid size-9 place-items-center rounded-lg text-cream/60 hover:text-cream",
-                isActive(href) && "bg-white/10 text-cream",
+                "grid size-9 place-items-center rounded-full text-[#dadae2] hover:text-white",
+                isActive(href) && "bg-white/15 text-white",
               )}
             >
               <Icon className="size-4.5" />
@@ -64,11 +64,11 @@ export function SiteHeader({ ecosystem }: { ecosystem: EcosystemToken }) {
         <Tooltip>
           <TooltipTrigger asChild>
             {/* span wrapper: disabled buttons don't emit hover events */}
-            <span tabIndex={0} className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <span tabIndex={0} className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <button
                 type="button"
                 disabled
-                className="inline-flex h-9 items-center gap-2 rounded-lg bg-sunset-gradient px-3 text-sm font-bold text-navy opacity-60 sm:px-4"
+                className="inline-flex h-9 items-center gap-2 rounded-full border-[1.5px] border-white/85 px-3 text-[15px] font-bold text-white opacity-70 sm:h-10 sm:px-5"
               >
                 <Wallet className="size-4" />
                 <span className="hidden sm:inline">Connect Wallet</span>

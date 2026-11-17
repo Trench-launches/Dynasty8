@@ -9,8 +9,8 @@ import type {
 } from "@/lib/types";
 
 /**
- * In-memory implementation of the backend contract, used while
- * NEXT_PUBLIC_API_BASE_URL is unset.
+ * In-memory stand-in for the backend, used when NEXT_PUBLIC_MOCK_API=true
+ * (UI work without a database). Returns the same view models as the real adapter.
  *
  * Default: every token is "coming_soon" with no market data.
  * NEXT_PUBLIC_DEMO_MARKETS=true: some tokens get generated market numbers with
@@ -56,6 +56,7 @@ function demoMarket(slug: string): MarketSnapshot {
     holders: Math.round(40 + r() * 3000),
     updatedAt: DEMO_UPDATED_AT,
     source: "demo",
+    stale: false,
   };
 }
 
@@ -76,14 +77,14 @@ function withDemoState(p: Property): Property {
 const PROPERTIES = MOCK_PROPERTIES.map(withDemoState);
 
 const ECOSYSTEM: EcosystemToken = {
-  name: "Realty",
-  ticker: "REALTY",
+  name: "Dynasty",
+  ticker: "DYNASTY",
   status: DEMO_MARKETS ? "live" : "coming_soon",
   mint: null,
   mintVerified: false,
   pumpFunUrl: null,
   summary:
-    "REALTY is the planned ecosystem token for the Dynasty 8 marketplace. It is separate from the individual property tokens, and property-token trading fees do not automatically flow to it.",
+    "DYNASTY is the planned ecosystem token for the DYNASTY marketplace. It is separate from the individual property tokens, and property-token trading fees do not automatically flow to it.",
   market: DEMO_MARKETS ? demoMarket("realty-ecosystem") : null,
 };
 
@@ -100,18 +101,19 @@ const RANGE_POINTS: Record<ChartRange, { points: number; stepMs: number }> = {
 };
 
 function demoChart(property: Property, range: ChartRange): ChartPoint[] {
-  if (!property.market) return [];
+  const { priceUsd, volume24hUsd } = property.market ?? {};
+  if (priceUsd == null || volume24hUsd == null) return [];
   const { points, stepMs } = RANGE_POINTS[range];
   const r = rng(hash(`${property.slug}:${range}`));
   const end = Date.now();
   const series: ChartPoint[] = [];
   // Walk backwards from the current price so the series ends at the snapshot value.
-  let price = property.market.priceUsd;
+  let price = priceUsd;
   for (let i = 0; i < points; i++) {
     series.unshift({
       t: new Date(end - i * stepMs).toISOString(),
       priceUsd: price,
-      volumeUsd: Math.round((property.market.volume24hUsd / points) * (0.3 + r() * 1.4)),
+      volumeUsd: Math.round((volume24hUsd / points) * (0.3 + r() * 1.4)),
     });
     price = Math.max(price * (1 + (r() - 0.52) * 0.12), 1e-9);
   }
@@ -137,11 +139,13 @@ export const mockApi = {
   },
   getEcosystemMarkets(): Promise<EcosystemMarkets> {
     const live = PROPERTIES.filter((p) => p.market);
+    const sum = (pick: (m: MarketSnapshot) => number | null) =>
+      live.length ? live.reduce((s, p) => s + (pick(p.market!) ?? 0), 0) : null;
     return respond({
       liveTokens: PROPERTIES.filter((p) => p.token.status === "live").length,
       totalListings: PROPERTIES.length,
-      totalMarketCapUsd: live.length ? live.reduce((s, p) => s + p.market!.marketCapUsd, 0) : null,
-      totalVolume24hUsd: live.length ? live.reduce((s, p) => s + p.market!.volume24hUsd, 0) : null,
+      totalMarketCapUsd: sum((m) => m.marketCapUsd),
+      totalVolume24hUsd: sum((m) => m.volume24hUsd),
       source: live.length ? "demo" : null,
     });
   },

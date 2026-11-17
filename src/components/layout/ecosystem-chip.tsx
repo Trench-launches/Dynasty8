@@ -2,7 +2,7 @@
 
 import { ExternalLink } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ChangeText, DemoTag, TokenStatusBadge } from "@/components/property/badges";
+import { ChangeText, MarketDataTag, TokenStatusBadge } from "@/components/property/badges";
 import { LogoMark } from "@/components/brand/logo";
 import { formatPrice, formatUsdCompact, shortAddress } from "@/lib/format";
 import type { EcosystemToken } from "@/lib/types";
@@ -15,11 +15,11 @@ export function EcosystemChip({ token }: { token: EcosystemToken }) {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2.5 text-sm transition-colors outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex h-9 items-center gap-2 rounded-full border border-white/25 bg-white/10 pr-3.5 pl-1.5 text-sm transition-colors outline-none hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-ring sm:h-10"
           aria-label={`${token.ticker} ecosystem token details`}
         >
-          <LogoMark className="size-5" />
-          <span className="font-bold text-cream">${token.ticker}</span>
+          <LogoMark className="size-6" />
+          <span className="font-bold text-white">${token.ticker}</span>
           <span className="hidden text-xs text-cream/60 lg:inline">
             {m ? (
               <>
@@ -31,16 +31,16 @@ export function EcosystemChip({ token }: { token: EcosystemToken }) {
               "No market data"
             )}
           </span>
-          <DemoTag market={m} className="hidden lg:inline" />
+          <MarketDataTag market={m} className="hidden lg:inline" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 border border-white/10 bg-[#131318] p-4">
+      <PopoverContent align="end" className="w-80 border border-white/10 bg-[#1c1d35] p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="font-display text-2xl leading-none tracking-wide">
               {token.name} <span className="text-sunset-gradient">${token.ticker}</span>
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">Dynasty 8 ecosystem token</p>
+            <p className="mt-1 text-xs text-muted-foreground">DYNASTY ecosystem token</p>
           </div>
           <TokenStatusBadge status={token.status} />
         </div>

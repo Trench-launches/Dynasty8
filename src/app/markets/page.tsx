@@ -1,16 +1,26 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { PageLoading } from "@/components/layout/page-loading";
 import { SiteHeader } from "@/components/layout/site-header";
 import { MarketsTable } from "@/components/markets/markets-table";
-import { ChangeText, DemoTag, TokenStatusBadge } from "@/components/property/badges";
+import { ChangeText, MarketDataTag, TokenStatusBadge } from "@/components/property/badges";
 import { getCatalogue, getEcosystemMarkets, getEcosystemToken } from "@/lib/catalogue";
 import { formatPrice, formatUsdCompact } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "Markets",
-  description: "Every Dynasty 8 property token and the REALTY ecosystem token in one place.",
+  description: "Every DYNASTY property token and the DYNASTY ecosystem token in one place.",
 };
 
-export default async function MarketsPage() {
+export default function MarketsPage() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <MarketsContent />
+    </Suspense>
+  );
+}
+
+async function MarketsContent() {
   const [properties, ecosystem, summary] = await Promise.all([
     getCatalogue(),
     getEcosystemToken(),
@@ -24,7 +34,7 @@ export default async function MarketsPage() {
       <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-6 sm:px-6 sm:py-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="font-display text-5xl leading-none tracking-wide text-white sm:text-6xl">
+            <h1 className="font-display text-5xl leading-none font-bold text-white sm:text-6xl">
               PROPERTY <span className="text-sunset-gradient">MARKETS</span>
             </h1>
             <p className="mt-2 max-w-xl text-sm text-white/55">
@@ -56,7 +66,7 @@ export default async function MarketsPage() {
             <TokenStatusBadge status={ecosystem.status} />
             <span className="text-white/80 tabular-nums">{formatPrice(m?.priceUsd)}</span>
             <ChangeText value={m?.change24hPct} />
-            <DemoTag market={m} />
+            <MarketDataTag market={m} />
           </div>
         </section>
 
@@ -73,9 +83,9 @@ export default async function MarketsPage() {
 
 function Summary({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-card px-3 py-2">
+    <div className="rounded-xl border border-white/10 bg-card px-3 py-2">
       <dt className="text-[10px] tracking-wider text-white/45 uppercase">{label}</dt>
-      <dd className="font-display text-xl tracking-wide text-white">{value}</dd>
+      <dd className="font-display text-2xl text-cream">{value}</dd>
     </div>
   );
 }

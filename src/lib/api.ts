@@ -1,4 +1,12 @@
 import { mockApi } from "@/lib/mock-api";
+import { ApiClientError, api as backend } from "@/lib/api-client/client";
+import {
+  toChartPoints,
+  toEcosystemMarkets,
+  toEcosystemToken,
+  toMarketSnapshot,
+  toProperty,
+} from "@/lib/api-client/adapter";
 import type {
   ChartPoint,
   ChartRange,
@@ -9,59 +17,61 @@ import type {
 } from "@/lib/types";
 
 /**
- * Central API client. Every component gets data through here — never import
- * mock data directly into UI code.
+ * Browser-side data client. Every client component gets data through here — never import
+ * mock data directly into UI code. Server components use src/lib/catalogue.ts instead, which
+ * reads the database directly rather than calling this app's own HTTP API.
  *
- * Set NEXT_PUBLIC_API_BASE_URL (e.g. https://api.dynasty8.example) to talk to the
- * real backend. Leave it unset to use the in-memory mock in src/lib/mock-api.ts.
+ * Default: the real backend (the /api routes in this app, or NEXT_PUBLIC_API_BASE_URL).
+ * NEXT_PUBLIC_MOCK_API=true: the in-memory mock in src/lib/mock-api.ts (no database needed).
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
+export const usingMockApi = process.env.NEXT_PUBLIC_MOCK_API === "true";
 
-export const usingMockApi = API_BASE === "";
+export { ApiClientError };
 
-export class ApiError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly path: string,
-  ) {
-    super(`API ${status} on ${path}`);
-    this.name = "ApiError";
+async function nullOn404<T>(request: Promise<T>): Promise<T | null> {
+  try {
+    return await request;
+  } catch (e) {
+    if (e instanceof ApiClientError && e.status === 404) return null;
+    throw e;
   }
 }
 
-async function get<T>(path: string, init?: { allow404?: boolean }): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, { headers: { Accept: "application/json" } });
-  if (res.status === 404 && init?.allow404) return null as T;
-  if (!res.ok) throw new ApiError(res.status, path);
-  return (await res.json()) as T;
+/** The list endpoint is paginated (max 50); the map needs every listing. */
+async function listAll(): Promise<Property[]> {
+  const out: Property[] = [];
+  for (let page = 1; ; page++) {
+    const res = await backend.listProperties({ page, pageSize: 50 });
+    out.push(...res.items.map(toProperty));
+    if (page >= res.totalPages) return out;
+  }
 }
-
-const enc = encodeURIComponent;
 
 export const api = {
   getProperties(): Promise<Property[]> {
-    return usingMockApi ? mockApi.getProperties() : get("/api/properties");
+    return usingMockApi ? mockApi.getProperties() : listAll();
   },
-  getProperty(slug: string): Promise<Property | null> {
-    return usingMockApi
-      ? mockApi.getProperty(slug)
-      : get(`/api/properties/${enc(slug)}`, { allow404: true });
+  async getProperty(slug: string): Promise<Property | null> {
+    if (usingMockApi) return mockApi.getProperty(slug);
+    const dto = await nullOn404(backend.getProperty(slug));
+    return dto ? toProperty(dto) : null;
   },
-  getPropertyMarket(slug: string): Promise<MarketSnapshot | null> {
-    return usingMockApi
-      ? mockApi.getPropertyMarket(slug)
-      : get(`/api/properties/${enc(slug)}/market`, { allow404: true });
+  async getPropertyMarket(slug: string): Promise<MarketSnapshot | null> {
+    if (usingMockApi) return mockApi.getPropertyMarket(slug);
+    const res = await nullOn404(backend.getPropertyMarket(slug));
+    return res ? toMarketSnapshot(res.market) : null;
   },
-  getPropertyChart(slug: string, range: ChartRange): Promise<ChartPoint[]> {
-    return usingMockApi
-      ? mockApi.getPropertyChart(slug, range)
-      : get(`/api/properties/${enc(slug)}/chart?range=${range}`);
+  async getPropertyChart(slug: string, range: ChartRange): Promise<ChartPoint[]> {
+    if (usingMockApi) return mockApi.getPropertyChart(slug, range);
+    return toChartPoints(await backend.getPropertyChart(slug, range));
   },
-  getEcosystem(): Promise<EcosystemToken> {
-    return usingMockApi ? mockApi.getEcosystem() : get("/api/ecosystem");
+  async getEcosystem(): Promise<EcosystemToken> {
+    if (usingMockApi) return mockApi.getEcosystem();
+    return toEcosystemToken(await backend.getEcosystem());
   },
-  getEcosystemMarkets(): Promise<EcosystemMarkets> {
-    return usingMockApi ? mockApi.getEcosystemMarkets() : get("/api/ecosystem/markets");
+  async getEcosystemMarkets(): Promise<EcosystemMarkets> {
+    if (usingMockApi) return mockApi.getEcosystemMarkets();
+    return toEcosystemMarkets(await backend.getEcosystem());
   },
 };

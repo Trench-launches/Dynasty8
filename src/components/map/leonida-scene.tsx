@@ -7,8 +7,9 @@ import * as THREE from "three";
 import type { MapControls as MapControlsImpl } from "three-stdlib";
 import { MAP_HEIGHT, MAP_WIDTH } from "@/data/regions";
 import type { MapLocation, Property, RegionId } from "@/lib/types";
-import { DOWNTOWN, REGION_FOCUS, TEXTURE_AREA, URBAN_AREAS, urbanBlocks } from "./geometry";
-import { MAP_COLORS, renderMapCanvas } from "./map-texture";
+import { REGION_FOCUS, type MapView } from "./geometry";
+import { cityPlan, type BuildingStyle } from "./city-plan";
+import { MAP_COLORS, renderBaseLayer, renderDetailLayers, type MapLayer } from "./map-texture";
 
 /* ------------------------------------------------------------- coordinates */
 
@@ -59,107 +60,232 @@ function shortestAngle(from: number, to: number) {
 
 /* ----------------------------------------------------------------- ground */
 
+interface GroundLayer {
+  texture: THREE.CanvasTexture;
+  view: MapView;
+}
+
+/**
+ * The painted map: one base layer for the whole island plus high-resolution layers over
+ * Vice City (drawn on top with a polygon offset), so close zooms stay sharp.
+ */
 export function MapGround({ onReady }: { onReady: () => void }) {
   const gl = useThree((s) => s.gl);
-  const [texture, setTexture] = useState<THREE.CanvasTexture | null>(null);
+  const [layers, setLayers] = useState<GroundLayer[]>([]);
+  const [sea, setSea] = useState<string>(MAP_COLORS.ocean);
 
   useEffect(() => {
     let cancelled = false;
-    let made: THREE.CanvasTexture | null = null;
+    const made: THREE.CanvasTexture[] = [];
     const max = gl.capabilities.maxTextureSize;
     const mobile = window.matchMedia("(max-width: 768px)").matches;
-    const height = Math.min(max, mobile ? 3072 : 4096);
-    renderMapCanvas(height)
-      .then((canvas) => {
+    const toLayer = ({ canvas, view }: MapLayer): GroundLayer => {
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = gl.capabilities.getMaxAnisotropy();
+      texture.generateMipmaps = true;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      made.push(texture);
+      return { texture, view };
+    };
+
+    (async () => {
+      try {
+        const base = await renderBaseLayer(Math.min(max, mobile ? 3072 : 4096));
         if (cancelled) return;
-        made = new THREE.CanvasTexture(canvas);
-        made.colorSpace = THREE.SRGBColorSpace;
-        made.anisotropy = gl.capabilities.getMaxAnisotropy();
-        made.generateMipmaps = true;
-        made.minFilter = THREE.LinearMipmapLinearFilter;
-        setTexture(made);
+        setLayers([toLayer(base)]);
+        if (base.edgeColor) setSea(base.edgeColor);
         onReady();
-      })
-      .catch((err) => {
+        const details = await renderDetailLayers(max, mobile ? 0.5 : 1);
+        if (cancelled) return;
+        setLayers((current) => [...current, ...details.map(toLayer)]);
+      } catch (err) {
         console.error("Map texture failed to render", err);
-        onReady();
-      });
+        if (!cancelled) onReady();
+      }
+    })();
+
     return () => {
       cancelled = true;
-      made?.dispose();
+      made.forEach((t) => t.dispose());
     };
   }, [gl, onReady]);
-
-  const A = TEXTURE_AREA;
-  const centre = toScene(A.x + A.w / 2, A.y + A.h / 2);
 
   return (
     <group>
       {/* Endless ocean */}
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.5, 0]}>
         <planeGeometry args={[60000, 60000]} />
-        <meshBasicMaterial color={MAP_COLORS.ocean} />
+        <meshBasicMaterial color={sea} />
       </mesh>
-      {texture && (
-        <mesh rotation-x={-Math.PI / 2} position={[centre.x, 0, centre.z]}>
-          <planeGeometry args={[A.w, A.h]} />
-          <meshBasicMaterial map={texture} />
-        </mesh>
-      )}
+      {layers.map(({ texture, view }, i) => {
+        const centre = toScene(view.x + view.w / 2, view.y + view.h / 2);
+        return (
+          <mesh key={texture.uuid} rotation-x={-Math.PI / 2} position={[centre.x, 0, centre.z]} renderOrder={i}>
+            <planeGeometry args={[view.w, view.h]} />
+            <meshBasicMaterial
+              map={texture}
+              polygonOffset={i > 0}
+              polygonOffsetFactor={-1 - i}
+              polygonOffsetUnits={-4 - 4 * i}
+            />
+          </mesh>
+        );
+      })}
     </group>
   );
 }
 
 /* -------------------------------------------------------------- buildings */
 
-const BUILDING_TONES = {
-  base: new THREE.Color("#e3e0ea"),
-  alt: new THREE.Color("#d2cde0"),
-  glass: new THREE.Color("#b9c8ea"),
-  pastelPink: new THREE.Color("#f6c3d5"),
-  pastelMint: new THREE.Color("#bfe9df"),
-  pastelPeach: new THREE.Color("#ffd9b8"),
+const STYLE_ID: Record<BuildingStyle, number> = {
+  house: 0,
+  office: 1,
+  tower: 2,
+  glass: 3,
+  deco: 4,
+  warehouse: 5,
+  terminal: 6,
 };
+
+const FACADE_VERTEX_HEAD = /* glsl */ `#include <common>
+attribute vec3 aRoof;
+attribute vec4 aDims;
+attribute float aStyle;
+varying vec3 vRoof;
+varying vec3 vFacade;
+varying vec3 vBoxNormal;
+varying float vStyle;`;
+
+const FACADE_VERTEX_BODY = /* glsl */ `#include <begin_vertex>
+vRoof = aRoof;
+vStyle = aStyle;
+vBoxNormal = normal;
+vFacade = vec3(position.x * aDims.x, position.y * aDims.y + aDims.w, position.z * aDims.z);`;
+
+const FACADE_FRAGMENT_HEAD = /* glsl */ `#include <common>
+varying vec3 vRoof;
+varying vec3 vFacade;
+varying vec3 vBoxNormal;
+varying float vStyle;
+float bHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }`;
+
+const FACADE_FRAGMENT_BODY = /* glsl */ `#include <color_fragment>
+{
+  vec3 n = normalize(vBoxNormal);
+  if (n.y > 0.5) {
+    diffuseColor.rgb = vRoof;
+  } else if (n.y > -0.5) {
+    float u = abs(n.x) > 0.5 ? vFacade.z : vFacade.x;
+    float v = vFacade.y;
+    int style = int(vStyle + 0.5);
+    vec3 sky = mix(vec3(0.16, 0.22, 0.32), vec3(0.62, 0.72, 0.84), clamp(v / 70.0, 0.0, 1.0));
+    if (style == 1 || style == 2) {
+      float fh = style == 2 ? 0.55 : 0.62;
+      float cw = style == 2 ? 0.5 : 0.7;
+      vec2 cell = vec2(floor(u / cw), floor(v / fh));
+      float fu = fract(u / cw);
+      float fv = fract(v / fh);
+      float win = step(0.2, fu) * step(fu, 0.8) * step(0.28, fv) * step(fv, 0.84) * step(0.9, v);
+      vec3 glass = sky * (0.8 + 0.4 * bHash(cell));
+      diffuseColor.rgb = mix(diffuseColor.rgb, glass, win * 0.85);
+    } else if (style == 3) {
+      float fu = fract(u / 0.9);
+      float fv = fract(v / 0.55);
+      float frame = max(step(fu, 0.05), step(fv, 0.08));
+      vec3 glass = mix(diffuseColor.rgb * 0.75, sky, 0.45) * (0.9 + 0.2 * bHash(vec2(floor(u / 0.9), floor(v / 2.2))));
+      diffuseColor.rgb = mix(glass, diffuseColor.rgb * 1.08, frame * 0.7);
+    } else if (style == 4 || style == 6) {
+      float fv = fract(v / 0.7);
+      float band = step(0.36, fv) * step(fv, 0.72) * step(0.6, v);
+      vec3 glass = mix(vec3(0.18, 0.32, 0.38), sky, 0.5);
+      diffuseColor.rgb = mix(diffuseColor.rgb, glass, band * 0.8);
+    } else if (style == 5) {
+      diffuseColor.rgb *= 0.94 + 0.06 * step(0.5, fract(u / 0.35));
+    }
+    diffuseColor.rgb *= mix(0.6, 1.0, clamp(v / 2.2, 0.0, 1.0));
+  }
+}`;
+
+/**
+ * Lambert material with facade detail drawn in the shader from each instance's real size,
+ * so windows stay the same size on every building: punched windows on offices, curtain-wall
+ * glass on towers, ribbon windows on Art Deco hotels, roof colour on top faces and a little
+ * ambient occlusion at street level.
+ */
+function makeBuildingMaterial() {
+  const material = new THREE.MeshLambertMaterial();
+  material.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", FACADE_VERTEX_HEAD)
+      .replace("#include <begin_vertex>", FACADE_VERTEX_BODY);
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", FACADE_FRAGMENT_HEAD)
+      .replace("#include <color_fragment>", FACADE_FRAGMENT_BODY);
+  };
+  material.customProgramCacheKey = () => "dynasty8-buildings-v1";
+  return material;
+}
 
 export function Buildings({ visible }: { visible: boolean }) {
   const ref = useRef<THREE.InstancedMesh>(null);
-  const blocks = useMemo(
-    () => URBAN_AREAS.flatMap((area) => urbanBlocks(area).map((b) => ({ ...b, area: area.id }))),
-    [],
-  );
-  const geometry = useMemo(() => new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), []);
+  const footprints = useMemo(() => cityPlan().footprints, []);
+  const material = useMemo(() => makeBuildingMaterial(), []);
+  const geometry = useMemo(() => {
+    const g = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0);
+    const n = footprints.length;
+    const roof = new Float32Array(n * 3);
+    const dims = new Float32Array(n * 4);
+    const style = new Float32Array(n);
+    const c = new THREE.Color();
+    footprints.forEach((f, i) => {
+      c.set(f.roof);
+      roof.set([c.r, c.g, c.b], i * 3);
+      dims.set([f.w, f.top - f.base, f.h, f.base], i * 4);
+      style[i] = STYLE_ID[f.style];
+    });
+    g.setAttribute("aRoof", new THREE.InstancedBufferAttribute(roof, 3));
+    g.setAttribute("aDims", new THREE.InstancedBufferAttribute(dims, 4));
+    g.setAttribute("aStyle", new THREE.InstancedBufferAttribute(style, 1));
+    return g;
+  }, [footprints]);
 
   useLayoutEffect(() => {
     const mesh = ref.current;
     if (!mesh) return;
     const m = new THREE.Matrix4();
     const q = new THREE.Quaternion();
-    blocks.forEach((b, i) => {
-      const p = toScene(b.x + b.w / 2, b.y + b.h / 2);
-      m.compose(p, q, new THREE.Vector3(b.w, b.height, b.h));
+    const up = new THREE.Vector3(0, 1, 0);
+    const color = new THREE.Color();
+    footprints.forEach((f, i) => {
+      const p = toScene(f.x + f.w / 2, f.y + f.h / 2);
+      p.y = f.base;
+      // Map y grows south (= scene +Z), so a clockwise map rotation is a negative turn about +Y.
+      q.setFromAxisAngle(up, f.rot ? (-f.rot * Math.PI) / 180 : 0);
+      m.compose(p, q, new THREE.Vector3(f.w, f.top - f.base, f.h));
       mesh.setMatrixAt(i, m);
-      const nearDowntown = Math.hypot(b.x - DOWNTOWN.x, b.y - DOWNTOWN.y) < DOWNTOWN.r;
-      let color = b.tone > 0.55 ? BUILDING_TONES.base : BUILDING_TONES.alt;
-      if (b.area === "ocean-beach") {
-        color = [BUILDING_TONES.pastelPink, BUILDING_TONES.pastelMint, BUILDING_TONES.pastelPeach, BUILDING_TONES.base][
-          Math.floor(b.tone * 4)
-        ];
-      } else if (nearDowntown && b.height > 25) {
-        color = BUILDING_TONES.glass;
-      }
-      mesh.setColorAt(i, color);
+      mesh.setColorAt(i, color.set(f.wall));
     });
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
-  }, [blocks]);
+  }, [footprints]);
 
-  useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(
+    () => () => {
+      geometry.dispose();
+      material.dispose();
+    },
+    [geometry, material],
+  );
 
   return (
-    <instancedMesh ref={ref} args={[geometry, undefined, blocks.length]} visible={visible} frustumCulled={false}>
-      <meshLambertMaterial />
-    </instancedMesh>
+    <instancedMesh
+      ref={ref}
+      args={[geometry, material, footprints.length]}
+      visible={visible}
+      frustumCulled={false}
+    />
   );
 }
 
@@ -364,7 +490,7 @@ export function CameraRig({ ref, mode, introReady, compassRef, introFocusRef, on
   useEffect(() => {
     if (!controls.current) return;
     if (!introPlayed.current || !interacted.current) {
-      write(introPlayed.current ? home(modeRef.current) : { ...home(modeRef.current), r: homeRadius * 1.5, phi: 0.25, theta: -0.6 });
+      write(introPlayed.current ? home(modeRef.current) : modeRef.current === "2d" ? { ...home("2d"), r: homeRadius * 1.5 } : { ...home(modeRef.current), r: homeRadius * 1.5, phi: 0.25, theta: -0.6 });
       applyConstraints(modeRef.current);
       controls.current.update();
     }

@@ -1,4 +1,6 @@
 import { useId, type ReactNode } from "react";
+import Image from "next/image";
+import { bundledPropertyImage } from "@/data/property-images";
 import { cn } from "@/lib/utils";
 import type { Property, PropertyCategory } from "@/lib/types";
 
@@ -96,6 +98,7 @@ function Building({ category, seed }: { category: PropertyCategory; seed: number
       );
     case "garage":
     case "automotive":
+    case "industrial":
       return (
         <g>
           <rect x={64} y={108} width={192} height={52} fill={SILHOUETTE} />
@@ -212,6 +215,7 @@ function Building({ category, seed }: { category: PropertyCategory; seed: number
         </g>
       );
     case "safehouse":
+    case "retail":
     default:
       return (
         <g fill={SILHOUETTE}>
@@ -229,14 +233,35 @@ function Building({ category, seed }: { category: PropertyCategory; seed: number
 interface PropertyArtProps {
   property: Pick<Property, "slug" | "name" | "category" | "image">;
   className?: string;
+  /** Rendered width hint for responsive image loading, e.g. "84px" or "(max-width: 1024px) 100vw, 380px". */
+  sizes?: string;
+  /** Load eagerly (above-the-fold hero images). */
+  preload?: boolean;
 }
 
-export function PropertyArt({ property, className }: PropertyArtProps) {
+/**
+ * Property image. Uses the listing's photo when it has one, otherwise a generated
+ * sunset illustration. `className` sizes the outer box in both cases.
+ */
+export function PropertyArt({ property, className, sizes = "(max-width: 768px) 100vw, 400px", preload }: PropertyArtProps) {
   const id = useId().replace(/:/g, "");
-  if (property.image) {
+  // A backend image wins; otherwise use the bundled photo for this slug (mock and DB mode).
+  const src = property.image ?? bundledPropertyImage(property.slug);
+  if (src) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element -- remote hosts are not known yet
-      <img src={property.image} alt={property.name} className={cn("object-cover", className)} />
+      <div className={cn("relative overflow-hidden bg-[#1c1d35]", className)}>
+        <Image
+          src={src}
+          alt={property.name}
+          fill
+          sizes={sizes}
+          preload={preload}
+          // Admin-entered photos live on arbitrary https hosts that are not in images.remotePatterns;
+          // serve them as-is instead of through the optimizer. Local /properties/*.jpg stay optimized.
+          unoptimized={/^https?:\/\//.test(src)}
+          className="object-cover"
+        />
+      </div>
     );
   }
   const seed = hash(property.slug);

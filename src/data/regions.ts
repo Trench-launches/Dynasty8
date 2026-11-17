@@ -17,6 +17,11 @@ export const REGION_BY_ID: Record<RegionId, Region> = Object.fromEntries(
   REGIONS.map((r) => [r.id, r]),
 ) as Record<RegionId, Region>;
 
+/** Display name for a region id; undefined when the listing has no region yet. */
+export function regionName(id: RegionId | null | undefined): string | undefined {
+  return id ? REGION_BY_ID[id]?.name : undefined;
+}
+
 export const CATEGORY_LABELS: Record<PropertyCategory, string> = {
   motel: "Motel",
   safehouse: "Safehouse",
@@ -30,6 +35,8 @@ export const CATEGORY_LABELS: Record<PropertyCategory, string> = {
   studio: "Studio",
   automotive: "Automotive",
   nightlife: "Nightlife",
+  retail: "Retail",
+  industrial: "Industrial",
 };
 
 export const TOKEN_STATUS_LABELS: Record<TokenStatus, string> = {

@@ -1,4 +1,4 @@
-import { REGION_BY_ID } from "@/data/regions";
+import { regionName } from "@/data/regions";
 import type { Property } from "@/lib/types";
 
 const compactUsd = new Intl.NumberFormat("en-US", {
@@ -51,7 +51,7 @@ export function tickerLabel(p: Pick<Property, "token">): string {
 }
 
 export function locationLabel(p: Pick<Property, "neighbourhood" | "region">): string {
-  const region = REGION_BY_ID[p.region]?.name;
+  const region = regionName(p.region);
   if (!region) return p.neighbourhood;
   if (p.neighbourhood === region) return region.includes("Leonida") ? region : `${region}, Leonida`;
   if (p.neighbourhood.includes(region)) return p.neighbourhood;

@@ -162,7 +162,7 @@ export function Marketplace({ initialProperties }: { initialProperties: Property
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 40 }}
                 transition={{ type: "spring", stiffness: 380, damping: 34 }}
-                className="scrollbar-thin absolute top-3 right-3 bottom-3 z-40 overflow-y-auto rounded-xl border border-white/10 bg-[#101014]/95 shadow-2xl shadow-black/60 backdrop-blur-md"
+                className="scrollbar-thin absolute top-3 right-3 bottom-3 z-40 overflow-y-auto rounded-xl border border-white/10 bg-[#17182c]/95 shadow-2xl shadow-black/60 backdrop-blur-md"
                 style={{ width: PANEL_WIDTH }}
               >
                 <PropertyPreview key={selected.slug} property={selected} onClose={() => select(null)} />
@@ -232,7 +232,7 @@ export function Marketplace({ initialProperties }: { initialProperties: Property
               onDragEnd={(_, info) => {
                 if (info.offset.y > 90 || info.velocity.y > 600) select(null);
               }}
-              className="absolute inset-x-0 bottom-0 z-40 flex flex-col rounded-t-2xl border-t border-white/10 bg-[#101014] shadow-[0_-12px_40px_rgba(0,0,0,0.6)]"
+              className="absolute inset-x-0 bottom-0 z-40 flex flex-col rounded-t-2xl border-t border-white/10 bg-[#17182c] shadow-[0_-12px_40px_rgba(0,0,0,0.6)]"
               style={{ height: sheetHeight }}
             >
               <div className="flex shrink-0 justify-center pt-2 pb-1">

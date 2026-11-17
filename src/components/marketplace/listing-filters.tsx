@@ -55,7 +55,7 @@ function FilterSelect<T extends string>({
       <SelectTrigger aria-label={label} size="sm" className="h-8 w-full border-white/10 bg-black/50 text-xs">
         <SelectValue />
       </SelectTrigger>
-      <SelectContent className="border border-white/10 bg-[#141419]">
+      <SelectContent className="border border-white/10 bg-[#1c1d35]">
         {options.map((o) => (
           <SelectItem key={o.value} value={o.value} className="text-xs">
             {o.label}

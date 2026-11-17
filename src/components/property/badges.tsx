@@ -64,7 +64,21 @@ export function LocationPendingBadge({ className }: { className?: string }) {
   );
 }
 
-export function DemoTag({ market, className }: { market: MarketSnapshot | null | undefined; className?: string }) {
+/** Flags market numbers that are not live: generated demo data, or a delayed (stale) snapshot. */
+export function MarketDataTag({ market, className }: { market: MarketSnapshot | null | undefined; className?: string }) {
+  if (market?.stale) {
+    return (
+      <span
+        title={`Delayed market data, last updated ${new Date(market.updatedAt).toLocaleString()}`}
+        className={cn(
+          "rounded border border-amber-300/50 bg-amber-300/15 px-1 py-px text-[9px] font-bold tracking-wider text-amber-200 uppercase",
+          className,
+        )}
+      >
+        Delayed
+      </span>
+    );
+  }
   if (market?.source !== "demo") return null;
   return (
     <span

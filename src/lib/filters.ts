@@ -1,4 +1,4 @@
-import { CATEGORY_LABELS, REGION_BY_ID } from "@/data/regions";
+import { CATEGORY_LABELS, regionName } from "@/data/regions";
 import type { Property, PropertyCategory, RegionId, TokenStatus } from "@/lib/types";
 
 export type SortKey = "featured" | "market_cap" | "volume" | "change" | "name";
@@ -36,7 +36,7 @@ function matchesQuery(p: Property, q: string): boolean {
   const haystack = [
     p.name,
     p.neighbourhood,
-    REGION_BY_ID[p.region]?.name,
+    regionName(p.region),
     CATEGORY_LABELS[p.category],
     p.token.ticker ?? "",
     p.token.ticker ? `$${p.token.ticker}` : "",
@@ -64,7 +64,7 @@ function byFeatured(a: Property, b: Property): number {
 }
 
 /** Market sorts: listings without market data always sink to the bottom. */
-function byMarket(pick: (p: Property) => number | undefined) {
+function byMarket(pick: (p: Property) => number | null | undefined) {
   return (a: Property, b: Property) => {
     const va = pick(a);
     const vb = pick(b);

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useMarket } from "@/hooks/use-market";
 import { formatCount, formatPrice, formatUsdCompact, tickerLabel } from "@/lib/format";
-import { ChangeText, DemoTag, TokenStatusBadge } from "@/components/property/badges";
+import { ChangeText, MarketDataTag, TokenStatusBadge } from "@/components/property/badges";
 import type { ChartPoint, ChartRange, Property } from "@/lib/types";
 
 const RANGES: ChartRange[] = ["24h", "7d", "30d"];
@@ -22,10 +22,10 @@ export function MarketPanel({ property }: { property: Property }) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-bold tracking-[0.2em] text-white/45 uppercase">Property token</p>
-            <p className="text-sunset-gradient font-display text-5xl leading-none tracking-wide">{tickerLabel(property)}</p>
+            <p className="font-display text-5xl leading-none text-lime">{tickerLabel(property)}</p>
           </div>
           <div className="flex items-center gap-2">
-            <DemoTag market={market} />
+            <MarketDataTag market={market} />
             <TokenStatusBadge status={token.status} />
           </div>
         </div>
@@ -49,6 +49,11 @@ export function MarketPanel({ property }: { property: Property }) {
         )}
         {market?.source === "demo" && (
           <p className="mt-3 text-xs text-neon">Demo mode: these figures are generated for design preview and are not real.</p>
+        )}
+        {market?.stale && (
+          <p className="mt-3 text-xs text-amber-200">
+            Market data is delayed. Last updated {new Date(market.updatedAt).toLocaleString()}.
+          </p>
         )}
 
         <MintRow property={property} />
@@ -94,12 +99,12 @@ function MintRow({ property }: { property: Property }) {
           href={pumpFunUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-sunset-gradient px-5 text-sm font-extrabold text-ink"
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-sunset-gradient px-6 text-[15px] font-bold text-ink transition-transform hover:scale-[1.02]"
         >
           Trade on Pump.fun <ExternalLink className="size-4" />
         </a>
       ) : (
-        <span className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/15 px-5 text-xs font-semibold text-white/45">
+        <span className="inline-flex h-11 shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-white/25 px-6 text-xs font-semibold text-white/45">
           Pump.fun link pending
         </span>
       )}
@@ -134,8 +139,8 @@ function PriceChart({ property, live }: { property: Property; live: boolean }) {
   return (
     <section className="rounded-2xl border border-white/10 bg-card p-5" aria-label="Price history">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-display text-2xl tracking-wide text-white">PRICE HISTORY</h2>
-        <div className="flex rounded-lg border border-white/10 bg-black/40 p-0.5" role="group" aria-label="Chart range">
+        <h2 className="font-display text-[28px] text-cream">Price history</h2>
+        <div className="flex rounded-full border border-white/10 bg-black/30 p-0.5" role="group" aria-label="Chart range">
           {RANGES.map((r) => (
             <button
               key={r}
@@ -195,7 +200,7 @@ function PriceChart({ property, live }: { property: Property; live: boolean }) {
                 domain={["auto", "auto"]}
               />
               <Tooltip
-                contentStyle={{ background: "#141419", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8 }}
+                contentStyle={{ background: "#1c1d35", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12 }}
                 labelStyle={{ color: "rgba(255,255,255,0.6)" }}
                 labelFormatter={(t) => new Date(String(t)).toLocaleString()}
                 formatter={(v) => [formatPrice(Number(v)), "Price"]}
@@ -220,7 +225,7 @@ function EmptyChart({ text }: { text: string }) {
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-lg bg-black/40 px-3 py-2.5">
+    <div className="rounded-xl bg-black/25 px-3 py-2.5">
       <dt className="text-[10px] tracking-wider text-white/45 uppercase">{label}</dt>
       <dd className="mt-0.5 text-sm font-semibold text-white tabular-nums">{value}</dd>
     </div>

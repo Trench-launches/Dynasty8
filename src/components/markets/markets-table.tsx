@@ -4,15 +4,15 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CATEGORY_LABELS, REGION_BY_ID } from "@/data/regions";
+import { CATEGORY_LABELS, regionName } from "@/data/regions";
 import { formatPrice, formatUsdCompact, tickerLabel } from "@/lib/format";
 import { PropertyArt } from "@/components/property/property-art";
-import { ChangeText, DemoTag, TokenStatusBadge } from "@/components/property/badges";
+import { ChangeText, MarketDataTag, TokenStatusBadge } from "@/components/property/badges";
 import type { Property } from "@/lib/types";
 
 type Col = "name" | "price" | "market_cap" | "change" | "volume";
 
-const VALUE: Record<Col, (p: Property) => number | string | undefined> = {
+const VALUE: Record<Col, (p: Property) => number | string | null | undefined> = {
   name: (p) => p.name,
   price: (p) => p.market?.priceUsd,
   market_cap: (p) => p.market?.marketCapUsd,
@@ -71,12 +71,12 @@ export function MarketsTable({ properties }: { properties: Property[] }) {
               <td className="px-3 py-2.5">
                 <Link href={`/property/${p.slug}`} className="flex items-center gap-3 outline-none focus-visible:underline">
                   <span className="block h-10 w-14 shrink-0 overflow-hidden rounded-md">
-                    <PropertyArt property={p} className="h-full w-full" />
+                    <PropertyArt property={p} sizes="56px" className="h-full w-full" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate font-display text-lg leading-tight tracking-wide text-white">{p.name}</span>
+                    <span className="block truncate font-display text-xl leading-tight text-white">{p.name}</span>
                     <span className="block truncate text-[11px] text-white/45">
-                      {REGION_BY_ID[p.region]?.name} · {CATEGORY_LABELS[p.category]}
+                      {[regionName(p.region), CATEGORY_LABELS[p.category]].filter(Boolean).join(" · ")}
                     </span>
                   </span>
                 </Link>
@@ -85,7 +85,7 @@ export function MarketsTable({ properties }: { properties: Property[] }) {
                 <div className="flex items-center gap-2">
                   <span className="font-extrabold text-tropic">{tickerLabel(p)}</span>
                   <TokenStatusBadge status={p.token.status} />
-                  <DemoTag market={p.market} />
+                  <MarketDataTag market={p.market} />
                 </div>
               </td>
               <td className="px-3 py-2.5 text-right text-white/85 tabular-nums">{formatPrice(p.market?.priceUsd)}</td>

@@ -9,7 +9,7 @@ import { useMarket } from "@/hooks/use-market";
 import { PropertyArt } from "@/components/property/property-art";
 import {
   ChangeText,
-  DemoTag,
+  MarketDataTag,
   FeaturedBadge,
   TokenStatusBadge,
   VerificationBadge,
@@ -31,9 +31,9 @@ export function PropertyPreview({ property, onClose, compact = false, className 
 
   return (
     <article className={cn("flex flex-col", className)} aria-label={`${property.name} details`}>
-      <div className={cn("relative shrink-0 overflow-hidden", compact ? "h-32 rounded-t-2xl" : "h-44 rounded-t-xl")}>
-        <PropertyArt property={property} className="h-full w-full" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#101014] via-transparent to-black/30" />
+      <div className={cn("relative shrink-0 overflow-hidden", compact ? "h-36 rounded-t-2xl" : "h-52 rounded-t-2xl")}>
+        <PropertyArt property={property} sizes="(max-width: 1024px) 100vw, 380px" className="h-full w-full" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#17182c] via-[#17182c]/10 to-black/25" />
         <button
           type="button"
           onClick={onClose}
@@ -48,21 +48,23 @@ export function PropertyPreview({ property, onClose, compact = false, className 
         </div>
       </div>
 
-      <div className="space-y-4 p-4">
+      <div className="space-y-4 p-5 pt-3">
         <header>
-          <p className="text-[11px] font-bold tracking-[0.18em] text-sunset uppercase">{CATEGORY_LABELS[property.category]}</p>
-          <h2 className="mt-0.5 font-display text-[34px] leading-[0.95] tracking-wide text-white">{property.name}</h2>
-          <p className="mt-1 flex items-center gap-1 text-sm text-white/60">
+          <p className="font-display text-[15px] font-semibold tracking-[0.08em] text-mint uppercase">
+            {CATEGORY_LABELS[property.category]}
+          </p>
+          <h2 className="mt-1 font-display text-[42px] leading-[0.88] font-semibold text-cream uppercase">{property.name}</h2>
+          <p className="mt-2 flex items-center gap-1 text-sm font-semibold text-white/70">
             <MapPin className="size-3.5" /> {locationLabel(property)}
           </p>
         </header>
 
-        {!compact && <p className="text-sm leading-relaxed text-white/70">{property.description}</p>}
+        {!compact && <p className="text-[15px] leading-snug font-semibold text-white/90">{property.description}</p>}
 
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-3" aria-label="Token market">
+        <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-3.5" aria-label="Token market">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sunset-gradient font-display text-2xl leading-none tracking-wide">{tickerLabel(property)}</p>
-            <DemoTag market={market} />
+            <p className="font-display text-[28px] leading-none font-semibold text-lime">{tickerLabel(property)}</p>
+            <MarketDataTag market={market} />
           </div>
           {market ? (
             <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
@@ -104,29 +106,26 @@ export function PropertyPreview({ property, onClose, compact = false, className 
         <div className="flex flex-col gap-2 sm:flex-row">
           <Link
             href={`/property/${property.slug}`}
-            className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-sunset-gradient px-4 text-sm font-extrabold text-ink transition-opacity hover:opacity-90"
+            className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full bg-lime px-4 text-[14px] font-bold whitespace-nowrap text-ink transition-transform hover:scale-[1.02] active:scale-[0.98]"
           >
-            View property <ArrowRight className="size-4" />
+            View Property <ArrowRight className="size-4 shrink-0" />
           </Link>
           {tradeUrl ? (
             <a
               href={tradeUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-white/15 px-4 text-sm font-bold text-white hover:bg-white/5"
+              className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full bg-blush px-4 text-[14px] font-bold whitespace-nowrap text-ink transition-transform hover:scale-[1.02]"
             >
-              View market <ExternalLink className="size-4" />
+              View Market <ExternalLink className="size-4 shrink-0" />
             </a>
           ) : (
-            <span className="inline-flex h-10 flex-1 items-center justify-center rounded-lg border border-dashed border-white/15 px-4 text-xs font-semibold text-white/45">
+            <span className="inline-flex h-11 flex-1 items-center justify-center rounded-full border-[1.5px] border-dashed border-white/25 px-4 text-xs font-bold whitespace-nowrap text-white/50">
               Market link pending
             </span>
           )}
         </div>
 
-        <p className="text-[10px] leading-relaxed text-white/35">
-          Themed digital collectible. Holding this token does not grant ownership of any real or in-game property.
-        </p>
       </div>
     </article>
   );
@@ -134,7 +133,7 @@ export function PropertyPreview({ property, onClose, compact = false, className 
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-lg bg-black/40 px-2.5 py-2">
+    <div className="rounded-xl bg-black/25 px-2.5 py-2">
       <dt className="text-[10px] tracking-wider text-white/45 uppercase">{label}</dt>
       <dd className="mt-0.5 font-semibold text-white tabular-nums">{value}</dd>
     </div>
