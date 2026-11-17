@@ -188,3 +188,226 @@ model AuditLog {
   @@index([createdAt(sort: Desc)])
   @@index([entityType, entityId])
 }
+
+// ─── Demolition Fund: Property Tax -> $REALTY buyback & burn ──────────────────
+// Every amount is an integer in base units (lamports, raw token units). No floats.
+// Every allocation traces to one verified on-chain fee receipt.
+
+enum TreasuryRole {
+  /// Receives property creator fees (as the Pump fee-sharing shareholder) and executes buybacks.
+  FUND
+  ECOSYSTEM
+  OPERATIONS
+}
+
+enum ReceiptSource {
+  AUTO_SCAN
+  MANUAL
+}
+
+enum BuybackStatus {
+  PLANNED
+  QUOTED
+  APPROVED
+  SWAP_SUBMITTED
+  SWAP_CONFIRMED
+  BURN_SUBMITTED
+  BURNED
+  FAILED
+  CANCELLED
+}
+
+enum TxPurpose {
+  SWAP
+  BURN
+  DISBURSEMENT
+}
+
+enum TxStatus {
+  SUBMITTED
+  FINALIZED
+  FAILED
+  EXPIRED
+}
+
+model TreasuryWallet {
+  id         String       @id @default(cuid())
+  role       TreasuryRole @unique
+  address    String       @unique
+  label      String
+  /// True when the address is a multisig vault (e.g. Squads). Required for FUND in production.
+  isMultisig Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+/// Singleton (id = 1). Starts paused with automated execution off.
+model FundConfig {
+  id                      Int      @id @default(1)
+  buybackBps              Int      @default(6000)
+  ecosystemBps            Int      @default(2500)
+  operationsBps           Int      @default(1500)
+  maxBuybackLamportsPerTx BigInt   @default(5000000000)
+  maxDailyBuybackLamports BigInt   @default(20000000000)
+  /// SOL kept in the fund wallet for fees and rent; never spent on buybacks.
+  reserveLamports         BigInt   @default(50000000)
+  minBuybackLamports      BigInt   @default(100000000)
+  minLiquidityUsd         Int      @default(10000)
+  maxPriceImpactBps       Int      @default(200)
+  slippageBps             Int      @default(100)
+  cooldownSeconds         Int      @default(3600)
+  requiredApprovals       Int      @default(2)
+  maxConsecutiveFailures  Int      @default(3)
+  consecutiveFailures     Int      @default(0)
+  paused                  Boolean  @default(true)
+  pausedReason            String?  @default("Initial state: paused until an admin enables the fund")
+  circuitOpen             Boolean  @default(false)
+  circuitReason           String?
+  /// Unattended signing. Off by default and refused unless a signer is configured.
+  autoExecutionEnabled    Boolean  @default(false)
+  lastScannedSignature    String?
+  updatedAt               DateTime @updatedAt
+}
+
+model FeeReceipt {
+  id               String             @id @default(cuid())
+  signature        String
+  /// Position of the Pump DistributeCreatorFeesEvent inside the transaction.
+  eventIndex       Int
+  propertyId       String?
+  tokenId          String
+  mint             String
+  sharingConfig    String
+  recipient        String
+  /// The fund's share of this distribution, in lamports.
+  lamports         BigInt
+  distributedTotal BigInt
+  shareBps         Int
+  slot             BigInt
+  blockTime        DateTime?
+  source           ReceiptSource
+  recordedById     String?
+  createdAt        DateTime           @default(now())
+  allocation       RevenueAllocation?
+
+  @@unique([signature, eventIndex])
+  @@index([tokenId])
+  @@index([propertyId])
+}
+
+model RevenueAllocation {
+  id                 String           @id @default(cuid())
+  receiptId          String           @unique
+  receipt            FeeReceipt       @relation(fields: [receiptId], references: [id], onDelete: Restrict)
+  buybackLamports    BigInt
+  ecosystemLamports  BigInt
+  operationsLamports BigInt
+  buybackBps         Int
+  ecosystemBps       Int
+  operationsBps      Int
+  fundings           BuybackFunding[]
+  createdAt          DateTime         @default(now())
+}
+
+model BuybackRequest {
+  id                String             @id @default(cuid())
+  idempotencyKey    String             @unique
+  status            BuybackStatus      @default(PLANNED)
+  targetMint        String
+  budgetLamports    BigInt
+  slippageBps       Int
+  // Quote (genuine provider quote, validated)
+  quoteSource       String?
+  quotedInLamports  BigInt?
+  quotedOutRaw      BigInt?
+  minOutRaw         BigInt?
+  priceImpactBps    Int?
+  routeLabels       String?
+  quotedAt          DateTime?
+  // Settlement (from finalized on-chain data only)
+  swapSignature     String?            @unique
+  solSpentLamports  BigInt?
+  tokensReceivedRaw BigInt?
+  swapConfirmedAt   DateTime?
+  burnSignature     String?
+  tokensBurnedRaw   BigInt             @default(0)
+  burnedAt          DateTime?
+  failureReason     String?
+  swapAttempts      Int                @default(0)
+  burnAttempts      Int                @default(0)
+  createdById       String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  fundings          BuybackFunding[]
+  approvals         BuybackApproval[]
+  transactions      ChainTransaction[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// Which allocations (and therefore which receipts/properties) paid for a buyback.
+model BuybackFunding {
+  id           String            @id @default(cuid())
+  requestId    String
+  request      BuybackRequest    @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  allocationId String
+  allocation   RevenueAllocation @relation(fields: [allocationId], references: [id], onDelete: Restrict)
+  lamports     BigInt
+
+  @@unique([requestId, allocationId])
+  @@index([allocationId])
+}
+
+model BuybackApproval {
+  id        String         @id @default(cuid())
+  requestId String
+  request   BuybackRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  adminId   String
+  note      String?
+  createdAt DateTime       @default(now())
+
+  @@unique([requestId, adminId])
+}
+
+/// Every swap / burn / disbursement signature the system has seen, with its resolution.
+model ChainTransaction {
+  id                   String          @id @default(cuid())
+  signature            String          @unique
+  purpose              TxPurpose
+  requestId            String?
+  request              BuybackRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  status               TxStatus        @default(SUBMITTED)
+  error                String?
+  slot                 BigInt?
+  lastValidBlockHeight BigInt?
+  /// Raw amount burned (BURN) or lamports moved (DISBURSEMENT), once verified.
+  amount               BigInt?
+  submittedAt          DateTime        @default(now())
+  resolvedAt           DateTime?
+
+  @@index([requestId])
+  @@index([status])
+}
+
+model Disbursement {
+  id           String       @id @default(cuid())
+  signature    String       @unique
+  role         TreasuryRole
+  destination  String
+  lamports     BigInt
+  recordedById String?
+  verifiedAt   DateTime     @default(now())
+}
+
+model ReconciliationRun {
+  id                  String   @id @default(cuid())
+  fundAddress         String
+  chainLamports       BigInt
+  liabilitiesLamports BigInt
+  chainTokenRaw       BigInt
+  unburnedTokenRaw    BigInt
+  ok                  Boolean
+  note                String?
+  createdAt           DateTime @default(now())
+}

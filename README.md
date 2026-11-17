@@ -11,6 +11,7 @@ Next.js API routes + PostgreSQL (Prisma) + read-only Solana/market-data adapters
 - API spec: [docs/openapi.yaml](docs/openapi.yaml)
 - Security review: [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md)
 - Deployment, backups, rollback, monitoring: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- Demolition Fund (creator fees → $REALTY buyback & burn): [docs/DEMOLITION-FUND.md](docs/DEMOLITION-FUND.md)
 
 ```bash
 cp .env.example .env        # then edit
@@ -19,6 +20,7 @@ npm run db:local            # terminal 1: embedded PostgreSQL on :54329
 npm run db:migrate && npm run db:seed
 npm run dev                 # terminal 2: app + API on :3530
 npm run sync:markets        # terminal 3 (optional): market-data worker
+npm run fund:worker         # terminal 4 (optional): Demolition Fund receipts/settlement/reconciliation
 npm test                    # unit + integration tests on a throwaway PostgreSQL
 ```
 

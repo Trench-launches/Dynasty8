@@ -13,6 +13,7 @@
     "db:generate": "prisma generate",
     "sync:markets": "tsx --conditions=react-server scripts/sync-worker.ts",
     "admin:grant": "tsx --conditions=react-server scripts/admin-grant.ts",
+    "fund:worker": "tsx --conditions=react-server scripts/demolition-worker.ts",
     "postinstall": "prisma generate",
     "build": "next build",
     "start": "next start --port 3530",
@@ -22,6 +23,7 @@
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "@solana/web3.js": "^1.99.0",
+    "bs58": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.74.0",

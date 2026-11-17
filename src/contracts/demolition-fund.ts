@@ -1,0 +1,84 @@
+/**
+ * Demolition Fund public API contract (pure types, safe for client components).
+ *
+ * Amounts are decimal strings in base units, because they can exceed JavaScript's safe
+ * integer range: SOL amounts in lamports (9 decimals), token amounts in raw units (use the
+ * `decimals` given). Every figure is derived from finalized, verified on-chain records;
+ * nothing is estimated or simulated. A zero means "verified zero", not "unknown".
+ */
+export type Lamports = string;
+export type RawAmount = string;
+
+export interface FundSummaryDto {
+  fundWallet: string | null;
+  realty: { ticker: string; mint: string | null; decimals: number | null; live: boolean };
+  allocation: { buybackBps: number; ecosystemBps: number; operationsBps: number };
+  totals: {
+    creatorFeesLamports: Lamports;
+    buybackAllocatedLamports: Lamports;
+    ecosystemAllocatedLamports: Lamports;
+    operationsAllocatedLamports: Lamports;
+    /** Verified buyback revenue not yet reserved by a buyback. */
+    pendingBuybackLamports: Lamports;
+    solSpentOnBuybacksLamports: Lamports;
+    realtyPurchasedRaw: RawAmount;
+    realtyBurnedRaw: RawAmount;
+    successfulBuybacks: number;
+    successfulBurns: number;
+    feeReceipts: number;
+    contributingProperties: number;
+  };
+  latestBuyback: { signature: string; solSpentLamports: Lamports; realtyReceivedRaw: RawAmount; confirmedAt: string } | null;
+  latestBurn: { signature: string; realtyBurnedRaw: RawAmount; burnedAt: string } | null;
+  status: { paused: boolean; circuitOpen: boolean; lastReconciliation: { ok: boolean; at: string } | null };
+}
+
+export type FundEventType = "FEE_RECEIPT" | "BUYBACK" | "BURN" | "DISBURSEMENT";
+
+export interface FundEventDto {
+  type: FundEventType;
+  signature: string;
+  at: string | null;
+  /** Lamports for FEE_RECEIPT / BUYBACK (SOL spent) / DISBURSEMENT; raw REALTY for BURN. */
+  amount: string;
+  /** REALTY received, for BUYBACK only. */
+  realtyRaw: RawAmount | null;
+  property: { slug: string; name: string; ticker: string } | null;
+  explorerUrl: string;
+}
+
+export interface FundHistoryDto {
+  items: FundEventDto[];
+  /** Pass as `before` to get the next page; null when there is no more. */
+  nextBefore: string | null;
+}
+
+export interface PropertyContributionDto {
+  rank: number | null;
+  property: { slug: string; name: string; ticker: string; mapPosition: { x: number; y: number } | null };
+  mintAddress: string | null;
+  creatorFeesLamports: Lamports;
+  buybackAllocatedLamports: Lamports;
+  /** REALTY burned with this property's revenue (pro rata across each funded buyback). */
+  realtyBurnedRaw: RawAmount;
+  feeReceipts: number;
+  lastReceiptAt: string | null;
+}
+
+export interface FundBurnDto {
+  signature: string;
+  realtyBurnedRaw: RawAmount;
+  burnedAt: string | null;
+  buyback: { swapSignature: string | null; solSpentLamports: Lamports | null; realtyReceivedRaw: RawAmount | null };
+  explorerUrl: string;
+}
+
+export interface FundTransactionDto {
+  signature: string;
+  kind: "FEE_RECEIPT" | "SWAP" | "BURN" | "DISBURSEMENT";
+  status: "SUBMITTED" | "FINALIZED" | "FAILED" | "EXPIRED";
+  slot: string | null;
+  amount: string | null;
+  receipts: { mint: string; property: string | null; lamports: Lamports }[];
+  explorerUrl: string;
+}

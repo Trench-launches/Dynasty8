@@ -22,6 +22,9 @@ const schema = z.object({
   // Optional providers. Each adapter is disabled when its key is missing.
   HELIUS_API_KEY: z.string().min(1).optional(),
   BIRDEYE_API_KEY: z.string().min(1).optional(),
+  JUPITER_API_KEY: z.string().min(1).optional(),
+  // Swap programs a buyback may use (comma-separated). Defaults to the Jupiter v6 aggregator.
+  BUYBACK_SWAP_PROGRAMS: z.string().default("JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"),
   ENABLE_DEXSCREENER: bool(true),
   ENABLE_GECKOTERMINAL: bool(true),
 
@@ -48,7 +51,9 @@ let cached: AppConfig | null = null;
 
 export function getConfig(): AppConfig {
   if (cached) return cached;
-  const parsed = schema.safeParse(process.env);
+  // Empty strings (e.g. copied from .env.example) mean "not set".
+  const env = Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== undefined && v !== ""));
+  const parsed = schema.safeParse(env);
   if (!parsed.success) {
     const fields = parsed.error.issues.map((i) => i.path.join(".")).join(", ");
     // Never echo values: they may be secrets.
