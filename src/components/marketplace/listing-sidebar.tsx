@@ -36,14 +36,13 @@ export function ListingSidebar({
   return (
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
       <div className="space-y-3 border-b border-[#dee2e6] p-4 pb-3">
-        <div className="flex items-end justify-between gap-2">
-          <h1 className="font-display text-[26px] leading-none font-bold text-[#212529]">
-            PROPERTY <span className="text-sunset-gradient">LISTINGS</span>
-          </h1>
-          <p className="pb-0.5 text-[11px] font-semibold text-[#868e96] tabular-nums" aria-live="polite">
-            {visible.length} of {total}
-          </p>
-        </div>
+        <h1 className="font-display text-[20px] leading-none font-bold whitespace-nowrap text-[#212529] lg:text-[22px]">
+          PROPERTY <span className="text-sunset-gradient">LISTINGS</span>
+        </h1>
+        {/* Result count for screen readers only; not shown visually. */}
+        <p className="sr-only" aria-live="polite">
+          {visible.length} of {total} properties shown
+        </p>
         <SearchBox filters={filters} onChange={onFiltersChange} />
         <FilterControls filters={filters} onChange={onFiltersChange} />
       </div>
