@@ -53,6 +53,7 @@ src/
     page.tsx                  # Marketplace: sidebar + 3D map (the whole homepage)
     property/[slug]/page.tsx  # Property page
     markets/page.tsx          # All property tokens + DYNASTY ecosystem token
+    fund/page.tsx             # Demolition Fund: totals, fee split, leaderboard, on-chain activity
     loading.tsx               # Shown while a page's listings load
     api/                      # Backend route handlers (public + admin), see docs/openapi.yaml
   components/
@@ -60,6 +61,7 @@ src/
     marketplace/              # Sidebar, filters, listing cards, preview panel/sheet
     property/                 # Property art/photos, badges, market panel + chart
     layout/                   # Header, DYNASTY ecosystem chip
+    fund/                     # Demolition Fund page sections
   contracts/api.ts            # Backend wire format (DTOs), shared by server and client
   data/
     catalogue.ts              # THE launch catalogue: seeds the database and the mock
@@ -73,6 +75,8 @@ src/
     api.ts                    # Browser data client (backend, or mock)
     catalogue.ts              # Server-side page data (reads the database directly)
     mock-api.ts               # Mock implementation for NEXT_PUBLIC_MOCK_API=true
+    fund.ts                   # Server-side Demolition Fund page data
+    fund-format.ts            # Exact BigInt formatting for SOL and token amounts
   server/                     # Backend: config, db, providers, services, auth (server-only)
   server/demolition/          # Demolition Fund: fee receipts, buyback & burn, reconciliation
 prisma/                       # Schema, migrations, seed
