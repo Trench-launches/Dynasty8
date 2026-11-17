@@ -93,7 +93,7 @@ export function FilterControls({ filters, onChange }: Props) {
           onValueChange={(v) => set("status", v)}
           options={[
             { value: "all", label: "Any token status" },
-            ...(Object.keys(TOKEN_STATUS_LABELS) as TokenStatus[]).map((s) => ({ value: s, label: TOKEN_STATUS_LABELS[s] })),
+            ...(["live", "unavailable"] as const).map((s) => ({ value: s, label: TOKEN_STATUS_LABELS[s] })),
           ]}
         />
         <FilterSelect<SortKey>

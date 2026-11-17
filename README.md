@@ -8,7 +8,7 @@ One Next.js app holds both halves: the 3D-map frontend and the backend (API rout
 PostgreSQL registry, read-only Solana and market-data adapters, admin API).
 
 > **Status:** all 15 launch listings are proposals; no token is launched yet, so every token
-> shows **Coming Soon** and no market figures appear. Nothing here creates tokens or holds keys:
+> shows no status badge and no market figures appear. Nothing here creates tokens or holds keys:
 > admins register mints that already exist on-chain, and trading happens on Pump.fun. The
 > Demolition Fund only prepares DYNASTY buybacks and burns for a multisig to sign, then verifies
 > them on-chain; automated signing is disabled.

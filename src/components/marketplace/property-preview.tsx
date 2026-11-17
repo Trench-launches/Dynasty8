@@ -33,7 +33,6 @@ export function PropertyPreview({ property, onClose, compact = false, className 
     <article className={cn("flex flex-col", className)} aria-label={`${property.name} details`}>
       <div className={cn("relative shrink-0 overflow-hidden", compact ? "h-36 rounded-t-2xl" : "h-52 rounded-t-2xl")}>
         <PropertyArt property={property} sizes="(max-width: 1024px) 100vw, 380px" className="h-full w-full" />
-        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/10 to-black/25" />
         <button
           type="button"
           onClick={onClose}

@@ -7,9 +7,10 @@ import { PropertyArt } from "@/components/property/property-art";
 import { ChangeText, MarketDataTag } from "@/components/property/badges";
 import type { Property, TokenStatus } from "@/lib/types";
 
-const RIBBON: Record<TokenStatus, { label: string; className: string }> = {
+/** Corner ribbon; pre-launch tokens have none. */
+const RIBBON: Record<TokenStatus, { label: string; className: string } | null> = {
   live: { label: "Live", className: "bg-d8-green text-white" },
-  coming_soon: { label: "Soon", className: "bg-d8-green text-white" },
+  coming_soon: null,
   unavailable: { label: "Paused", className: "bg-[#adb5bd] text-white" },
 };
 
@@ -33,14 +34,16 @@ export function PropertyMarketCard({ property }: { property: Property }) {
           sizes="(max-width: 640px) 100vw, 300px"
           className="aspect-[16/10] w-full transition-transform duration-500 group-hover:scale-[1.03]"
         />
-        <span
-          className={cn(
-            "absolute top-[14px] -right-[34px] w-[120px] rotate-45 py-[3px] text-center text-[10px] font-bold tracking-[0.12em] uppercase shadow-sm",
-            ribbon.className,
-          )}
-        >
-          {ribbon.label}
-        </span>
+        {ribbon && (
+          <span
+            className={cn(
+              "absolute top-[14px] -right-[34px] w-[120px] rotate-45 py-[3px] text-center text-[10px] font-bold tracking-[0.12em] uppercase shadow-sm",
+              ribbon.className,
+            )}
+          >
+            {ribbon.label}
+          </span>
+        )}
         {property.featured && (
           <span className="absolute top-2 left-2 grid size-6 place-items-center rounded-full bg-white/95 text-d8-green shadow-sm">
             <Star className="size-3.5 fill-current" aria-label="Featured" />
@@ -64,7 +67,7 @@ export function PropertyMarketCard({ property }: { property: Property }) {
             </span>
           ) : (
             <span className="truncate text-[17px] leading-tight font-semibold text-[#868e96]">
-              {token.status === "unavailable" ? "Trading paused" : token.status === "live" ? "Price pending" : "Coming soon"}
+              {token.status === "unavailable" ? "Trading paused" : "Price pending"}
             </span>
           )}
           {buyUrl ? (

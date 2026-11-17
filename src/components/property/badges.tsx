@@ -1,4 +1,4 @@
-import { BadgeCheck, CircleDashed, Clock, MapPinOff, Star, TriangleAlert } from "lucide-react";
+import { BadgeCheck, CircleDashed, MapPinOff, Star, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TOKEN_STATUS_LABELS } from "@/data/regions";
 import { formatChange } from "@/lib/format";
@@ -10,7 +10,9 @@ const STATUS_STYLES: Record<TokenStatus, string> = {
   unavailable: "border-destructive/40 bg-destructive/10 text-destructive line-through decoration-destructive/40",
 };
 
+/** Live / unavailable badge. Tokens that haven't launched yet get no badge at all. */
 export function TokenStatusBadge({ status, className }: { status: TokenStatus; className?: string }) {
+  if (status === "coming_soon") return null;
   return (
     <span
       className={cn(
@@ -20,7 +22,6 @@ export function TokenStatusBadge({ status, className }: { status: TokenStatus; c
       )}
     >
       {status === "live" && <span className="size-1.5 rounded-full bg-coral shadow-[0_0_6px] shadow-coral" />}
-      {status === "coming_soon" && <Clock className="size-3" />}
       {status === "unavailable" && <TriangleAlert className="size-3 no-underline" />}
       {TOKEN_STATUS_LABELS[status]}
     </span>

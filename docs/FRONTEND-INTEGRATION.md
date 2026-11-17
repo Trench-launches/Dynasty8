@@ -56,7 +56,7 @@ placements through the admin API (`PATCH /api/admin/properties/{slug}` with `map
 
 | Condition | API | UI |
 |---|---|---|
-| Token not launched (all 15 today) | `UNAVAILABLE`, `NOT_LAUNCHED` | "Coming Soon", ticker shown, no numbers or chart |
+| Token not launched (all 15 today) | `UNAVAILABLE`, `NOT_LAUNCHED` | No status badge, ticker shown, no numbers or chart |
 | Launched, no data yet | `UNAVAILABLE`, `NO_DATA_YET` | "Live" badge, no numbers yet |
 | Token deactivated | `UNAVAILABLE`, `TOKEN_INACTIVE` | "Unavailable", no link |
 | Data older than 3 min | `STALE` | numbers with a **Delayed** tag and last-updated time |
