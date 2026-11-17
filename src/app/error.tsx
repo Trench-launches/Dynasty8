@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { Logo } from "@/components/brand/logo";
 
 export default function Error({ error, retry }: { error: unknown; retry: () => void }) {
   useEffect(() => {
@@ -11,6 +12,7 @@ export default function Error({ error, retry }: { error: unknown; retry: () => v
   return (
     <div className="grid min-h-dvh place-items-center bg-background p-6 text-center">
       <div className="max-w-md space-y-4">
+        <Logo variant="dark" className="mb-6 justify-center" />
         <p className="font-display text-5xl tracking-wide text-[#212529]">WASTED</p>
         <p className="text-[#6c757d]">Something went wrong loading the property market. The listings service may be unavailable.</p>
         <div className="flex justify-center gap-3">

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow_Condensed, Geist_Mono } from "next/font/google";
+import { Barlow_Condensed, Geist_Mono, Righteous } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
@@ -10,6 +10,8 @@ const barlow = Barlow_Condensed({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
+// Rounded retro display face for the DYNASTY 15 wordmark only.
+const righteous = Righteous({ variable: "--font-righteous", subsets: ["latin"], weight: "400" });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -29,7 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${barlow.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${barlow.variable} ${righteous.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <TooltipProvider delayDuration={150}>{children}</TooltipProvider>
