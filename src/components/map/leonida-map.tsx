@@ -46,6 +46,8 @@ interface LeonidaMapProps {
 }
 
 const FOG = LEONIDA_SEA;
+/** How far a press on a pin must move before it becomes a map drag instead of a click. */
+const PIN_DRAG_SLOP_PX = 5;
 
 export default function LeonidaMap({
   apiRef,
@@ -105,6 +107,63 @@ export default function LeonidaMap({
         cancelable: true,
       }),
     );
+  };
+
+  /**
+   * Pins and cluster badges sit above the canvas, so a drag that starts on one would never
+   * reach the map controls. Once a press on them moves a few pixels, hand it to the controls
+   * as if it had started on the map (they then follow the pointer on the document), and
+   * swallow the click that ends the drag so it doesn't also select the pin under the cursor.
+   */
+  const startPinDrag = (e: React.PointerEvent) => {
+    if (e.button !== 0 || !e.isPrimary) return;
+    const down = e.nativeEvent;
+    const doc = rootRef.current?.ownerDocument ?? document;
+    let handedOver = false;
+
+    const onMove = (m: PointerEvent) => {
+      if (m.pointerId !== down.pointerId || handedOver) return;
+      if (Math.hypot(m.clientX - down.clientX, m.clientY - down.clientY) < PIN_DRAG_SLOP_PX) return;
+      const canvas = rootRef.current?.querySelector("canvas");
+      if (!canvas) return;
+      handedOver = true;
+      canvas.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          pointerId: down.pointerId,
+          pointerType: down.pointerType,
+          isPrimary: true,
+          button: 0,
+          buttons: 1,
+          clientX: down.clientX,
+          clientY: down.clientY,
+          screenX: down.screenX,
+          screenY: down.screenY,
+          ctrlKey: down.ctrlKey,
+          shiftKey: down.shiftKey,
+          metaKey: down.metaKey,
+          altKey: down.altKey,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    };
+    const swallowClick = (c: MouseEvent) => {
+      c.preventDefault();
+      c.stopPropagation();
+    };
+    const onEnd = (u: PointerEvent) => {
+      if (u.pointerId !== down.pointerId) return;
+      doc.removeEventListener("pointermove", onMove);
+      doc.removeEventListener("pointerup", onEnd);
+      doc.removeEventListener("pointercancel", onEnd);
+      if (!handedOver) return;
+      // The click (if any) is dispatched right after pointerup, before any timer runs.
+      window.addEventListener("click", swallowClick, { capture: true, once: true });
+      window.setTimeout(() => window.removeEventListener("click", swallowClick, { capture: true }), 0);
+    };
+    doc.addEventListener("pointermove", onMove);
+    doc.addEventListener("pointerup", onEnd);
+    doc.addEventListener("pointercancel", onEnd);
   };
 
   useImperativeHandle(apiRef, () => ({
@@ -224,9 +283,10 @@ export default function LeonidaMap({
 
       {/* Pins: positioned every frame by PinProjector */}
       <div
-        className="pointer-events-none absolute inset-0 z-20 isolate overflow-hidden"
+        className="pointer-events-none absolute inset-0 z-20 isolate touch-none overflow-hidden"
         aria-label="Property pins"
         onWheel={forwardWheel}
+        onPointerDown={startPinDrag}
       >
         {properties.map((p) => {
           if (!p.location) return null;
