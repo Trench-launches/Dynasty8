@@ -48,7 +48,8 @@ async function PropertyContent({ params }: Pick<PageProps<"/property/[slug]">, "
     <div className="flex min-h-dvh flex-col">
       <SiteHeader ecosystem={ecosystem} />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+      {/* Same horizontal padding as the header, so content lines up with the logo and wallet button. */}
+      <main className="w-full flex-1 px-3 py-6 sm:px-6 sm:py-8">
         <Link
           href={`/?p=${property.slug}`}
           className="inline-flex items-center gap-2 rounded border-[1.5px] border-[#ced4da] px-4 py-2 text-sm font-bold text-[#212529] hover:bg-[#e9ecef] hover:text-[#212529]"
@@ -56,25 +57,33 @@ async function PropertyContent({ params }: Pick<PageProps<"/property/[slug]">, "
           <ArrowLeft className="size-4" /> Back to map
         </Link>
 
-        <div className="relative mt-5 overflow-hidden rounded-2xl border border-[#dee2e6]">
-          <PropertyArt property={property} className="aspect-[16/7] w-full" sizes="(max-width: 1152px) 100vw, 1152px" preload />
-          <div className="absolute inset-0 bg-gradient-to-t from-[rgba(51,51,51,0.9)] via-[rgba(51,51,51,0.25)] to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8">
-            <div className="flex flex-wrap gap-2">
-              <TokenStatusBadge status={property.token.status} className="bg-white/95 backdrop-blur" />
-              {property.featured && <FeaturedBadge className="bg-white/95 backdrop-blur" />}
-            </div>
-            <p className="mt-3 text-sm font-semibold tracking-[0.08em] text-white/85 uppercase">{CATEGORY_LABELS[property.category]}</p>
-            <h1 className="font-display text-4xl leading-tight text-white sm:text-5xl">{property.name}</h1>
-            <p className="mt-2 flex items-center gap-1.5 text-white/85">
-              <MapPin className="size-4" /> {locationLabel(property)}
-            </p>
+        <div className="mt-5 grid gap-6 lg:grid-cols-2 lg:items-start xl:gap-8">
+          {/* Photo on the left. On desktop it pins to the viewport and fills its full height while the
+              details scroll; on phones it sits on top at its natural 3:2 shape. */}
+          <div className="overflow-hidden rounded-2xl border border-[#dee2e6] lg:sticky lg:top-6 lg:h-[calc(100dvh-3rem)]">
+            <PropertyArt
+              property={property}
+              className="aspect-[3/2] w-full lg:aspect-auto lg:h-full"
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              preload
+            />
           </div>
-        </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.25fr]">
-          <section className="space-y-5">
-            <div className="rounded-2xl border border-[#dee2e6] bg-card p-5">
+          {/* Details on the right. */}
+          <div className="space-y-6">
+            <header>
+              <div className="flex flex-wrap gap-2">
+                <TokenStatusBadge status={property.token.status} />
+                {property.featured && <FeaturedBadge />}
+              </div>
+              <p className="mt-3 text-sm font-semibold tracking-[0.08em] text-mint uppercase">{CATEGORY_LABELS[property.category]}</p>
+              <h1 className="font-display text-4xl leading-tight text-cream sm:text-5xl">{property.name}</h1>
+              <p className="mt-2 flex items-center gap-1.5 text-[#495057]">
+                <MapPin className="size-4" /> {locationLabel(property)}
+              </p>
+            </header>
+
+            <section className="rounded-2xl border border-[#dee2e6] bg-card p-5">
               <h2 className="font-display text-2xl text-cream">About this property</h2>
               <p className="mt-2 leading-relaxed text-[#495057]">{property.description}</p>
               <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
@@ -97,19 +106,10 @@ async function PropertyContent({ params }: Pick<PageProps<"/property/[slug]">, "
                 <VerificationBadge property={property} />
                 {property.verification.note && <p className="text-xs text-[#868e96]">{property.verification.note}</p>}
               </div>
-            </div>
+            </section>
 
-            <div className="rounded-2xl border border-[#dee2e6] bg-[#f8f9fa] p-5 text-xs leading-relaxed text-[#868e96]">
-              <p className="font-bold tracking-[0.18em] text-[#6c757d] uppercase">Important</p>
-              <p className="mt-2">
-                {tickerLabel(property)} is a themed digital collectible traded on Pump.fun. Holding it does not grant ownership of,
-                or any rights to, any real or in-game property. Token prices are volatile and you can lose everything you put in.
-                DYNASTY is a fan-made project and is not affiliated with Rockstar Games or Take-Two Interactive.
-              </p>
-            </div>
-          </section>
-
-          <MarketPanel property={property} />
+            <MarketPanel property={property} />
+          </div>
         </div>
       </main>
     </div>
