@@ -49,4 +49,5 @@ export const providerBudgets = {
   birdeye: createRateLimiter(50, 60_000),
   helius: createRateLimiter(60, 60_000),
   solanaRpc: createRateLimiter(60, 60_000),
+  jupiter: createRateLimiter(25, 60_000), // keyless documented at 0.5 RPS
 };

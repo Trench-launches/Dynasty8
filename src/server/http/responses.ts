@@ -27,7 +27,10 @@ export function json<T>(data: T, init?: { status?: number; cacheSeconds?: number
   headers["cache-control"] = init?.cacheSeconds
     ? `public, max-age=0, s-maxage=${init.cacheSeconds}, stale-while-revalidate=${init.cacheSeconds}`
     : "no-store";
-  return NextResponse.json(data, { status: init?.status ?? 200, headers });
+  headers["content-type"] = "application/json";
+  // bigint amounts (lamports, raw token units) are sent as exact decimal strings.
+  const body = JSON.stringify(data, (_k, v) => (typeof v === "bigint" ? v.toString() : v));
+  return new NextResponse(body, { status: init?.status ?? 200, headers });
 }
 
 export function errorResponse(err: unknown) {

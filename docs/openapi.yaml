@@ -367,3 +367,22 @@ components:
             code: { type: string, enum: [BAD_REQUEST, NOT_FOUND, UNAUTHORIZED, FORBIDDEN, RATE_LIMITED, CONFLICT, UNPROCESSABLE, INTERNAL] }
             message: { type: string }
             details: { type: array, items: { type: object, properties: { path: { type: string }, message: { type: string } } } }
+# ── Demolition Fund (branch feature/demolition-fund) ───────────────────────────
+# Appended path summaries; response types are defined in src/contracts/demolition-fund.ts
+# and described in docs/DEMOLITION-FUND.md. Amounts are decimal strings in base units.
+x-demolition-fund-paths:
+  /api/demolition-fund/summary: { get: { tags: [public], summary: Verified fund totals (FundSummaryDto) } }
+  /api/demolition-fund/history: { get: { tags: [public], summary: "Receipts, buybacks, burns, disbursements (FundHistoryDto); query limit<=100, before=ISO time" } }
+  /api/demolition-fund/properties: { get: { tags: [public], summary: Property leaderboard by verified contribution (PropertyContributionDto[]) } }
+  /api/demolition-fund/burns: { get: { tags: [public], summary: "Verified burns (FundBurnDto[]); query limit<=100" } }
+  /api/demolition-fund/transactions/{signature}: { get: { tags: [public], summary: Fund view of one signature (FundTransactionDto) } }
+  /api/admin/demolition-fund/wallets: { get: { tags: [admin], summary: VIEWER }, put: { tags: [admin], summary: "ADMIN; {role, address, label, isMultisig}" } }
+  /api/admin/demolition-fund/config: { get: { tags: [admin], summary: VIEWER }, patch: { tags: [admin], summary: "ADMIN; bps (sum 10000) and limits; lamport fields as strings" } }
+  /api/admin/demolition-fund/pause: { post: { tags: [admin], summary: "{paused, reason}; EDITOR can pause, ADMIN resumes" } }
+  /api/admin/demolition-fund/circuit: { post: { tags: [admin], summary: "ADMIN; {reason}; close the circuit breaker" } }
+  /api/admin/demolition-fund/receipts: { get: { tags: [admin], summary: VIEWER }, post: { tags: [admin], summary: "ADMIN; {signature}; manual receipt, verified on-chain" } }
+  /api/admin/demolition-fund/scan: { post: { tags: [admin], summary: ADMIN; scan fund wallet now } }
+  /api/admin/demolition-fund/reconcile: { post: { tags: [admin], summary: ADMIN; ledger vs chain } }
+  /api/admin/demolition-fund/disbursements: { get: { tags: [admin], summary: VIEWER }, post: { tags: [admin], summary: "ADMIN; {signature, role: ECOSYSTEM|OPERATIONS}" } }
+  /api/admin/demolition-fund/buybacks: { get: { tags: [admin], summary: VIEWER }, post: { tags: [admin], summary: "ADMIN; {idempotencyKey, budgetLamports?}" } }
+  /api/admin/demolition-fund/buybacks/{id}/{action}: { post: { tags: [admin], summary: "ADMIN; action = quote | approve | cancel | swap-proposal | swap-submitted | burn-proposal | burn-submitted | settle" } }

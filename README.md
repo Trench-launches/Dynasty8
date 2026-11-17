@@ -8,8 +8,10 @@ One Next.js app holds both halves: the 3D-map frontend and the backend (API rout
 PostgreSQL registry, read-only Solana and market-data adapters, admin API).
 
 > **Status:** all 15 launch listings are proposals; no token is launched yet, so every token
-> shows **Coming Soon** and no market figures appear. Nothing here creates, signs or trades
-> tokens: admins register mints that already exist on-chain, and trading happens on Pump.fun.
+> shows **Coming Soon** and no market figures appear. Nothing here creates tokens or holds keys:
+> admins register mints that already exist on-chain, and trading happens on Pump.fun. The
+> Demolition Fund only prepares DYNASTY buybacks and burns for a multisig to sign, then verifies
+> them on-chain; automated signing is disabled.
 
 ## Stack
 
@@ -29,6 +31,7 @@ npm run db:local            # terminal 1: embedded PostgreSQL on :54329 (no Dock
 npm run db:migrate && npm run db:seed
 npm run dev                 # terminal 2: app + API on http://localhost:3530
 npm run sync:markets        # terminal 3 (optional): market-data worker, only matters once tokens are LIVE
+npm run fund:worker         # terminal 4 (optional): Demolition Fund receipts, settlement, reconciliation
 ```
 
 UI work without a database: set `NEXT_PUBLIC_MOCK_API="true"` in `.env` and skip the
@@ -71,8 +74,9 @@ src/
     catalogue.ts              # Server-side page data (reads the database directly)
     mock-api.ts               # Mock implementation for NEXT_PUBLIC_MOCK_API=true
   server/                     # Backend: config, db, providers, services, auth (server-only)
+  server/demolition/          # Demolition Fund: fee receipts, buyback & burn, reconciliation
 prisma/                       # Schema, migrations, seed
-scripts/                      # local-postgres, sync-worker, admin-grant, db-reset-local
+scripts/                      # local-postgres, sync-worker, demolition-worker, admin-grant, db-reset-local
 tests/                        # unit + integration tests
 docs/                         # Backend architecture, API spec, security review, deployment
 ```
@@ -103,6 +107,7 @@ Rules the UI relies on (enforced in the adapter):
 - Frontend integration notes: [docs/FRONTEND-INTEGRATION.md](docs/FRONTEND-INTEGRATION.md)
 - Security review: [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md)
 - Deployment, backups, rollback, monitoring: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- Demolition Fund (creator fees → DYNASTY buyback & burn): [docs/DEMOLITION-FUND.md](docs/DEMOLITION-FUND.md)
 
 ## The map
 

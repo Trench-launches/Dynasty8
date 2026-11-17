@@ -22,6 +22,9 @@ const schema = z.object({
   // Optional providers. Each adapter is disabled when its key is missing.
   HELIUS_API_KEY: z.string().min(1).optional(),
   BIRDEYE_API_KEY: z.string().min(1).optional(),
+  JUPITER_API_KEY: z.string().min(1).optional(),
+  // Swap programs a buyback may use (comma-separated). Defaults to the Jupiter v6 aggregator.
+  BUYBACK_SWAP_PROGRAMS: z.string().default("JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"),
   ENABLE_DEXSCREENER: bool(true),
   ENABLE_GECKOTERMINAL: bool(true),
 

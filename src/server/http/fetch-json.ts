@@ -14,6 +14,7 @@ export const ALLOWED_HOSTS = new Set([
   "api.geckoterminal.com",
   "public-api.birdeye.so",
   "mainnet.helius-rpc.com",
+  "api.jup.ag",
 ]);
 
 export class ProviderError extends Error {

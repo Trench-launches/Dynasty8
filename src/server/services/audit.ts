@@ -17,7 +17,7 @@ export async function recordAudit(
   tx: Tx,
   actor: Actor,
   action: string,
-  entityType: "Property" | "Token" | "AdminUser",
+  entityType: "Property" | "Token" | "AdminUser" | "Fund" | "Buyback",
   entityId: string | null,
   before: unknown,
   after: unknown,
@@ -29,9 +29,15 @@ export async function recordAudit(
       action,
       entityType,
       entityId,
-      before: before === undefined || before === null ? undefined : (JSON.parse(JSON.stringify(before)) as Prisma.InputJsonValue),
-      after: after === undefined || after === null ? undefined : (JSON.parse(JSON.stringify(after)) as Prisma.InputJsonValue),
+      before: toJson(before),
+      after: toJson(after),
       ip: actor.ip,
     },
   });
+}
+
+/** JSON snapshot; bigint amounts are stored as decimal strings (exact). */
+function toJson(v: unknown): Prisma.InputJsonValue | undefined {
+  if (v === undefined || v === null) return undefined;
+  return JSON.parse(JSON.stringify(v, (_k, x) => (typeof x === "bigint" ? x.toString() : x))) as Prisma.InputJsonValue;
 }

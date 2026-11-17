@@ -72,3 +72,22 @@ Holder counts and bonding-curve progress: no adapter supplies them, so `holders`
 
 Admin routes under `/api/admin/*` need a GitHub sign-in (`/api/auth/signin`) by an account granted
 with `npm run admin:grant`, and a same-origin `Origin` header on mutations. There is no admin UI yet.
+
+## Demolition Fund
+
+Types: `src/contracts/demolition-fund.ts`. Details: `docs/DEMOLITION-FUND.md`.
+
+| Endpoint | Use |
+|---|---|
+| `GET /api/demolition-fund/summary` | Fund header: total fees, % split, pending buyback, DYNASTY purchased / burned, latest buyback and burn, paused / breaker state |
+| `GET /api/demolition-fund/properties` | Leaderboard and map overlay: rank, creator fees, buyback share, DYNASTY burned per property, `mapPosition` (null until verified) |
+| `GET /api/demolition-fund/history?limit&before` | Activity feed; pass `nextBefore` to page |
+| `GET /api/demolition-fund/burns` | Burn list with linked buyback |
+| `GET /api/demolition-fund/transactions/{signature}` | Detail page / deep link |
+
+Display rules:
+- Amounts are **strings in base units**. SOL: divide lamports by 1e9. DYNASTY: divide by `10 ** summary.dynasty.decimals`. Use `BigInt` or a decimal library, not `Number`, for totals.
+- Every figure is verified on-chain; `"0"` means a verified zero. Before any activity everything is `"0"` and `rank` is `null`: show "No contributions yet", never placeholder numbers.
+- Show `status.paused` / `status.circuitOpen` as a notice ("Buybacks paused").
+- Link every signature with the provided `explorerUrl`.
+- Contribution `rank` is null for properties with no verified revenue; sort those last.

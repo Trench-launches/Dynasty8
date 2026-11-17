@@ -17,6 +17,7 @@
     "db:generate": "prisma generate",
     "sync:markets": "tsx --conditions=react-server --env-file-if-exists=.env scripts/sync-worker.ts",
     "admin:grant": "tsx --conditions=react-server --env-file-if-exists=.env scripts/admin-grant.ts",
+    "fund:worker": "tsx --conditions=react-server --env-file-if-exists=.env scripts/demolition-worker.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
     "@solana/web3.js": "^1.99.0",
+    "bs58": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "lucide-react": "^1.74.0",
