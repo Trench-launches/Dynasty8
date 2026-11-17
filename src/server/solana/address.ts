@@ -23,7 +23,7 @@ export const publicKeySchema = z
 /** Well-known program / mint addresses. Not user-configurable. */
 export const PROGRAMS = {
   TOKEN: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-  TOKEN_2022: "TokenzQdBNbLqP5VEhdkAS6EPFLC6PQqqZ2CjjjEUkkN",
+  TOKEN_2022: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
   /** Pump.fun bonding-curve program (pump-fun/pump-public-docs). */
   PUMP: "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
   WRAPPED_SOL: "So11111111111111111111111111111111111111112",
