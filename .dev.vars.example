@@ -1,0 +1,3 @@
+# Copy to .dev.vars for `npm run preview` (Cloudflare's local runtime). .dev.vars is git-ignored.
+NEXTJS_ENV=development
+DATABASE_URL=postgresql://dynasty8:dynasty8-local-only@127.0.0.1:54329/dynasty8
