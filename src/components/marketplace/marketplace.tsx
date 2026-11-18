@@ -8,8 +8,11 @@ import { cn } from "@/lib/utils";
 import { api, usingMockApi } from "@/lib/api";
 import { DEFAULT_FILTERS, applyFilters, type Filters } from "@/lib/filters";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import type { Property } from "@/lib/types";
+import { DYNASTY_HQ } from "@/data/dynasty-hq";
+import type { EcosystemToken, Property } from "@/lib/types";
 import type { Insets, LeonidaMapHandle } from "@/components/map/leonida-map";
+import type { HqMarker } from "@/components/map/hq-pin";
+import { HqPreview } from "./hq-preview";
 import { ListingSidebar } from "./listing-sidebar";
 import { PropertyPreview } from "./property-preview";
 import { SearchBox } from "./listing-filters";
@@ -41,8 +44,16 @@ function readSlugFromUrl(): string | null {
   return new URLSearchParams(window.location.search).get("p");
 }
 
-export function Marketplace({ initialProperties }: { initialProperties: Property[] }) {
+export function Marketplace({
+  initialProperties,
+  ecosystem: initialEcosystem,
+}: {
+  initialProperties: Property[];
+  /** The $DYNASTY token, shown by the DYNASTY HQ landmark in the middle of the map. */
+  ecosystem: EcosystemToken;
+}) {
   const [properties, setProperties] = useState(initialProperties);
+  const [ecosystem, setEcosystem] = useState(initialEcosystem);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
@@ -55,11 +66,18 @@ export function Marketplace({ initialProperties }: { initialProperties: Property
 
   const visible = useMemo(() => applyFilters(properties, filters), [properties, filters]);
   const selected = useMemo(() => properties.find((p) => p.slug === selectedSlug) ?? null, [properties, selectedSlug]);
+  // The DYNASTY HQ landmark is selected through the same id slot as a property.
+  const hqOpen = selectedSlug === DYNASTY_HQ.id;
+  const panelOpen = Boolean(selected) || hqOpen;
+  const hq = useMemo<HqMarker>(
+    () => ({ ...DYNASTY_HQ, ticker: ecosystem.ticker, marketCapUsd: ecosystem.market?.marketCapUsd ?? null }),
+    [ecosystem],
+  );
 
   // Deep link: /?p=slug opens that listing.
   useEffect(() => {
     const slug = readSlugFromUrl();
-    if (slug && initialProperties.some((p) => p.slug === slug)) {
+    if (slug && (slug === DYNASTY_HQ.id || initialProperties.some((p) => p.slug === slug))) {
       queueMicrotask(() => {
         setSelectedSlug(slug);
         setInitialSlug(slug);
@@ -80,6 +98,7 @@ export function Marketplace({ initialProperties }: { initialProperties: Property
     if (usingMockApi) return;
     const id = setInterval(() => {
       api.getProperties().then(setProperties).catch(() => {});
+      api.getEcosystem().then(setEcosystem).catch(() => {});
     }, REFRESH_MS);
     return () => clearInterval(id);
   }, []);
@@ -98,21 +117,22 @@ export function Marketplace({ initialProperties }: { initialProperties: Property
   );
 
   // Fly the camera once the overlay insets for this selection are in place.
+  const focusLocation = hqOpen ? DYNASTY_HQ.location : (selected?.location ?? null);
   useEffect(() => {
-    if (!focusRequest || !selected?.location) return;
-    mapRef.current?.focus(selected.location);
+    if (!focusRequest || !focusLocation) return;
+    mapRef.current?.focus(focusLocation);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusRequest]);
 
   // If filters hide the selected property, close its preview.
   useEffect(() => {
-    if (selectedSlug && !visible.some((p) => p.slug === selectedSlug)) {
+    if (selectedSlug && selectedSlug !== DYNASTY_HQ.id && !visible.some((p) => p.slug === selectedSlug)) {
       queueMicrotask(() => setSelectedSlug(null));
     }
   }, [visible, selectedSlug]);
 
   const sheetHeight = Math.round(viewportHeight * 0.46);
-  const insets: Insets = selected
+  const insets: Insets = panelOpen
     ? isDesktop
       ? { right: PANEL_WIDTH + 12, bottom: 0 }
       : mobileView === "map"
@@ -121,7 +141,10 @@ export function Marketplace({ initialProperties }: { initialProperties: Property
     : { right: 0, bottom: 0 };
 
   const initialLocation = useMemo(
-    () => properties.find((p) => p.slug === initialSlug)?.location ?? null,
+    () =>
+      initialSlug === DYNASTY_HQ.id
+        ? DYNASTY_HQ.location
+        : (properties.find((p) => p.slug === initialSlug)?.location ?? null),
     [properties, initialSlug],
   );
 
@@ -152,10 +175,11 @@ export function Marketplace({ initialProperties }: { initialProperties: Property
           insets={insets}
           topOffset={isDesktop ? 0 : 56}
           initialFocus={initialLocation}
+          hq={hq}
         >
           {/* Desktop preview panel */}
           <AnimatePresence>
-            {isDesktop && selected && (
+            {isDesktop && panelOpen && (
               <motion.aside
                 key="panel"
                 initial={{ opacity: 0, x: 40 }}
@@ -165,7 +189,11 @@ export function Marketplace({ initialProperties }: { initialProperties: Property
                 className="scrollbar-thin absolute top-3 right-3 bottom-3 z-40 overflow-y-auto rounded-xl border border-[#dee2e6] bg-white/95 shadow-2xl shadow-black/60 backdrop-blur-md"
                 style={{ width: PANEL_WIDTH }}
               >
-                <PropertyPreview key={selected.slug} property={selected} onClose={() => select(null)} />
+                {selected ? (
+                  <PropertyPreview key={selected.slug} property={selected} onClose={() => select(null)} />
+                ) : (
+                  <HqPreview token={ecosystem} onClose={() => select(null)} />
+                )}
               </motion.aside>
             )}
           </AnimatePresence>
@@ -201,7 +229,7 @@ export function Marketplace({ initialProperties }: { initialProperties: Property
             type="button"
             onClick={() => setMobileView((v) => (v === "map" ? "list" : "map"))}
             className="absolute left-1/2 z-50 flex h-11 -translate-x-1/2 items-center gap-2 rounded bg-sunset-gradient px-5 text-sm font-extrabold text-ink shadow-xl shadow-black/50 transition-[bottom] duration-300"
-            style={{ bottom: (mobileView === "map" && selected ? sheetHeight : 0) + 16 }}
+            style={{ bottom: (mobileView === "map" && panelOpen ? sheetHeight : 0) + 16 }}
           >
             {mobileView === "map" ? (
               <>
@@ -217,11 +245,11 @@ export function Marketplace({ initialProperties }: { initialProperties: Property
 
         {/* Mobile: bottom sheet */}
         <AnimatePresence>
-          {!isDesktop && mobileView === "map" && selected && (
+          {!isDesktop && mobileView === "map" && panelOpen && (
             <motion.div
               key="sheet"
               role="dialog"
-              aria-label={`${selected.name} details`}
+              aria-label={`${selected?.name ?? DYNASTY_HQ.name} details`}
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
@@ -239,7 +267,11 @@ export function Marketplace({ initialProperties }: { initialProperties: Property
                 <span className="h-1 w-10 rounded-full bg-[#e9ecef]" aria-hidden />
               </div>
               <div className={cn("scrollbar-thin min-h-0 flex-1 overflow-y-auto")} onPointerDown={(e) => e.stopPropagation()}>
-                <PropertyPreview key={selected.slug} property={selected} onClose={() => select(null)} compact />
+                {selected ? (
+                  <PropertyPreview key={selected.slug} property={selected} onClose={() => select(null)} compact />
+                ) : (
+                  <HqPreview token={ecosystem} onClose={() => select(null)} compact />
+                )}
               </div>
             </motion.div>
           )}

@@ -367,8 +367,18 @@ export function petalLayout(index: number, count: number) {
  * clusters: their own elements hide and the cluster badge shows instead, unless that cluster
  * is fanned out, in which case its pins are laid out as petals around the badge.
  */
+/** A fixed map landmark (the DYNASTY HQ): projected like a pin, never clustered. */
+export interface PinLandmark {
+  id: string;
+  location: MapLocation;
+}
+const NO_LANDMARKS: PinLandmark[] = [];
+/** Landmarks sit above ordinary pins (< 50,000) but below cluster badges and hovered pins. */
+const LANDMARK_Z = 60000;
+
 export function PinProjector({
   properties,
+  landmarks = NO_LANDMARKS,
   pinEls,
   clusterEls,
   selectedRef,
@@ -377,6 +387,8 @@ export function PinProjector({
   onClusters,
 }: {
   properties: Property[];
+  /** Positioned with the pins (keyed by id in pinEls) but never grouped into a cluster. */
+  landmarks?: PinLandmark[];
   pinEls: RefObject<Map<string, HTMLElement>>;
   clusterEls: RefObject<Map<string, HTMLElement>>;
   selectedRef: RefObject<string | null>;
@@ -387,11 +399,13 @@ export function PinProjector({
 }) {
   const points = useMemo(
     () =>
-      properties
-        .filter((p) => p.location)
-        .map((p) => ({ slug: p.slug, v: toScene(p.location!.x, p.location!.y) }))
-        .sort((a, b) => a.slug.localeCompare(b.slug)),
-    [properties],
+      [
+        ...properties
+          .filter((p) => p.location)
+          .map((p) => ({ slug: p.slug, v: toScene(p.location!.x, p.location!.y), landmark: false })),
+        ...landmarks.map((l) => ({ slug: l.id, v: toScene(l.location.x, l.location.y), landmark: true })),
+      ].sort((a, b) => a.slug.localeCompare(b.slug)),
+    [properties, landmarks],
   );
   const tmp = useMemo(() => new THREE.Vector3(), []);
   const lastSignature = useRef("");
@@ -407,11 +421,12 @@ export function PinProjector({
     // refreshed at render time, so update it now or pins trail the map by a frame while it flies.
     camera.updateMatrixWorld();
 
-    const screen = points.map(({ slug, v }) => {
+    const screen = points.map(({ slug, v, landmark }) => {
       tmp.copy(v).project(camera);
       return {
         slug,
         v,
+        landmark,
         visible: tmp.z < 1 && Math.abs(tmp.x) < 1.3 && Math.abs(tmp.y) < 1.3,
         x: ((tmp.x + 1) / 2) * size.width,
         y: ((1 - tmp.y) / 2) * size.height,
@@ -424,10 +439,11 @@ export function PinProjector({
     const centres = new Map<string, [number, number]>();
     const taken = new Set<string>();
     for (const a of screen) {
-      if (!a.visible || taken.has(a.slug) || a.slug === selectedRef.current) continue;
+      if (!a.visible || a.landmark || taken.has(a.slug) || a.slug === selectedRef.current) continue;
       const members = screen.filter(
         (b) =>
           b.visible &&
+          !b.landmark &&
           !taken.has(b.slug) &&
           b.slug !== selectedRef.current &&
           Math.hypot(b.x - a.x, b.y - a.y) < CLUSTER_RADIUS,
@@ -476,7 +492,9 @@ export function PinProjector({
       el.style.opacity = "";
       el.style.transform = `translate3d(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px, 0)`;
       // Nearer pins on top. Hovered/selected pins are lifted above everything by CSS in LeonidaMap.
-      el.style.zIndex = String(Math.max(0, 50000 - Math.round(p.v.distanceTo(camera.position))));
+      el.style.zIndex = String(
+        p.landmark ? LANDMARK_Z : Math.max(0, 50000 - Math.round(p.v.distanceTo(camera.position))),
+      );
     }
 
     const cEls = clusterEls.current;
