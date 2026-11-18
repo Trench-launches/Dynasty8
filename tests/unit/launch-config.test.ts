@@ -50,6 +50,29 @@ describe("Pump launch configs", () => {
     expect(validateLaunchConfig(bad)).toEqual(expect.arrayContaining([expect.stringMatching(/symbol/), expect.stringMatching(/sum to 10000/)]));
   });
 
+  it("has a square launch image and an upload-ready metadata template for every coin", () => {
+    const dims = (path: string) => {
+      const b = readFileSync(path);
+      if (b[0] === 0x89) return [b.readUInt32BE(16), b.readUInt32BE(20)];
+      for (let i = 2; i < b.length; ) {
+        if (b[i] !== 0xff) {
+          i++;
+          continue;
+        }
+        const m = b[i + 1]!;
+        if (m >= 0xc0 && m <= 0xc3) return [b.readUInt16BE(i + 7), b.readUInt16BE(i + 5)];
+        i += 2 + b.readUInt16BE(i + 2);
+      }
+      return null;
+    };
+    for (const c of [dynasty, ...properties]) {
+      expect(dims(c.launchImage), c.launchImage).toEqual([1000, 1000]);
+      expect(c.metadata).toMatchObject({ name: c.name, symbol: c.symbol, description: c.description, website: c.website, showName: true });
+      expect(c.metadata.image).toBe("REPLACE_WITH_IPFS_URL_OF_launchImage");
+      if (c.kind === "PROPERTY") expect(c.description).toMatch(/Not affiliated with or endorsed by Rockstar Games/);
+    }
+  });
+
   it("committed JSON matches the generator", () => {
     for (const [path, body] of Object.entries(renderLaunchConfigs(treasury))) {
       expect(readFileSync(path, "utf8").replace(/\r\n/g, "\n")).toBe(body);

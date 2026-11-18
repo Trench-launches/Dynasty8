@@ -9,10 +9,13 @@
  * Pump / Metaplex limits checked here: name <= 32 bytes, symbol <= 10, URI <= 200 (set at upload),
  * 1-10 shareholders, unique, each > 0, sum 10000.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { CATALOGUE, catalogueDescription, NATIVE_TOKEN, slugify } from "../src/data/catalogue";
 
 export const SITE = "https://dynasty15.xyz";
+export const IMAGE_PLACEHOLDER = "REPLACE_WITH_IPFS_URL_OF_launchImage";
+const DYNASTY_DESCRIPTION =
+  "DYNASTY is the ecosystem token of Dynasty 8, a fan-made GTA VI-inspired property-token catalogue. Creator fees from every property coin buy back and burn DYNASTY through a public, multisig-controlled Demolition Fund. Not affiliated with Rockstar Games or Take-Two. Speculative digital asset.";
 const PROPERTY_DISCLAIMER =
   "Fan-made concept listing in the Dynasty 8 catalogue. Not affiliated with or endorsed by Rockstar Games or Take-Two. Not an official or purchasable GTA VI property. Speculative digital collectible; it does not represent ownership of any real or in-game property.";
 
@@ -28,8 +31,12 @@ export interface CoinLaunchConfig {
   name: string;
   symbol: string;
   description: string;
-  /** Repository path of the source artwork; upload a SQUARE crop to Pump (see notes). */
+  /** Repository path of the source artwork. */
   image: string;
+  /** Square 1000x1000 image to upload to IPFS for Pump (generated from `image`). */
+  launchImage: string;
+  /** Pump / Metaplex metadata JSON to upload to IPFS (after replacing the image placeholder). */
+  metadata: { name: string; symbol: string; description: string; image: string; showName: true; createdOn: string; website: string };
   website: string;
   twitter: string | null;
   telegram: string | null;
@@ -50,15 +57,26 @@ export interface CoinLaunchConfig {
 
 export function buildLaunchConfigs(treasury: Treasury) {
   const shareholders = treasury.wallets.map((w) => ({ role: w.role, address: w.address, shareBps: w.shareBps }));
-  const setup = "After the Pump launch: register the mint, then /admin/treasury -> 'Fee sharing for a launched coin', signed by creatorWallet (sweep if needed, create_fee_sharing_config, update_fee_shares_v2; locks the split).";
+  const setup =
+    "Preferred: /admin/treasury -> 'Launch a coin': ONE transaction = create_v2 + create_fee_sharing_config + update_fee_shares_v2 (locked), signed by creatorWallet and a browser-generated mint, so fees reach the treasury from the first trade (needs the project lookup table). Fallback: launch on pump.fun, register the mint, then 'Fee sharing for a launched coin' (adds sweep_creator_fee; fees before the switch stay claimable by the creator).";
+  const meta = (c: { name: string; symbol: string; description: string; website: string }) => ({
+    name: c.name,
+    symbol: c.symbol,
+    description: c.description,
+    image: IMAGE_PLACEHOLDER,
+    showName: true as const,
+    createdOn: "https://pump.fun",
+    website: c.website,
+  });
   const dynasty: CoinLaunchConfig = {
     slug: "dynasty",
     kind: "NATIVE",
     name: NATIVE_TOKEN.name,
     symbol: NATIVE_TOKEN.ticker,
-    description:
-      "DYNASTY is the ecosystem token of Dynasty 8, a fan-made GTA VI-inspired property-token catalogue. Creator fees from every property coin buy back and burn DYNASTY through a public, multisig-controlled Demolition Fund. Not affiliated with Rockstar Games or Take-Two. Speculative digital asset.",
+    description: DYNASTY_DESCRIPTION,
     image: "public/brand/dynasty15-logo.png",
+    launchImage: "marketing/launch/dynasty.png",
+    metadata: meta({ name: NATIVE_TOKEN.name, symbol: NATIVE_TOKEN.ticker, description: DYNASTY_DESCRIPTION, website: SITE }),
     website: SITE,
     twitter: null,
     telegram: null,
@@ -71,22 +89,25 @@ export function buildLaunchConfigs(treasury: Treasury) {
     pending: [
       "D-NATIVE-FEES: where DYNASTY's own creator fees go. Configured here as the same 60/25/15 vault split; the backend does not book them as buyback revenue (they would sit in the vaults until the owner decides).",
       "D-LAUNCH-DEVBUY: initial buy size (0 by default).",
-      "Square logo artwork (the bundled logo is 1024x515).",
-      "Official X / Telegram links.",
+      "Official X / Telegram links (optional; add them to the metadata before upload).",
     ],
   };
   const properties: CoinLaunchConfig[] = CATALOGUE.map((e) => {
     const slug = slugify(e.name);
-    const pending = ["D-LAUNCH-DEVBUY: initial buy size (0 by default).", "Square crop of the 3:2 property artwork for Pump's coin image."];
+    const pending = ["D-LAUNCH-DEVBUY: initial buy size (0 by default)."];
+    const description = `${catalogueDescription(e)} ${PROPERTY_DISCLAIMER}`;
+    const website = `${SITE}/property/${slug}`;
     if (e.ticker === "BOATWORKS") pending.unshift("Catalogue decision: BOATWORKS (owner's list of 15, current catalogue) or CROSSTOWN (later brief, reserve list). Do not launch until decided.");
     return {
       slug,
       kind: "PROPERTY",
       name: e.name,
       symbol: e.ticker,
-      description: `${catalogueDescription(e)} ${PROPERTY_DISCLAIMER}`,
+      description,
       image: `public/properties/${slug}-v2.jpg`,
-      website: `${SITE}/property/${slug}`,
+      launchImage: `marketing/launch/${slug}.jpg`,
+      metadata: meta({ name: e.name, symbol: e.ticker, description, website }),
+      website,
       twitter: null,
       telegram: null,
       quote: "SOL",
@@ -121,10 +142,46 @@ function render(treasury: Treasury) {
     multisig: treasury.multisig,
     allocationMode: treasury.allocationMode,
   };
-  return {
+  const files: Record<string, string> = {
     "config/launch/dynasty.mainnet.json": JSON.stringify({ ...head, coin: dynasty }, null, 2) + "\n",
     "config/launch/properties.mainnet.json": JSON.stringify({ ...head, coins: properties }, null, 2) + "\n",
   };
+  for (const c of [dynasty, ...properties]) files[`config/launch/metadata/${c.slug}.json`] = JSON.stringify(c.metadata, null, 2) + "\n";
+  files["docs/launch/LAUNCH-CARDS.md"] = launchCards(treasury, [dynasty, ...properties]);
+  return files;
+}
+
+/** One copy-paste card per coin for the owner, in launch order. */
+function launchCards(treasury: Treasury, coins: CoinLaunchConfig[]) {
+  const vaults = treasury.wallets.map((w) => `${w.role} ${w.shareBps / 100}% \`${w.address}\``).join(" · ");
+  const lines = [
+    "# Launch cards",
+    "",
+    "Generated by `scripts/launch-config.ts`. Do not edit by hand. Nothing here has been launched.",
+    "",
+    `Treasury shareholders for every coin (locked at launch): ${vaults}.`,
+    "",
+    "For each coin:",
+    "1. Upload `launchImage` to IPFS.",
+    "2. Put its URL in the metadata file's `image`, and upload the metadata file to IPFS.",
+    "3. In `/admin/treasury` → **Launch a coin**: choose the coin, paste the metadata URL, prepare, review and sign in Phantom.",
+    "4. Press **Register mint**.",
+    "",
+  ];
+  for (const c of coins) {
+    lines.push(
+      `## $${c.symbol}: ${c.name}`,
+      "",
+      `- Status: **${c.status}**${c.pending.length ? ` (${c.pending.join("; ")})` : ""}`,
+      `- Launch image: \`${c.launchImage}\``,
+      `- Metadata template: \`config/launch/metadata/${c.slug}.json\``,
+      `- Website: ${c.website}`,
+      `- Registration: ${c.kind === "NATIVE" ? "`POST /api/admin/ecosystem/token`" : `\`POST /api/admin/properties/${c.slug}/token\``} (the signing page's **Register mint** button does this)`,
+      `- Description: ${c.description}`,
+      "",
+    );
+  }
+  return lines.join("\n");
 }
 
 if (process.argv[1] && /launch-config\.ts$/.test(process.argv[1])) {
@@ -148,8 +205,10 @@ if (process.argv[1] && /launch-config\.ts$/.test(process.argv[1])) {
       process.exitCode = 1;
     } else console.log("launch configs up to date");
   } else {
+    mkdirSync("config/launch/metadata", { recursive: true });
+    mkdirSync("docs/launch", { recursive: true });
     for (const [p, body] of Object.entries(files)) writeFileSync(p, body);
-    console.log(`wrote ${Object.keys(files).join(", ")} (${properties.length} properties + DYNASTY)`);
+    console.log(`wrote ${Object.keys(files).length} files (${properties.length} properties + DYNASTY)`);
   }
 }
 

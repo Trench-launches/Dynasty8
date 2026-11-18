@@ -60,6 +60,12 @@ class FakeRpc implements PumpSetupRpc {
   async getLatestBlockhash() {
     return PublicKey.default.toBase58();
   }
+  async getSlot() {
+    return 1000;
+  }
+  async getLookupTable() {
+    return null;
+  }
   async simulate(tx: VersionedTransaction) {
     this.simulated.push(tx);
     return { err: this.simErr, logs: this.simErr ? ["Program log: AnchorError ... Error Code: X", "failed"] : ["success"] };

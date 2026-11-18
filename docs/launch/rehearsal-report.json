@@ -1,0 +1,67 @@
+{
+  "rehearsedAt": "2026-11-18T14:04:14.481Z",
+  "note": "Read-only rehearsal: unsigned transactions and simulations only. A live coin stands in for $DYNASTY. Nothing was signed or sent.",
+  "multisig": "BF8XcyJ9iMF2fHqRMm8Z9nK44AV322NAKhhEvVRc2Ljn",
+  "threshold": 2,
+  "nextTransactionIndex": "1",
+  "fundVault": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+  "standIn": "KMhMBUj1qX2PYEBBUwjWmxA1dYbZvvDLHQZEwwvpump",
+  "swap": {
+    "budgetLamports": "50000000",
+    "quotedOut": "1763352432399",
+    "minOut": "1710451859428",
+    "priceImpactBps": 0,
+    "route": [
+      "Pump.fun"
+    ],
+    "policy": "pass",
+    "proposal": {
+      "transactionIndex": "1",
+      "proposalPda": "AdnyABWurS3c1SnkGEtJQvVunUmiwxZe6ScQQXTCHvXr",
+      "bytes": 851,
+      "innerInstructions": 6,
+      "creator": "AmAU7AEHnBYnvsuKe4SPzX2KB9tKNxMs7UbnMus7Gdi"
+    },
+    "creationSimulation": {
+      "ok": true,
+      "err": null,
+      "unitsConsumed": 58463,
+      "logs": [
+        "Program log: Instruction: VaultTransactionCreate",
+        "Program log: Instruction: ProposalCreate"
+      ]
+    }
+  },
+  "burn": {
+    "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    "decimals": 6,
+    "vaultTokenAccount": "79cmJYeKsG83ABf1xZWaVBxnQydLoYfA2ngQPcZnN6mX",
+    "proposal": {
+      "transactionIndex": "1",
+      "bytes": 534
+    },
+    "creationSimulation": {
+      "ok": true,
+      "err": null,
+      "unitsConsumed": 44542,
+      "logs": [
+        "Program log: Instruction: VaultTransactionCreate",
+        "Program log: Instruction: ProposalCreate"
+      ]
+    }
+  },
+  "approvals": [
+    {
+      "member": "4EmLpWNvKQqifcKxGxGev7rYoGRPkPMyVfxnP6XhuHU2",
+      "bytes": 269,
+      "signers": 1,
+      "feePayer": "4EmLpWNvKQqifcKxGxGev7rYoGRPkPMyVfxnP6XhuHU2"
+    },
+    {
+      "member": "Cq3EGix162DX5DZZbLdDNK9DcggFxhfHUK9yEphtzN5P",
+      "bytes": 269,
+      "signers": 1,
+      "feePayer": "Cq3EGix162DX5DZZbLdDNK9DcggFxhfHUK9yEphtzN5P"
+    }
+  ]
+}

@@ -295,6 +295,12 @@ export class FakeSquads implements SquadsReader {
     });
     return address;
   }
+  /** Mirrors a specific (e.g. the real) multisig: same address, members and threshold. */
+  addMultisig(info: MultisigInfo) {
+    this.multisigs.set(info.address, { ...info, members: info.members.map((m) => ({ ...m })) });
+    this.members = info.members.map((m) => m.key);
+    return info.address;
+  }
   async readMultisig(address: string) {
     if (this.outage) throw new Error("RPC outage");
     return this.multisigs.get(address) ?? null;

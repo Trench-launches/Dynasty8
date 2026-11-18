@@ -7,6 +7,7 @@ import {
   TransactionMessage,
   VersionedTransaction,
   type AccountMeta,
+  type AddressLookupTableAccount,
 } from "@solana/web3.js";
 import { getConfig } from "@/server/config";
 import { prisma } from "@/server/db";
@@ -185,7 +186,10 @@ export function buildFeeSharingInstructions(p: { mint: string; creator: string; 
 export interface PumpSetupRpc {
   getAccount(address: string): Promise<{ owner: string; data: Buffer } | null>;
   getLatestBlockhash(): Promise<string>;
-  simulate(tx: VersionedTransaction): Promise<{ err: unknown; logs: string[] }>;
+  getSlot(): Promise<number>;
+  simulate(tx: VersionedTransaction): Promise<{ err: unknown; logs: string[]; unitsConsumed?: number }>;
+  /** Active address lookup table, or null. */
+  getLookupTable(address: string): Promise<AddressLookupTableAccount | null>;
 }
 
 function rpcFromConfig(): PumpSetupRpc {
@@ -198,14 +202,24 @@ function rpcFromConfig(): PumpSetupRpc {
     async getLatestBlockhash() {
       return (await conn.getLatestBlockhash()).blockhash;
     },
+    async getSlot() {
+      return conn.getSlot("finalized");
+    },
     async simulate(tx) {
       const r = await conn.simulateTransaction(tx, { sigVerify: false, replaceRecentBlockhash: true });
-      return { err: r.value.err, logs: r.value.logs ?? [] };
+      return { err: r.value.err, logs: r.value.logs ?? [], unitsConsumed: r.value.unitsConsumed };
+    },
+    async getLookupTable(a) {
+      const r = await conn.getAddressLookupTable(new PublicKey(a));
+      return r.value && r.value.isActive() ? r.value : null;
     },
   };
 }
 
 let rpcOverride: PumpSetupRpc | null = null;
+export function getPumpSetupRpc(): PumpSetupRpc {
+  return rpcOverride ?? rpcFromConfig();
+}
 export function setPumpSetupRpcForTests(r: PumpSetupRpc | null) {
   rpcOverride = r;
 }
@@ -231,7 +245,7 @@ export interface FeeSharingSetup {
  * transaction whose simulation fails (the caller gets the error, not a transaction to sign).
  */
 export async function prepareFeeSharingSetup(mint: string, creator: string, actor: Actor): Promise<FeeSharingSetup> {
-  const rpc = rpcOverride ?? rpcFromConfig();
+  const rpc = getPumpSetupRpc();
   const token = await prisma.token.findUnique({ where: { mintAddress: mint }, select: { id: true, ticker: true, isNative: true } });
   if (!token) throw new ApiError(422, "UNPROCESSABLE", "Register this mint to its property (or as the DYNASTY token) first");
   const expected = await expectedShareholders();

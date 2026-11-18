@@ -9,6 +9,16 @@
     "symbol": "DYNASTY",
     "description": "DYNASTY is the ecosystem token of Dynasty 8, a fan-made GTA VI-inspired property-token catalogue. Creator fees from every property coin buy back and burn DYNASTY through a public, multisig-controlled Demolition Fund. Not affiliated with Rockstar Games or Take-Two. Speculative digital asset.",
     "image": "public/brand/dynasty15-logo.png",
+    "launchImage": "marketing/launch/dynasty.png",
+    "metadata": {
+      "name": "Dynasty",
+      "symbol": "DYNASTY",
+      "description": "DYNASTY is the ecosystem token of Dynasty 8, a fan-made GTA VI-inspired property-token catalogue. Creator fees from every property coin buy back and burn DYNASTY through a public, multisig-controlled Demolition Fund. Not affiliated with Rockstar Games or Take-Two. Speculative digital asset.",
+      "image": "REPLACE_WITH_IPFS_URL_OF_launchImage",
+      "showName": true,
+      "createdOn": "https://pump.fun",
+      "website": "https://dynasty15.xyz"
+    },
     "website": "https://dynasty15.xyz",
     "twitter": null,
     "telegram": null,
@@ -34,15 +44,14 @@
         }
       ],
       "lockAfterSetup": true,
-      "setup": "After the Pump launch: register the mint, then /admin/treasury -> 'Fee sharing for a launched coin', signed by creatorWallet (sweep if needed, create_fee_sharing_config, update_fee_shares_v2; locks the split)."
+      "setup": "Preferred: /admin/treasury -> 'Launch a coin': ONE transaction = create_v2 + create_fee_sharing_config + update_fee_shares_v2 (locked), signed by creatorWallet and a browser-generated mint, so fees reach the treasury from the first trade (needs the project lookup table). Fallback: launch on pump.fun, register the mint, then 'Fee sharing for a launched coin' (adds sweep_creator_fee; fees before the switch stay claimable by the creator)."
     },
     "registration": "POST /api/admin/ecosystem/token {mintAddress} -> PENDING_VERIFICATION, then POST /api/admin/tokens/{id}/verify after review -> LIVE. Buybacks refuse to run until DYNASTY is LIVE with a fresh market snapshot.",
     "status": "PENDING_DECISION",
     "pending": [
       "D-NATIVE-FEES: where DYNASTY's own creator fees go. Configured here as the same 60/25/15 vault split; the backend does not book them as buyback revenue (they would sit in the vaults until the owner decides).",
       "D-LAUNCH-DEVBUY: initial buy size (0 by default).",
-      "Square logo artwork (the bundled logo is 1024x515).",
-      "Official X / Telegram links."
+      "Official X / Telegram links (optional; add them to the metadata before upload)."
     ]
   }
 }

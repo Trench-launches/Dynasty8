@@ -1,0 +1,263 @@
+{
+  "simulatedAt": "2026-11-18T13:49:31.727Z",
+  "cluster": "mainnet-beta",
+  "note": "Read-only simulateTransaction with sigVerify=false and fresh mints. Nothing was signed, sent or created. The lookup table was borrowed from a recent Pump transaction for simulation only.",
+  "shareholders": [
+    {
+      "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+      "shareBps": 6000
+    },
+    {
+      "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+      "shareBps": 2500
+    },
+    {
+      "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+      "shareBps": 1500
+    }
+  ],
+  "lookupTable": {
+    "address": "Hyif6eWb8x88RVrvjPfabsgRYnwkVnyByEXTVTXbUcyP",
+    "staticAccountsCovered": 22,
+    "staticAccountsNeeded": 24
+  },
+  "simulatedPayer": "BFp3vKyRGLdFkCFTQY6qeW8mULxkqHiPobNyg2R5zf2K",
+  "allOk": true,
+  "results": [
+    {
+      "symbol": "DYNASTY",
+      "name": "Dynasty",
+      "ok": true,
+      "err": null,
+      "bytes": 969,
+      "unitsConsumed": 247226,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    },
+    {
+      "symbol": "STARLET",
+      "name": "Starlet Motel",
+      "ok": true,
+      "err": null,
+      "bytes": 982,
+      "unitsConsumed": 252165,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    },
+    {
+      "symbol": "KEYS",
+      "name": "Leonida Keys Safehouse",
+      "ok": true,
+      "err": null,
+      "bytes": 997,
+      "unitsConsumed": 250793,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    },
+    {
+      "symbol": "BAYSIDE",
+      "name": "Bayside Safehouse",
+      "ok": true,
+      "err": null,
+      "bytes": 990,
+      "unitsConsumed": 266972,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    },
+    {
+      "symbol": "STILT",
+      "name": "Jason's Stilt House",
+      "ok": true,
+      "err": null,
+      "bytes": 991,
+      "unitsConsumed": 261031,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    },
+    {
+      "symbol": "SHORE",
+      "name": "Shorecourt Garage",
+      "ok": true,
+      "err": null,
+      "bytes": 988,
+      "unitsConsumed": 251916,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    },
+    {
+      "symbol": "PARADISE",
+      "name": "Paradise Garage",
+      "ok": true,
+      "err": null,
+      "bytes": 987,
+      "unitsConsumed": 262835,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    },
+    {
+      "symbol": "LENTO",
+      "name": "Key Lento Marina Club",
+      "ok": true,
+      "err": null,
+      "bytes": 996,
+      "unitsConsumed": 274741,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    },
+    {
+      "symbol": "OCEAN",
+      "name": "Ocean View Hotel",
+      "ok": true,
+      "err": null,
+      "bytes": 986,
+      "unitsConsumed": 257808,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    },
+    {
+      "symbol": "VENTURE",
+      "name": "Venture Apartments",
+      "ok": true,
+      "err": null,
+      "bytes": 992,
+      "unitsConsumed": 291129,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    },
+    {
+      "symbol": "PEGASSI",
+      "name": "Pegassi Residences",
+      "ok": true,
+      "err": null,
+      "bytes": 992,
+      "unitsConsumed": 252129,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    },
+    {
+      "symbol": "MEGA",
+      "name": "Megamundo HQ",
+      "ok": true,
+      "err": null,
+      "bytes": 976,
+      "unitsConsumed": 277450,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    },
+    {
+      "symbol": "RAW",
+      "name": "Only Raw Records",
+      "ok": true,
+      "err": null,
+      "bytes": 984,
+      "unitsConsumed": 266800,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    },
+    {
+      "symbol": "RIDEOUT",
+      "name": "Rideout Customs",
+      "ok": true,
+      "err": null,
+      "bytes": 986,
+      "unitsConsumed": 241783,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    },
+    {
+      "symbol": "DELIGHTS",
+      "name": "Delights Cabaret",
+      "ok": true,
+      "err": null,
+      "bytes": 989,
+      "unitsConsumed": 250394,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    },
+    {
+      "symbol": "BOATWORKS",
+      "name": "Brian's Boat Works & Marina",
+      "ok": true,
+      "err": null,
+      "bytes": 1013,
+      "unitsConsumed": 250957,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": null
+    }
+  ],
+  "controlBrokenSplit": {
+    "err": {
+      "InstructionError": [
+        3,
+        {
+          "Custom": 6014
+        }
+      ]
+    },
+    "failure": "Program log: AnchorError thrown in programs/pump-fees/src/instructions/fee_sharing/update_fee_shares_v2.rs:325. Error Code: InvalidShareTotal. Error Number: 6014. Error Message: Invalid share total - must equal 10_000 basis points."
+  }
+}
