@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Flame, Map, Wallet } from "lucide-react";
+import { BarChart3, Flame, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 import { EcosystemChip } from "@/components/layout/ecosystem-chip";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { EcosystemToken } from "@/lib/types";
 
 const NAV = [
@@ -61,23 +60,6 @@ export function SiteHeader({ ecosystem }: { ecosystem: EcosystemToken }) {
         </nav>
 
         <EcosystemChip token={ecosystem} />
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {/* span wrapper: disabled buttons don't emit hover events */}
-            <span tabIndex={0} className="rounded outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <button
-                type="button"
-                disabled
-                className="inline-flex h-9 items-center gap-2 rounded border border-white/85 px-3 text-[15px] font-semibold text-white opacity-80 sm:h-10 sm:px-5"
-              >
-                <Wallet className="size-4" />
-                <span className="hidden sm:inline">Connect Wallet</span>
-              </button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">Wallet connection is not available yet</TooltipContent>
-        </Tooltip>
       </div>
     </header>
   );
