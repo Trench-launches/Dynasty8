@@ -231,42 +231,122 @@ enum TxStatus {
 }
 
 model TreasuryWallet {
-  id         String       @id @default(cuid())
-  role       TreasuryRole @unique
-  address    String       @unique
-  label      String
+  id                 String       @id @default(cuid())
+  role               TreasuryRole @unique
+  address            String       @unique
+  label              String
   /// True when the address is a multisig vault (e.g. Squads). Required for FUND in production.
-  isMultisig Boolean      @default(false)
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  isMultisig         Boolean      @default(false)
+  /// Squads v4 multisig account whose vault `vaultIndex` is `address` (verified on-chain).
+  multisigAddress    String?
+  vaultIndex         Int          @default(0)
+  multisigThreshold  Int?
+  multisigMembers    Int?
+  multisigVerifiedAt DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+enum AllocationMode {
+  /// Pump fee sharing pays FUND / ECOSYSTEM / OPERATIONS directly in the configured bps.
+  ON_CHAIN_SPLIT
+  /// FUND is the sole shareholder; ecosystem / operations shares are disbursed from the fund.
+  FUND_SPLITS
+}
+
+enum ProposalState {
+  /// Unsigned creation transaction handed to a member; not yet on-chain.
+  PREPARED
+  /// Vault transaction exists on-chain and its message matches what was proposed.
+  CREATED
+  APPROVED
+  EXECUTED
+  REJECTED
+  CANCELLED
+  /// The multisig used this transaction index for something else first.
+  STALE
+  /// On-chain message differs from the proposal: never executed by the backend's accounting.
+  MISMATCH
+}
+
+/// A Squads proposal prepared for a buyback swap or burn.
+model MultisigProposal {
+  id                  String         @id @default(cuid())
+  requestId           String
+  request             BuybackRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  purpose             TxPurpose
+  multisigAddress     String
+  vaultIndex          Int
+  transactionIndex    BigInt
+  vaultTransactionPda String         @unique
+  proposalPda         String         @unique
+  creator             String
+  /// sha256 of the canonical inner message; the on-chain vault transaction must match it.
+  messageHash         String
+  /// Amount the proposal moves: lamports (SWAP) or raw tokens (BURN).
+  amount              BigInt
+  status              ProposalState  @default(PREPARED)
+  approvals           Int            @default(0)
+  threshold           Int
+  executedSignature   String?        @unique
+  note                String?
+  createdById         String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@unique([multisigAddress, transactionIndex])
+  @@index([requestId, purpose])
+  @@index([status])
+}
+
+/// Latest on-chain check of a property token's Pump fee-sharing configuration.
+model FeeSharingCheck {
+  id            String   @id @default(cuid())
+  tokenId       String   @unique
+  mint          String
+  sharingConfig String
+  exists        Boolean
+  status        String?
+  adminRevoked  Boolean?
+  /// JSON array of {address, shareBps} as found on-chain.
+  shareholders  Json?
+  matches       Boolean
+  issues        String[] @default([])
+  checkedAt     DateTime @default(now())
 }
 
 /// Singleton (id = 1). Starts paused with automated execution off.
 model FundConfig {
-  id                      Int      @id @default(1)
-  buybackBps              Int      @default(6000)
-  ecosystemBps            Int      @default(2500)
-  operationsBps           Int      @default(1500)
-  maxBuybackLamportsPerTx BigInt   @default(5000000000)
-  maxDailyBuybackLamports BigInt   @default(20000000000)
+  id                      Int            @id @default(1)
+  buybackBps              Int            @default(6000)
+  ecosystemBps            Int            @default(2500)
+  operationsBps           Int            @default(1500)
+  maxBuybackLamportsPerTx BigInt         @default(5000000000)
+  maxDailyBuybackLamports BigInt         @default(20000000000)
   /// SOL kept in the fund wallet for fees and rent; never spent on buybacks.
-  reserveLamports         BigInt   @default(50000000)
-  minBuybackLamports      BigInt   @default(100000000)
-  minLiquidityUsd         Int      @default(10000)
-  maxPriceImpactBps       Int      @default(200)
-  slippageBps             Int      @default(100)
-  cooldownSeconds         Int      @default(3600)
-  requiredApprovals       Int      @default(2)
-  maxConsecutiveFailures  Int      @default(3)
-  consecutiveFailures     Int      @default(0)
-  paused                  Boolean  @default(true)
-  pausedReason            String?  @default("Initial state: paused until an admin enables the fund")
-  circuitOpen             Boolean  @default(false)
+  reserveLamports         BigInt         @default(50000000)
+  minBuybackLamports      BigInt         @default(100000000)
+  minLiquidityUsd         Int            @default(10000)
+  maxPriceImpactBps       Int            @default(200)
+  slippageBps             Int            @default(100)
+  cooldownSeconds         Int            @default(3600)
+  requiredApprovals       Int            @default(2)
+  maxConsecutiveFailures  Int            @default(3)
+  consecutiveFailures     Int            @default(0)
+  paused                  Boolean        @default(true)
+  pausedReason            String?        @default("Initial state: paused until an admin enables the fund")
+  circuitOpen             Boolean        @default(false)
   circuitReason           String?
   /// Unattended signing. Off by default and refused unless a signer is configured.
-  autoExecutionEnabled    Boolean  @default(false)
+  autoExecutionEnabled    Boolean        @default(false)
+  /// How the 60/25/15 split is realised (see docs/DEMOLITION-FUND.md section 2).
+  allocationMode          AllocationMode @default(ON_CHAIN_SPLIT)
+  /// Single-worker lease (pool-safe replacement for a session advisory lock).
+  workerLeaseOwner        String?
+  workerLeaseUntil        DateTime?
+  lastFeeSharingCheckAt   DateTime?
   lastScannedSignature    String?
-  updatedAt               DateTime @updatedAt
+  updatedAt               DateTime       @updatedAt
 }
 
 model FeeReceipt {
@@ -305,6 +385,8 @@ model RevenueAllocation {
   buybackBps         Int
   ecosystemBps       Int
   operationsBps      Int
+  /// ON_CHAIN_SPLIT: ecosystem / operations shares were paid by Pump straight to their wallets.
+  paidDirect         Boolean          @default(false)
   fundings           BuybackFunding[]
   createdAt          DateTime         @default(now())
 }
@@ -341,6 +423,7 @@ model BuybackRequest {
   fundings          BuybackFunding[]
   approvals         BuybackApproval[]
   transactions      ChainTransaction[]
+  proposals         MultisigProposal[]
 
   @@index([status])
   @@index([createdAt])

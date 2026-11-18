@@ -64,12 +64,12 @@ describe("Pump DistributeCreatorFeesEvent", () => {
     const [expected] = PublicKey.findProgramAddressSync([Buffer.from("sharing-config"), new PublicKey(mint).toBuffer()], new PublicKey(PUMP_PROGRAMS.fees));
     expect(sc).toBe(expected.toBase58());
     const fund = key();
-    const e = decodeDistributeEvent(encodeDistributeEvent({ mint, sharingConfig: sc, shareholders: [{ address: fund, shareBps: 10_000 }], distributed: 123_456_789n }));
-    expect(e).toEqual({ mint, sharingConfig: sc, shareholders: [{ address: fund, shareBps: 10_000 }], distributed: 123_456_789n });
+    const e = decodeDistributeEvent(encodeDistributeEvent({ mint, sharingConfig: sc, shareholders: [{ address: fund, shareBps: 10_000 }], distributed: 123_456_789n, quoteMint: null }));
+    expect(e).toEqual({ mint, sharingConfig: sc, shareholders: [{ address: fund, shareBps: 10_000 }], distributed: 123_456_789n, quoteMint: null });
   });
   it("rejects other events, truncated data and absurd shareholder counts", () => {
     expect(decodeDistributeEvent(Buffer.alloc(40))).toBeNull();
-    const good = encodeDistributeEvent({ mint: key(), sharingConfig: key(), shareholders: [{ address: key(), shareBps: 10_000 }], distributed: 1n });
+    const good = encodeDistributeEvent({ mint: key(), sharingConfig: key(), shareholders: [{ address: key(), shareBps: 10_000 }], distributed: 1n, quoteMint: null });
     expect(decodeDistributeEvent(good.subarray(0, good.length - 4))).toBeNull();
     const bad = Buffer.from(good);
     bad.writeUInt32LE(1000, 16 + 8 + 32 * 4); // shareholder count

@@ -43,6 +43,16 @@ export interface DistributeEvent {
   sharingConfig: string;
   shareholders: { address: string; shareBps: number }[];
   distributed: bigint;
+  /**
+   * Quote token the fees were paid in (trailing field in the current IDL). Null on older
+   * events that predate the field; the default pubkey or WSOL mean native SOL.
+   */
+  quoteMint: string | null;
+}
+
+/** True when an event paid out native SOL (the only quote this fund books). */
+export function isSolQuote(quoteMint: string | null): boolean {
+  return quoteMint === null || quoteMint === "11111111111111111111111111111111" || quoteMint === "So11111111111111111111111111111111111111112";
 }
 
 class Reader {
@@ -81,6 +91,48 @@ class Reader {
     this.o += 8;
     return v;
   }
+  u8() {
+    this.need(1);
+    return this.b[this.o++]!;
+  }
+  remaining() {
+    return this.b.length - this.o;
+  }
+}
+
+/** Anchor account discriminator of Pump Fees `SharingConfig` (idl/pump_fees.json). */
+export const SHARING_CONFIG_DISCRIMINATOR = Buffer.from([216, 74, 9, 0, 56, 140, 93, 75]);
+
+export interface SharingConfig {
+  version: number;
+  status: "PAUSED" | "ACTIVE" | "UNKNOWN";
+  mint: string;
+  admin: string;
+  adminRevoked: boolean;
+  shareholders: { address: string; shareBps: number }[];
+}
+
+/**
+ * Decodes a Pump Fees SharingConfig account: discriminator, bump u8, version u8,
+ * status enum u8 (Paused | Active), mint, admin, admin_revoked bool, shareholders vec.
+ */
+export function decodeSharingConfig(data: Buffer): SharingConfig | null {
+  if (data.length < 8 || !data.subarray(0, 8).equals(SHARING_CONFIG_DISCRIMINATOR)) return null;
+  try {
+    const x = new Reader(data.subarray(8));
+    x.u8(); // bump
+    const version = x.u8();
+    const st = x.u8();
+    const mint = x.pk();
+    const admin = x.pk();
+    const adminRevoked = x.u8() === 1;
+    const n = x.u32();
+    if (n > 10) return null;
+    const shareholders = Array.from({ length: n }, () => ({ address: x.pk(), shareBps: x.u16() }));
+    return { version, status: st === 1 ? "ACTIVE" : st === 0 ? "PAUSED" : "UNKNOWN", mint, admin, adminRevoked, shareholders };
+  } catch {
+    return null;
+  }
 }
 
 /** Decodes one emit_cpi instruction's data, or null if it is not a DistributeCreatorFeesEvent. */
@@ -97,7 +149,8 @@ export function decodeDistributeEvent(data: Buffer): DistributeEvent | null {
     if (n > 10) return null; // Pump allows at most 10 shareholders
     const shareholders = Array.from({ length: n }, () => ({ address: x.pk(), shareBps: x.u16() }));
     const distributed = x.u64();
-    return { mint, sharingConfig, shareholders, distributed };
+    const quoteMint = x.remaining() >= 32 ? x.pk() : null;
+    return { mint, sharingConfig, shareholders, distributed, quoteMint };
   } catch {
     return null;
   }
@@ -120,6 +173,7 @@ export function encodeDistributeEvent(e: DistributeEvent, timestamp = 0n): Buffe
   const d = Buffer.alloc(8);
   d.writeBigUInt64LE(e.distributed);
   parts.push(d);
+  if (e.quoteMint) parts.push(new PublicKey(e.quoteMint).toBuffer());
   return Buffer.concat(parts);
 }
 

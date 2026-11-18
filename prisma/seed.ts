@@ -39,6 +39,10 @@ export async function seed(prisma: PrismaClient) {
     await prisma.token.create({
       data: { name: NATIVE_TOKEN.name, ticker: NATIVE_TOKEN.ticker, isNative: true, deploymentStatus: "NOT_LAUNCHED" },
     });
+  } else if (native.ticker !== NATIVE_TOKEN.ticker && native.deploymentStatus === "NOT_LAUNCHED" && !native.mintAddress) {
+    // Databases seeded before the REALTY -> DYNASTY rename. Safe only while the token has no
+    // mint: a launched token's name and ticker are never rewritten by the seed.
+    await prisma.token.update({ where: { id: native.id }, data: { name: NATIVE_TOKEN.name, ticker: NATIVE_TOKEN.ticker } });
   }
   return { created, total: CATALOGUE.length };
 }

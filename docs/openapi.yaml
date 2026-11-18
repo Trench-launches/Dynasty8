@@ -28,13 +28,13 @@ paths:
       parameters:
         - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000, default: 1 } }
         - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 24 } }
-        - { name: q, in: query, description: Name (contains) or exact ticker, "$" optional, schema: { type: string, maxLength: 60 } }
+        - { name: q, in: query, description: "Name (contains) or exact ticker, $ optional", schema: { type: string, maxLength: 60 } }
         - { name: category, in: query, schema: { $ref: "#/components/schemas/Category" } }
         - { name: region, in: query, schema: { type: string, maxLength: 60 } }
         - { name: verification, in: query, schema: { $ref: "#/components/schemas/LocationVerification" } }
         - { name: featured, in: query, schema: { type: string, enum: ["true", "false"] } }
         - { name: sort, in: query, schema: { type: string, enum: [featured, name, marketCap, volume, change24h], default: featured } }
-        - { name: order, in: query, description: Default desc for market sorts, asc for name, schema: { type: string, enum: [asc, desc] } }
+        - { name: order, in: query, description: "Default desc for market sorts, asc for name", schema: { type: string, enum: [asc, desc] } }
       responses:
         "200":
           description: Page of properties. Properties without market data sort last.
@@ -373,10 +373,10 @@ components:
 x-demolition-fund-paths:
   /api/demolition-fund/summary: { get: { tags: [public], summary: Verified fund totals (FundSummaryDto) } }
   /api/demolition-fund/history: { get: { tags: [public], summary: "Receipts, buybacks, burns, disbursements (FundHistoryDto); query limit<=100, before=ISO time" } }
-  /api/demolition-fund/properties: { get: { tags: [public], summary: Property leaderboard by verified contribution (PropertyContributionDto[]) } }
+  /api/demolition-fund/properties: { get: { tags: [public], summary: "Property leaderboard by verified contribution (PropertyContributionDto[])" } }
   /api/demolition-fund/burns: { get: { tags: [public], summary: "Verified burns (FundBurnDto[]); query limit<=100" } }
   /api/demolition-fund/transactions/{signature}: { get: { tags: [public], summary: Fund view of one signature (FundTransactionDto) } }
-  /api/admin/demolition-fund/wallets: { get: { tags: [admin], summary: VIEWER }, put: { tags: [admin], summary: "ADMIN; {role, address, label, isMultisig}" } }
+  /api/admin/demolition-fund/wallets: { get: { tags: [admin], summary: VIEWER }, put: { tags: [admin], summary: "ADMIN; {role, address, label, isMultisig, multisigAddress?, vaultIndex?}; multisig verified on-chain" } }
   /api/admin/demolition-fund/config: { get: { tags: [admin], summary: VIEWER }, patch: { tags: [admin], summary: "ADMIN; bps (sum 10000) and limits; lamport fields as strings" } }
   /api/admin/demolition-fund/pause: { post: { tags: [admin], summary: "{paused, reason}; EDITOR can pause, ADMIN resumes" } }
   /api/admin/demolition-fund/circuit: { post: { tags: [admin], summary: "ADMIN; {reason}; close the circuit breaker" } }
@@ -385,4 +385,6 @@ x-demolition-fund-paths:
   /api/admin/demolition-fund/reconcile: { post: { tags: [admin], summary: ADMIN; ledger vs chain } }
   /api/admin/demolition-fund/disbursements: { get: { tags: [admin], summary: VIEWER }, post: { tags: [admin], summary: "ADMIN; {signature, role: ECOSYSTEM|OPERATIONS}" } }
   /api/admin/demolition-fund/buybacks: { get: { tags: [admin], summary: VIEWER }, post: { tags: [admin], summary: "ADMIN; {idempotencyKey, budgetLamports?}" } }
-  /api/admin/demolition-fund/buybacks/{id}/{action}: { post: { tags: [admin], summary: "ADMIN; action = quote | approve | cancel | swap-proposal | swap-submitted | burn-proposal | burn-submitted | settle" } }
+  /api/admin/demolition-fund/buybacks/{id}/{action}: { post: { tags: [admin], summary: "ADMIN; action = quote | approve | cancel | swap-proposal | propose-swap | swap-submitted | burn-proposal | propose-burn | burn-submitted | settle; propose-* take {creator} and return an unsigned Squads proposal transaction" } }
+  /api/admin/demolition-fund/proposals: { get: { tags: [admin], summary: "VIEWER; multisig proposals, query buybackId" }, post: { tags: [admin], summary: ADMIN; sync proposals with chain } }
+  /api/admin/demolition-fund/fee-sharing: { get: { tags: [admin], summary: "VIEWER; expected shareholders and last config checks" }, post: { tags: [admin], summary: ADMIN; check every registered mint now } }

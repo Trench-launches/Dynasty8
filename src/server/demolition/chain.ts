@@ -63,6 +63,8 @@ export interface ChainReader {
   /** Sum of all token accounts of `owner` for `mint`, raw units. */
   getTokenBalance(owner: string, mint: string): Promise<bigint>;
   getBlockHeight(): Promise<bigint>;
+  /** Raw finalized account data, or null when the account does not exist. */
+  getAccount(address: string): Promise<{ owner: string; data: Buffer } | null>;
 }
 
 const big = (n: number | string | undefined | null) => BigInt(n ?? 0);
@@ -132,6 +134,10 @@ export function createRpcChainReader(rpcUrl = getConfig().SOLANA_RPC_URL): Chain
     },
     async getBlockHeight() {
       return BigInt(await conn.getBlockHeight("finalized"));
+    },
+    async getAccount(address) {
+      const info = await conn.getAccountInfo(new PublicKey(address), "finalized");
+      return info ? { owner: info.owner.toBase58(), data: Buffer.from(info.data) } : null;
     },
   };
 }

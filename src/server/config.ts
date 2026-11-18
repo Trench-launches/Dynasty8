@@ -23,6 +23,8 @@ const schema = z.object({
   HELIUS_API_KEY: z.string().min(1).optional(),
   BIRDEYE_API_KEY: z.string().min(1).optional(),
   JUPITER_API_KEY: z.string().min(1).optional(),
+  // Local testing only: let buybacks run from a single-signature fund wallet. Ignored in production.
+  FUND_ALLOW_SINGLE_SIG: bool(false),
   // Swap programs a buyback may use (comma-separated). Defaults to the Jupiter v6 aggregator.
   BUYBACK_SWAP_PROGRAMS: z.string().default("JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"),
   ENABLE_DEXSCREENER: bool(true),

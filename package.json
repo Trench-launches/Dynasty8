@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start --port 3530",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "db:local": "node scripts/local-postgres.mjs",
@@ -25,6 +25,7 @@
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
     "@solana/web3.js": "^1.99.0",
+    "@sqds/multisig": "^2.1.4",
     "bs58": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
@@ -67,7 +68,8 @@
     "esbuild@0.28.2": true,
     "prisma@6.19.3": true,
     "bufferutil": false,
-    "utf-8-validate": false
+    "utf-8-validate": false,
+    "bigint-buffer": false
   },
   "engines": {
     "node": ">=22.9"

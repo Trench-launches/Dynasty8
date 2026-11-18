@@ -10,7 +10,8 @@ import { recordAudit, SYSTEM_ACTOR, type Actor } from "@/server/services/audit";
 import { PROGRAMS } from "@/server/solana/address";
 import { lamportDelta, tokenDelta, type ChainTx } from "./chain";
 import { getDemolitionDeps } from "./deps";
-import { assertOperational, getFundConfig, openCircuit, recordFailure, recordSuccess, requireFundWallet, requireTargetToken } from "./fund";
+import { assertOperational, getFundConfig, openCircuit, recordFailure, recordSuccess, requireExecutableFund, requireFundWallet, requireTargetToken } from "./fund";
+import { bindExecution } from "./proposals";
 import { QuoteRejected, WSOL_MINT, type SwapBuild } from "./jupiter";
 import { minBig, sumBig } from "./money";
 import { assertBurnAllowed, assertSwapAllowed, PolicyViolation } from "./policy";
@@ -102,7 +103,7 @@ export async function createBuybackRequest(input: { idempotencyKey: string; budg
   if (existing) return existing; // idempotent replay
 
   const { chain, now } = getDemolitionDeps();
-  const fund = await requireFundWallet();
+  const fund = await requireExecutableFund();
   const target = await requireTargetToken();
   const balance = await chain.getBalance(fund.address); // read outside the DB transaction
 
@@ -219,7 +220,7 @@ export async function approveBuyback(id: string, adminId: string, note: string |
   if (!req.quotedAt || getDemolitionDeps().now().getTime() - req.quotedAt.getTime() > QUOTE_MAX_AGE_MS) {
     throw new ApiError(422, "UNPROCESSABLE", "Quote is older than 10 minutes; re-quote first");
   }
-  const fund = await requireFundWallet();
+  const fund = await requireExecutableFund();
   const balance = await getDemolitionDeps().chain.getBalance(fund.address);
   if (balance < req.budgetLamports + cfg.reserveLamports) throw new ApiError(422, "UNPROCESSABLE", "Insufficient SOL in the fund wallet");
   return prisma.$transaction(async (db) => {
@@ -313,7 +314,11 @@ export async function settleSwap(id: string) {
     return req; // still pending (confirmation delay)
   }
 
-  const v = verifySwapTx(tx, { fund: fund.address, targetMint: req.targetMint, budget: req.budgetLamports, minOut: req.minOutRaw, notBefore: new Date(req.createdAt.getTime() - 60_000) });
+  let v = verifySwapTx(tx, { fund: fund.address, targetMint: req.targetMint, budget: req.budgetLamports, minOut: req.minOutRaw, notBefore: new Date(req.createdAt.getTime() - 60_000) });
+  // Multisig fund: only the execution of this buyback's own approved proposal counts (replay protection).
+  if (v.ok && fund.isMultisig && !(await bindExecution(id, "SWAP", sig, tx))) {
+    v = { ...v, ok: false, reason: "Not the execution of this buyback's approved multisig proposal" };
+  }
   return prisma.$transaction(async (db) => {
     if (!v.ok) {
       await db.chainTransaction.update({ where: { signature: sig }, data: { status: "FAILED", error: v.reason, slot: tx.slot, resolvedAt: now() } });
@@ -446,6 +451,10 @@ export async function settleBurn(id: string) {
   if (burned <= 0n || balanceDrop !== burned || burned > outstanding) {
     const reason = burned <= 0n ? "No matching burn instruction" : burned > outstanding ? "Burn exceeds purchased tokens" : "Burn amount does not match the balance change";
     return backToConfirmed("FAILED", reason, tx.slot);
+  }
+  if (fund.isMultisig && !(await bindExecution(id, "BURN", sig, tx))) {
+    await prisma.$transaction((db) => openCircuit(db, `Burn ${sig} was not the execution of this buyback's approved proposal`));
+    return backToConfirmed("FAILED", "Not the execution of this buyback's approved multisig proposal", tx.slot);
   }
   return prisma.$transaction(async (db) => {
     await db.chainTransaction.update({ where: { signature: sig }, data: { status: "FINALIZED", slot: tx.slot, amount: burned, resolvedAt: now() } });

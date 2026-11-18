@@ -4,13 +4,14 @@ import { connection } from "next/server";
 import { usingMockApi } from "@/lib/api";
 import { MOCK_PROPERTIES } from "@/data/properties";
 import { NATIVE_TOKEN } from "@/data/catalogue";
-import { getFundHistory, getFundSummary, getPropertyContributions } from "@/server/demolition/dashboard";
-import type { FundHistoryDto, FundSummaryDto, PropertyContributionDto } from "@/contracts/demolition-fund";
+import { getFundBurns, getFundHistory, getFundSummary, getPropertyContributions } from "@/server/demolition/dashboard";
+import type { FundBurnDto, FundHistoryDto, FundSummaryDto, PropertyContributionDto } from "@/contracts/demolition-fund";
 
 export interface FundPageData {
   summary: FundSummaryDto;
   contributions: PropertyContributionDto[];
   history: FundHistoryDto;
+  burns: FundBurnDto[];
 }
 
 /** Activity rows on first load; the page loads more from /api/demolition-fund/history. */
@@ -29,12 +30,13 @@ export async function getFundPage(): Promise<FundPageData> {
 async function dbFund(): Promise<FundPageData> {
   "use cache";
   cacheLife("seconds");
-  const [summary, contributions, history] = await Promise.all([
+  const [summary, contributions, history, burns] = await Promise.all([
     getFundSummary(),
     getPropertyContributions(),
     getFundHistory(FUND_HISTORY_PAGE, null),
+    getFundBurns(100),
   ]);
-  return { summary, contributions, history };
+  return { summary, contributions, history, burns };
 }
 
 /**
@@ -65,6 +67,23 @@ function mockFund(): FundPageData {
       latestBuyback: null,
       latestBurn: null,
       status: { paused: true, circuitOpen: false, lastReconciliation: null },
+      treasury: {
+        allocationMode: "ON_CHAIN_SPLIT",
+        fundBalanceLamports: null,
+        fundDynastyRaw: null,
+        balanceObservedAt: null,
+        reserveLamports: "50000000",
+        liabilitiesLamports: zero,
+        ecosystemOwedLamports: zero,
+        operationsOwedLamports: zero,
+        ecosystemPaidDirectLamports: zero,
+        operationsPaidDirectLamports: zero,
+        unburnedDynastyRaw: zero,
+        wallets: [],
+      },
+      pendingActions: [],
+      buybacks: [],
+      feeSharing: { checked: 0, matching: 0, lastCheckedAt: null, issues: [] },
     },
     contributions: [...MOCK_PROPERTIES]
       .sort((a, b) => a.name.localeCompare(b.name))
@@ -84,5 +103,6 @@ function mockFund(): FundPageData {
         lastReceiptAt: null,
       })),
     history: { items: [], nextBefore: null },
+    burns: [],
   };
 }

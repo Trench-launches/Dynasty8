@@ -77,14 +77,29 @@ export function FundOverview({ summary }: { summary: FundSummaryDto }) {
             Property tax that burns <span className="text-d8-green">{ticker}</span>
           </p>
           <ol className="mt-2 space-y-1 text-xs leading-relaxed text-[#6c757d]">
-            <li>
-              <b className="text-[#495057]">1.</b> Every property token pays Pump.fun creator fees into the fund wallet.
-            </li>
-            <li>
-              <b className="text-[#495057]">2.</b> Each fee is split: {formatBps(summary.allocation.buybackBps)} to buybacks,{" "}
-              {formatBps(summary.allocation.ecosystemBps)} to the ecosystem, {formatBps(summary.allocation.operationsBps)} to
-              operations.
-            </li>
+            {summary.treasury.allocationMode === "ON_CHAIN_SPLIT" ? (
+              <>
+                <li>
+                  <b className="text-[#495057]">1.</b> Every property token shares its Pump.fun creator fees on-chain.
+                </li>
+                <li>
+                  <b className="text-[#495057]">2.</b> Pump.fun pays each fee straight to three wallets:{" "}
+                  {formatBps(summary.allocation.buybackBps)} to the buyback fund, {formatBps(summary.allocation.ecosystemBps)} to the
+                  ecosystem, {formatBps(summary.allocation.operationsBps)} to operations.
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  <b className="text-[#495057]">1.</b> Every property token pays Pump.fun creator fees into the fund wallet.
+                </li>
+                <li>
+                  <b className="text-[#495057]">2.</b> Each fee is split: {formatBps(summary.allocation.buybackBps)} to buybacks,{" "}
+                  {formatBps(summary.allocation.ecosystemBps)} to the ecosystem, {formatBps(summary.allocation.operationsBps)} to
+                  operations.
+                </li>
+              </>
+            )}
             <li>
               <b className="text-[#495057]">3.</b> The buyback share buys {ticker} on the open market, and every token bought is
               burned. Each step is a multisig-approved transaction you can check on Solscan.
