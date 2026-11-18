@@ -119,7 +119,7 @@ Worker: `npm run fund:worker` (or `-- --once`).
 
 **2026-11-17 (feature branch):** `tests/unit/demolition.test.ts` and `tests/integration/demolition-fund.test.ts`, 61 tests, against a throwaway PostgreSQL with an in-memory chain that encodes byte-exact Pump events, a mocked Jupiter, and a test signer. Whole repository then: 152 passed, 5 live-provider tests skipped.
 
-**2026-11-18 (`integration/demolition-fund-readiness`):** see §12. Whole repository: **193 passed, 0 failed, 5 live-provider tests skipped** (12 files). `npm run lint` clean, `npm run typecheck` (`next typegen && tsc --noEmit`) clean, `next build` succeeds.
+**2026-11-18 (`integration/demolition-fund-readiness`):** see §12. Whole repository: **194 passed, 0 failed, 5 live-provider tests skipped** (12 files) after merging current `main` (193 before the merge). `npm run lint` clean, `npm run typecheck` (`next typegen && tsc --noEmit`) clean, `next build` succeeds.
 
 No test touched mainnet or devnet. Mocked tests prove the logic, not live execution.
 
@@ -246,7 +246,7 @@ Not done: independent human security review, and an audit of Squads or Pump prog
 | Suite | Result |
 |---|---|
 | `tests/integration/demolition-readiness.test.ts` (new) | 33 passed |
-| Whole repository (`npx vitest run`) | 193 passed, 0 failed, 5 live skipped |
+| Whole repository (`npx vitest run`), after merging `main` @ 2db0b4d | 194 passed, 0 failed, 5 live skipped |
 | `npm run lint` | clean |
 | `npm run typecheck` | clean |
 | `next build` | succeeds |
