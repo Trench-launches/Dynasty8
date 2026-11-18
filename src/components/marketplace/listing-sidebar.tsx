@@ -3,7 +3,9 @@
 import { SearchX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_FILTERS, type Filters } from "@/lib/filters";
-import type { Property } from "@/lib/types";
+import { DYNASTY_HQ } from "@/data/dynasty-hq";
+import type { EcosystemToken, Property } from "@/lib/types";
+import { HqListingCard, hqMatchesFilters } from "./hq-listing-card";
 import { ListingCard } from "./listing-card";
 import { FilterControls, SearchBox } from "./listing-filters";
 
@@ -16,6 +18,8 @@ interface ListingSidebarProps {
   hoveredSlug: string | null;
   onSelect: (slug: string) => void;
   onHover: (slug: string | null) => void;
+  /** The $DYNASTY main token: its DYNASTY HQ card is pinned above the properties. */
+  hqToken?: EcosystemToken | null;
   className?: string;
 }
 
@@ -28,9 +32,11 @@ export function ListingSidebar({
   hoveredSlug,
   onSelect,
   onHover,
+  hqToken = null,
   className,
 }: ListingSidebarProps) {
   const unmapped = visible.filter((p) => !p.location).length;
+  const showHq = hqToken != null && hqMatchesFilters(hqToken, filters);
   const demo = visible.some((p) => p.market?.source === "demo");
 
   return (
@@ -54,7 +60,30 @@ export function ListingSidebar({
       )}
 
       <div className="scrollbar-thin min-h-0 flex-1 space-y-1.5 overflow-y-auto p-3" role="list" aria-label="Properties">
-        {visible.length === 0 ? (
+        {showHq && (
+          <div role="listitem">
+            <HqListingCard
+              token={hqToken}
+              selected={selectedSlug === DYNASTY_HQ.id}
+              hovered={hoveredSlug === DYNASTY_HQ.id}
+              onSelect={onSelect}
+              onHover={onHover}
+            />
+          </div>
+        )}
+        {visible.length === 0 && showHq ? (
+          // The HQ card above already matched, so a full "nothing found" block would contradict it.
+          <p className="px-2 pt-2 text-[11px] text-[#868e96]">
+            No properties match these filters.{" "}
+            <button
+              type="button"
+              onClick={() => onFiltersChange({ ...DEFAULT_FILTERS, sort: filters.sort })}
+              className="font-semibold text-tropic underline-offset-2 hover:underline"
+            >
+              Clear filters
+            </button>
+          </p>
+        ) : visible.length === 0 ? (
           <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
             <SearchX className="size-8 text-[#adb5bd]" />
             <p className="font-display text-2xl tracking-wide text-[#212529]">NO PROPERTIES FOUND</p>
