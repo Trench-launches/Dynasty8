@@ -97,6 +97,7 @@ export function Marketplace({
   useEffect(() => {
     if (usingMockApi) return;
     const id = setInterval(() => {
+      if (document.hidden) return; // background tabs skip refreshes
       api.getProperties().then(setProperties).catch(() => {});
       api.getEcosystem().then(setEcosystem).catch(() => {});
     }, REFRESH_MS);

@@ -59,6 +59,7 @@ async function PropertyContent({ params }: Pick<PageProps<"/property/[slug]">, "
 
         <div className="mt-4 overflow-hidden border border-[#e3e3e3] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
           <PropertyArt
+            full
             property={property}
             className="aspect-[3/2] w-full sm:aspect-[21/9] lg:aspect-auto lg:h-[min(56vh,560px)]"
             sizes="100vw"

@@ -4,6 +4,7 @@ import { memo, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Crown } from "lucide-react";
 import { DYNASTY_HQ } from "@/data/dynasty-hq";
+import { cardImage } from "@/data/property-images";
 import { formatUsdCompact } from "@/lib/format";
 import type { Filters } from "@/lib/filters";
 import { ChangeText, MarketDataTag } from "@/components/property/badges";
@@ -63,7 +64,7 @@ export const HqListingCard = memo(function HqListingCard({ token, selected, hove
     >
       <div className="relative h-[76px] w-[104px] shrink-0 overflow-hidden bg-d8-green">
         <Image
-          src={DYNASTY_HQ.image}
+          src={cardImage(DYNASTY_HQ.image)}
           alt=""
           fill
           sizes="104px"

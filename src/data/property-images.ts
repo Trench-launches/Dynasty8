@@ -24,6 +24,14 @@ const BUNDLED = new Set<string>([
   "brians-boat-works-and-marina",
 ]);
 
+/**
+ * The pre-sized card copy of a bundled photo (public/properties/*-sm.webp, made by
+ * scripts/make-thumbnails.mjs). Any other URL is returned unchanged.
+ */
+export function cardImage(src: string): string {
+  return /^\/(properties|brand)\/[^/]+\.jpe?g$/i.test(src) ? src.replace(/\.jpe?g$/i, "-sm.webp") : src;
+}
+
 export function bundledPropertyImage(slug: string): string | null {
   return BUNDLED.has(slug) ? `/properties/${slug}-v2.jpg` : null;
 }

@@ -236,7 +236,7 @@ function PriceChart({ property, className }: { property: Property; className?: s
           );
         });
     fetchSeries();
-    const timer = window.setInterval(fetchSeries, CHART_REFRESH_MS);
+    const timer = window.setInterval(() => !document.hidden && fetchSeries(), CHART_REFRESH_MS);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
