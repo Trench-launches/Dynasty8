@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
 import { Canvas } from "@react-three/fiber";
 import { ChevronDown, Locate, Minus, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ import { LEONIDA_MAP_CREDIT } from "./tiles";
 
 export type { Insets } from "./leonida-scene";
 import { MapPin, PIN_GOLD, PIN_GREEN, PinGlyph, type PinState } from "./map-pin";
+import { HqGlyph, HqPin, type HqMarker } from "./hq-pin";
 
 export interface LeonidaMapHandle {
   focus(location: MapLocation): void;
@@ -41,6 +42,8 @@ interface LeonidaMapProps {
   topOffset?: number;
   /** Location to fly to when the map first appears (deep links). */
   initialFocus?: MapLocation | null;
+  /** The DYNASTY Main Office landmark. Selected and hovered by its id, like a property slug. */
+  hq?: HqMarker | null;
   className?: string;
   children?: ReactNode;
 }
@@ -59,6 +62,7 @@ export default function LeonidaMap({
   insets = { right: 0, bottom: 0 },
   topOffset = 0,
   initialFocus = null,
+  hq = null,
   className,
   children,
 }: LeonidaMapProps) {
@@ -227,6 +231,14 @@ export default function LeonidaMap({
   };
 
   const mapped = properties.filter((p) => p.location).length;
+  const landmarks = useMemo(() => (hq ? [{ id: hq.id, location: hq.location }] : []), [hq]);
+  const hqState: PinState | null = hq
+    ? hq.id === selectedSlug
+      ? "selected"
+      : hq.id === hoveredSlug
+        ? "hovered"
+        : "default"
+    : null;
 
   return (
     <div
@@ -272,6 +284,7 @@ export default function LeonidaMap({
         {/* After CameraRig: pins are placed with the camera as moved for this frame. */}
         <PinProjector
           properties={properties}
+          landmarks={landmarks}
           pinEls={pinEls}
           clusterEls={clusterEls}
           selectedRef={selectedRef}
@@ -326,6 +339,22 @@ export default function LeonidaMap({
             </div>
           );
         })}
+
+        {/* DYNASTY HQ landmark: positioned by PinProjector like a pin, never clustered. */}
+        {hq && hqState && (
+          <div
+            key={hq.id}
+            data-state={hqState}
+            ref={(el) => {
+              if (el) pinEls.current.set(hq.id, el);
+              else pinEls.current.delete(hq.id);
+            }}
+            className="pointer-events-none absolute top-0 left-0 will-change-transform data-[state=hovered]:z-[500000]! data-[state=selected]:z-[400000]!"
+            style={{ display: "none" }}
+          >
+            <HqPin hq={hq} state={hqState} onSelect={onSelect} onHover={onHover} />
+          </div>
+        )}
 
         {/* Cluster badges: pins that crowd together on screen; click to fan them out. */}
         {clusters.map((c) => {
@@ -446,6 +475,7 @@ export default function LeonidaMap({
         </button>
         {legendOpen && (
           <ul className="mt-1.5 space-y-1.5 rounded-lg border border-[#dee2e6] bg-white/95 p-3 text-xs text-[#212529] backdrop-blur">
+            {hq && <LegendRow label="DYNASTY HQ" glyph={<HqGlyph className="h-5 w-4" />} />}
             <LegendRow label="Property" glyph={<PinGlyph status="coming_soon" state="default" featured={false} className="h-5 w-4" />} />
             <LegendRow label="Token live" glyph={<PinGlyph status="live" state="default" featured={false} className="h-5 w-4" />} />
             <LegendRow label="Featured" glyph={<PinGlyph status="coming_soon" state="default" featured className="h-5 w-4" />} />

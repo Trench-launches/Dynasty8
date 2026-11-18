@@ -19,7 +19,7 @@ async function HomeContent() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <SiteHeader ecosystem={ecosystem} />
-      <Marketplace initialProperties={properties} />
+      <Marketplace initialProperties={properties} ecosystem={ecosystem} />
       <SiteFooter compact />
     </div>
   );

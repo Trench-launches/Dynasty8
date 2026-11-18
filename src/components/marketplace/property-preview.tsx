@@ -42,7 +42,8 @@ export function PropertyPreview({ property, onClose, compact = false, className 
           <X className="size-4" />
         </button>
         <div className="absolute bottom-2.5 left-3 flex flex-wrap gap-1.5">
-          <TokenStatusBadge status={token.status} className="bg-white/95 backdrop-blur" />
+          {/* The live badge keeps its solid green; only the pale badges get a white backing over the photo. */}
+          <TokenStatusBadge status={token.status} className={token.status === "live" ? undefined : "bg-white/95 backdrop-blur"} />
           {property.featured && <FeaturedBadge className="bg-white/95 backdrop-blur" />}
         </div>
       </div>

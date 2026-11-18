@@ -18,6 +18,17 @@ export const PIN_GOLD = "#e0b13a";
 
 export type PinState = "default" | "hovered" | "selected";
 
+/**
+ * Hover card above a pin. Near the top of the map it flips below the pin, and near the left /
+ * right edge it anchors to the pin's side, driven by data-flip / data-edge on the pin wrapper.
+ */
+export const HOVER_CARD_CLASS = cn(
+  "pointer-events-none absolute bottom-full left-1/2 mb-3 w-56 -translate-x-1/2 rounded-xl border border-[#dee2e6] bg-white/95 p-3 text-left shadow-2xl shadow-black/50 backdrop-blur",
+  "[[data-flip='1']_&]:top-full [[data-flip='1']_&]:bottom-auto [[data-flip='1']_&]:mt-7 [[data-flip='1']_&]:mb-0",
+  "[[data-edge='l']_&]:left-[-12px] [[data-edge='l']_&]:translate-x-0",
+  "[[data-edge='r']_&]:right-[-12px] [[data-edge='r']_&]:left-auto [[data-edge='r']_&]:translate-x-0",
+);
+
 export function pinColors(status: Property["token"]["status"], state: PinState) {
   const outline = state === "selected" ? PIN_GOLD : state === "hovered" ? "#0f5a2d" : PIN_GREEN;
   if (status === "unavailable") return { fill: "#eef0f1", stroke: state === "selected" ? PIN_GOLD : "#8a9096", house: "#8a9096" };
@@ -126,14 +137,7 @@ export const MapPin = memo(function MapPin({ property, state, showLabel, onSelec
       {state === "hovered" && (
         <div
           role="tooltip"
-          className={cn(
-            "pointer-events-none absolute bottom-full left-1/2 mb-3 w-56 -translate-x-1/2 rounded-xl border border-[#dee2e6] bg-white/95 p-3 text-left shadow-2xl shadow-black/50 backdrop-blur",
-            // Near the top of the map: show the card below the pin instead of above it.
-            "[[data-flip='1']_&]:top-full [[data-flip='1']_&]:bottom-auto [[data-flip='1']_&]:mt-7 [[data-flip='1']_&]:mb-0",
-            // Near the left / right edge: anchor the card to the pin's side so it stays on screen.
-            "[[data-edge='l']_&]:left-[-12px] [[data-edge='l']_&]:translate-x-0",
-            "[[data-edge='r']_&]:right-[-12px] [[data-edge='r']_&]:left-auto [[data-edge='r']_&]:translate-x-0",
-          )}
+          className={HOVER_CARD_CLASS}
         >
           <p className="truncate font-display text-[17px] leading-tight text-cream">{property.name}</p>
           <p className="mt-1 truncate text-xs text-[#6c757d]">{property.neighbourhood}</p>
