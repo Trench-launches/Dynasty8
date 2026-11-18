@@ -113,6 +113,22 @@ export interface ChartPoint {
 
 export type ChartRange = "24h" | "7d" | "30d";
 
+/** Why a chart has no data, so an empty chart is never mistaken for "no trades". */
+export type ChartUnavailableReason = "not_launched" | "no_pool" | "no_history" | "provider_unavailable" | "rate_limited";
+
+export interface ChartSeries {
+  /** Oldest first. Empty when there is no history (see `unavailableReason`). */
+  points: ChartPoint[];
+  /** Set when the backend could not supply history; null when it answered (even with no points). */
+  unavailableReason: ChartUnavailableReason | null;
+  /** Candle size, e.g. "15m". */
+  interval: string | null;
+  /** Where the history came from, e.g. "birdeye", or "demo" in mock mode. */
+  source: string | null;
+  /** ISO time the history was fetched. */
+  fetchedAt: string | null;
+}
+
 export interface EcosystemToken {
   name: string;
   ticker: string;

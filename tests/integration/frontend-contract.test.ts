@@ -5,7 +5,7 @@ import { GET as listRoute } from "@/app/api/properties/route";
 import { GET as detailRoute } from "@/app/api/properties/[slug]/route";
 import { GET as chartRoute } from "@/app/api/properties/[slug]/chart/route";
 import { api } from "@/lib/api-client/client";
-import { toChartPoints, toMarketSnapshot, toProperty } from "@/lib/api-client/adapter";
+import { toChartPoints, toChartSeries, toMarketSnapshot, toProperty } from "@/lib/api-client/adapter";
 import { CATALOGUE, slugify } from "@/data/catalogue";
 import { MOCK_PROPERTIES } from "@/data/properties";
 
@@ -179,5 +179,23 @@ describe("frontend API contract", () => {
     expect(
       toChartPoints({ range: "24h", status: "OK", reason: null, interval: "15m", source: "x", fetchedAt: "", candles: [{ t: 10, open: 1, high: 2, low: 1, close: 1.5, volumeUsd: null }] }),
     ).toEqual([{ t: new Date(10_000).toISOString(), priceUsd: 1.5, volumeUsd: null }]);
+  });
+
+  it("chart series keeps why a chart is empty, and sorts candles oldest first", async () => {
+    const chart = await (await chartRoute(get("/api/properties/starlet-motel/chart"), params({ slug: "starlet-motel" }))).json();
+    expect(toChartSeries(chart)).toMatchObject({ points: [], unavailableReason: "not_launched", source: null });
+    const ok = toChartSeries({
+      range: "24h", status: "OK", reason: null, interval: "15m", source: "birdeye", fetchedAt: "2026-11-18T00:00:00.000Z",
+      candles: [
+        { t: 20, open: 2, high: 2, low: 2, close: 2, volumeUsd: 5 },
+        { t: 10, open: 1, high: 1, low: 1, close: 1, volumeUsd: null },
+      ],
+    });
+    expect(ok.unavailableReason).toBeNull();
+    expect(ok.points.map((p) => p.priceUsd)).toEqual([1, 2]);
+    expect(ok).toMatchObject({ interval: "15m", source: "birdeye" });
+    expect(
+      toChartSeries({ range: "7d", status: "UNAVAILABLE", reason: "RATE_LIMITED", interval: null, source: null, fetchedAt: "", candles: [] }),
+    ).toMatchObject({ points: [], unavailableReason: "rate_limited" });
   });
 });

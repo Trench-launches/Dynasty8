@@ -1,15 +1,15 @@
 import { mockApi } from "@/lib/mock-api";
 import { ApiClientError, api as backend } from "@/lib/api-client/client";
 import {
-  toChartPoints,
+  toChartSeries,
   toEcosystemMarkets,
   toEcosystemToken,
   toMarketSnapshot,
   toProperty,
 } from "@/lib/api-client/adapter";
 import type {
-  ChartPoint,
   ChartRange,
+  ChartSeries,
   EcosystemMarkets,
   EcosystemToken,
   MarketSnapshot,
@@ -62,9 +62,9 @@ export const api = {
     const res = await nullOn404(backend.getPropertyMarket(slug));
     return res ? toMarketSnapshot(res.market) : null;
   },
-  async getPropertyChart(slug: string, range: ChartRange): Promise<ChartPoint[]> {
+  async getPropertyChart(slug: string, range: ChartRange): Promise<ChartSeries> {
     if (usingMockApi) return mockApi.getPropertyChart(slug, range);
-    return toChartPoints(await backend.getPropertyChart(slug, range));
+    return toChartSeries(await backend.getPropertyChart(slug, range));
   },
   async getEcosystem(): Promise<EcosystemToken> {
     if (usingMockApi) return mockApi.getEcosystem();

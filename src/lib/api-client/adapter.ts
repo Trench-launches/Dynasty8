@@ -21,6 +21,8 @@ import { bundledPropertyImage } from "@/data/property-images";
 import { REGIONS } from "@/data/regions";
 import type {
   ChartPoint,
+  ChartSeries,
+  ChartUnavailableReason,
   EcosystemMarkets,
   EcosystemToken,
   MarketSnapshot,
@@ -165,14 +167,37 @@ export function toProperty(dto: PropertySummaryDto | PropertyDetailDto): Propert
   };
 }
 
-/** Candles -> close-price series. Unavailable charts (not launched, no pool, rate limited...) are empty. */
+/** Candles -> close-price series, oldest first. Unavailable charts (not launched, no pool, rate limited...) are empty. */
 export function toChartPoints(chart: ChartDto): ChartPoint[] {
   if (chart.status !== "OK") return [];
-  return chart.candles.map((c) => ({
-    t: new Date(c.t * 1000).toISOString(),
-    priceUsd: c.close,
-    volumeUsd: c.volumeUsd,
-  }));
+  return [...chart.candles]
+    .filter((c) => Number.isFinite(c.t) && Number.isFinite(c.close))
+    .sort((a, b) => a.t - b.t)
+    .map((c) => ({
+      t: new Date(c.t * 1000).toISOString(),
+      priceUsd: c.close,
+      volumeUsd: c.volumeUsd,
+    }));
+}
+
+const CHART_REASONS: Record<NonNullable<ChartDto["reason"]>, ChartUnavailableReason> = {
+  NOT_LAUNCHED: "not_launched",
+  NO_POOL: "no_pool",
+  NO_HISTORY: "no_history",
+  PROVIDER_UNAVAILABLE: "provider_unavailable",
+  RATE_LIMITED: "rate_limited",
+};
+
+/** The chart plus why it is empty, so the UI can tell "not launched" from "provider down" from "no trades". */
+export function toChartSeries(chart: ChartDto): ChartSeries {
+  const ok = chart.status === "OK";
+  return {
+    points: toChartPoints(chart),
+    unavailableReason: ok ? null : CHART_REASONS[chart.reason ?? "PROVIDER_UNAVAILABLE"],
+    interval: ok ? chart.interval : null,
+    source: ok ? chart.source : null,
+    fetchedAt: chart.fetchedAt || null,
+  };
 }
 
 export function toEcosystemToken(e: EcosystemDto): EcosystemToken {
