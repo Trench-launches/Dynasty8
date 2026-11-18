@@ -8,6 +8,7 @@ import { CATALOGUE, slugify } from "@/data/catalogue";
 import { getCatalogueProperty, getEcosystemToken } from "@/lib/catalogue";
 import { locationLabel, tickerLabel } from "@/lib/format";
 import { PageLoading } from "@/components/layout/page-loading";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { PropertyArt } from "@/components/property/property-art";
 import { FeaturedBadge, TokenStatusBadge, VerificationBadge } from "@/components/property/badges";
@@ -112,6 +113,7 @@ async function PropertyContent({ params }: Pick<PageProps<"/property/[slug]">, "
           </div>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }
