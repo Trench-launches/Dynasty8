@@ -10,6 +10,9 @@
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "dynasty8" }],
   "images": { "binding": "IMAGES" },
+  // Preview deployments (wrangler preview, PR branches) do not inherit production bindings; each one
+  // they need is declared here. Previews get no database URL, run no migrations and no cron.
+  "previews": { "images": { "binding": "IMAGES" } },
   // Background jobs (market sync + Demolition Fund pass) once a minute, via /api/internal/tick.
   "triggers": { "crons": ["* * * * *"] },
   "observability": { "enabled": true },

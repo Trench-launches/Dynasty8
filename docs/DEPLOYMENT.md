@@ -18,6 +18,7 @@ Workers Builds settings (Worker -> Settings -> Build):
 - Build command: `npm run db:migrate && npm run db:seed && npm run build:cf`
 - Deploy command: `npm run deploy`
 - Build variables: `DATABASE_URL` (Supabase **Session pooler** URL, port 5432; migrations need a session connection)
+- Branch builds: Workers Builds runs the same build command for every pushed branch, with the production `DATABASE_URL`. `db:migrate` and `db:seed` go through `scripts/db-task.mjs`, which **skips them unless `WORKERS_CI_BRANCH` is `main`** (override with a `PRODUCTION_BRANCH` build variable). So pull-request branches build without touching the production database. Stricter still: give non-production branches their own build command without the database steps, or a separate preview database.
 
 Worker secrets (Worker -> Settings -> Variables and Secrets), never in files: `DATABASE_URL` (the same Session pooler URL; Supabase's direct host is IPv6-only), `SOLANA_RPC_URL`, `CRON_SECRET` (any long random string; the background jobs stay off until it is set), and for admin `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `GITHUB_ID`, `GITHUB_SECRET`, plus any provider keys from `.env.example`.
 
@@ -51,6 +52,37 @@ First admin (operator with DB access):
 ```bash
 npm run admin:grant -- --github-id <numeric id> --login <login> --role ADMIN
 ```
+
+## GitHub OAuth (admin sign-in)
+
+Admin pages and APIs (`/admin/treasury`, `/api/admin/*`) use Auth.js with GitHub. Only GitHub accounts listed in `AdminUser` can sign in; there are no default admins.
+
+1. GitHub → Settings → Developer settings → OAuth Apps → **New OAuth App** (create it under the account or org that should own it):
+   - Application name: `Dynasty 8 admin`
+   - Homepage URL: `https://dynasty15.xyz`
+   - Authorization callback URL: `https://dynasty15.xyz/api/auth/callback/github`
+2. Copy the Client ID and generate a client secret.
+3. Cloudflare → Worker `dynasty8` → Settings → Variables and Secrets, as **secrets**:
+   - `GITHUB_ID` = client ID;
+   - `GITHUB_SECRET` = client secret;
+   - `NEXTAUTH_SECRET` = output of `openssl rand -base64 32`;
+   - `NEXTAUTH_URL` = `https://dynasty15.xyz`.
+4. Grant the first admin, from a machine whose `DATABASE_URL` points at production:
+   `npm run admin:grant -- --github-id <numeric id> --login <login> --role ADMIN`. Find the numeric id with `gh api users/<login> --jq .id`.
+5. Visit `https://dynasty15.xyz/admin/treasury` → "Sign in with GitHub". Sessions last 8 hours, and roles are re-read on every request, so `--revoke` takes effect immediately.
+
+For local development, create a second OAuth app with callback `http://localhost:3530/api/auth/callback/github` and put its values in `.env`.
+
+## Treasury registration (production)
+
+The confirmed treasury is in `config/treasury.mainnet.json`: Squads multisig `BF8X…2Ljn`, with vaults 0/1/2 = fund/ecosystem/operations at 6000/2500/1500. With `DATABASE_URL` pointing at production and `SOLANA_RPC_URL` set:
+
+```bash
+npm run fund:register -- --config config/treasury.mainnet.json --check   # verify on-chain, write nothing
+npm run fund:register -- --config config/treasury.mainnet.json           # register all three
+```
+
+The command re-derives each vault from the multisig, reads the multisig on-chain (threshold ≥ 2, members who can propose / vote / execute), checks the split against the fund config, and records an audit entry. It accepts addresses only. The same can be done one wallet at a time through `PUT /api/admin/demolition-fund/wallets` (ADMIN).
 
 ## Release steps
 

@@ -339,10 +339,7 @@ Vault addresses are derived from the multisig and the index, so they are fixed. 
 
 - `FUND` = vault 0 is registered in the **local development database** with `npm run fund:register -- --role FUND --multisig BF8XcyJ9iMF2fHqRMm8Z9nK44AV322NAKhhEvVRc2Ljn --vault-index 0`. The script ran the same on-chain checks as the admin API; the result is 2 of 3, verified 2026-11-18.
 - No production database exists yet. Run the same command against the production database at deployment, or use `PUT /api/admin/demolition-fund/wallets`.
-- ECOSYSTEM and OPERATIONS are **not registered**: that waits for the owner to confirm the vault 1 / vault 2 layout. Commands:
-  - `npm run fund:register -- --role ECOSYSTEM --multisig BF8XcyJ9iMF2fHqRMm8Z9nK44AV322NAKhhEvVRc2Ljn --vault-index 1`
-  - `npm run fund:register -- --role OPERATIONS --multisig BF8XcyJ9iMF2fHqRMm8Z9nK44AV322NAKhhEvVRc2Ljn --vault-index 2`
-  - Add `--check` to verify without writing.
+- **Update 2026-11-18 (owner confirmed the layout):** all three roles are listed in `config/treasury.mainnet.json` and registered locally with `npm run fund:register -- --config config/treasury.mainnet.json`. That command re-derives every vault from the multisig, checks it on-chain, and checks the 6000/2500/1500 split against the fund config before writing anything. Add `--check` to verify without writing.
 
 ### 16.4 Signing interface (`/admin/treasury`)
 
@@ -363,7 +360,7 @@ Not verified in a browser yet: the signed-in view needs `NEXTAUTH_*` / GitHub OA
 ### 16.5 Owner actions (each needs the owner's authorization)
 
 1. **Confirm the vault layout:** vault 0 = fund, vault 1 = ecosystem, vault 2 = operations. Optionally add "Account 2" and "Account 3" in the Squads app and check they show `FF5m…KokH` and `A5op…RQPR`.
-2. **Make vaults 1 and 2 rent-exempt** by sending each at least 0.00089088 SOL (0.001 SOL is fine), as vault 0 already has. Solana rejects a payment that would create an account below the rent-exempt minimum, so a small Pump distribution to an empty vault could fail the whole distribute transaction.
+2. **Make vaults 1 and 2 rent-exempt** by sending each at least 0.00065024 SOL, the rent-exempt minimum read from mainnet on 2026-11-18 (0.001 SOL is fine), as vault 0 already has. Solana rejects a payment that would create an account below the rent-exempt minimum, so a small Pump distribution to an empty vault could fail the whole distribute transaction.
 3. **Control:** with 2-of-3, the owner approves alone only by holding two member keys, ideally on separate devices (one on a hardware wallet). The third key is the recovery key; keep it offline and separate.
 4. **Optional time lock** (for example 24 hours) via a Squads config proposal approved 2-of-3. It gives time to reject a bad execute, but delays every buyback by that long.
 5. **Pump fee sharing per property token:** create the sharing config with shareholders `3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV` 6000, `FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH` 2500, `A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR` 1500. Revoke the admin after checking it. The hourly check flags any difference.
@@ -373,3 +370,92 @@ Not verified in a browser yet: the signed-in view needs `NEXTAUTH_*` / GitHub OA
 Unchanged: no deployment, no funding, no buyback, and nothing signed or sent by this work. Automated execution stays off.
 
 Fixed while doing this: `src/server/http/responses.ts` imported `next/navigation` at module load, which crashed every standalone script that loads the API error type, including `npm run fund:worker`. It is now imported lazily inside the route error handler. The worker was run once afterwards: it scanned the vault's history (1 transaction, nothing to book) and reconciled, with execution skipped.
+
+## 17. Production readiness pass (2026-11-18, after the owner confirmed the treasury)
+
+Status key: **implemented** = code merged on the branch; **tested** = automated tests; **verified** = read-only mainnet evidence; **owner** = needs the owner's action or authorization.
+
+### 17.1 Treasury (verified, registered locally)
+
+All three addresses are vaults of `BF8XcyJ9iMF2fHqRMm8Z9nK44AV322NAKhhEvVRc2Ljn`: 0 = `3wKB…KecV` (fund, 60%), 1 = `FF5m…KokH` (ecosystem, 25%), 2 = `A5op…RQPR` (operations, 15%). The source of truth is `config/treasury.mainnet.json`, and a unit test re-derives each vault from the multisig.
+
+| Account | On-chain (finalized, 2026-11-18) | Action |
+|---|---|---|
+| Account 1 (vault 0) | Exists, 0.001 SOL, system-owned | none |
+| Account 2 (vault 1) | **No account** | **owner:** send ≥ 0.00065024 SOL (0.001 recommended) |
+| Account 3 (vault 2) | **No account** | **owner:** send ≥ 0.00065024 SOL (0.001 recommended) |
+
+Funding instructions (the owner sends; this project sends nothing):
+
+1. In Phantom, choose any wallet you control with spare SOL.
+2. Send **0.001 SOL** to `FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH`.
+3. Send **0.001 SOL** to `A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR`.
+4. Check with `npx tsx --conditions=react-server scripts/verify/check-treasury.ts BF8XcyJ9iMF2fHqRMm8Z9nK44AV322NAKhhEvVRc2Ljn`: vaults 1 and 2 should show `exists: true`.
+
+A plain SOL transfer to a vault address is safe: the vault is a Squads PDA, and only the multisig can move funds out. Do not send SOL to the multisig account itself (`BF8X…2Ljn`).
+
+### 17.2 Pump.fun accepts the three vaults at 6000/2500/1500 (verified by simulation)
+
+- **Docs and IDL** (`pump-fun/pump-public-docs`, `idl/pump_fees.json`): shareholders must be non-empty, at most 10, without duplicates, each above 0, summing to 10,000. There is no restriction on program-derived (off-curve) addresses such as Squads vaults.
+- **`scripts/verify/simulate-fee-shares.ts`:** simulated `update_fee_shares_v2` with the three vaults on an existing unlocked mainnet sharing config (`3t6r4Nq9eYnJ9g39cnVxTMMcpJ5CDBpfm2gYuEXGP8jS`). It succeeded. A control with operations at 1499 failed with `InvalidShareTotal` (6014), proving the simulation reached Pump's checks.
+- **`scripts/verify/simulate-launch-setup.ts`:** simulated the full post-launch transaction (`sweep_creator_fee` → `create_fee_sharing_config` → `update_fee_shares_v2`) on a fresh mainnet coin (`FUrfsyLKNStM2L28ZhiTy11WkwzeCvjZgUaVSBKUpump`) as its creator. It succeeded (about 176k compute units); the same control failed with 6014.
+- **Finding:** on a coin that has traded (including a dev buy), `create_fee_sharing_config` fails with `CreatorFeesNotSwept` (6095) unless `sweep_creator_fee` runs first in the same transaction. The setup tool adds the sweep automatically. Fees swept this way go to the creator's own vault, where the creator can claim them; only fees after the switch go to the treasury.
+
+Not covered by simulation: a payout into an *empty* vault (see 17.1), and a live launch.
+
+### 17.3 Launch configuration (implemented, tested; not launched)
+
+`npx tsx scripts/launch-config.ts` generates `config/launch/dynasty.mainnet.json` and `config/launch/properties.mainnet.json` from the catalogue and the treasury config. `--check` verifies they are current, and a unit test enforces Pump's limits and the shareholder split.
+
+| Field | Value |
+|---|---|
+| Name / symbol | Catalogue name and ticker (all within Pump's 32-byte name / 10-character symbol limits) |
+| Description | Catalogue copy + fan-made / not-affiliated / speculative disclaimer |
+| Image | `public/properties/<slug>-v2.jpg` (3:2) or `public/brand/dynasty15-logo.png`. **Owner/Jack:** upload a square crop |
+| Website | `https://dynasty15.xyz/property/<slug>` (DYNASTY: the home page) |
+| Quote | SOL only (the setup tool refuses other quotes) |
+| Dev buy | 0 SOL until decided (D-LAUNCH-DEVBUY) |
+| Creator wallet | Left empty: the owner's launch wallet, which must also sign the fee-sharing setup |
+| Fee sharing | The three vaults at 6000/2500/1500, locked after setup |
+| Status | 14 properties READY_FOR_OWNER_REVIEW; BOATWORKS and DYNASTY PENDING_DECISION |
+
+Per-coin launch process (owner):
+
+1. Launch on pump.fun from the launch wallet with the config's name, symbol, description, square image and website.
+2. Register the mint:
+   - property coin: `POST /api/admin/properties/{slug}/token {mintAddress, creatorWallet}`;
+   - DYNASTY: `POST /api/admin/ecosystem/token {mintAddress}`.
+
+   The token is PENDING_VERIFICATION until reviewed, then `POST /api/admin/tokens/{id}/verify` makes it LIVE.
+3. Open `/admin/treasury`, connect the **launch wallet** in Phantom, and under "Fee sharing for a launched coin" enter the mint, review and sign. The server takes the shareholders from the registered vaults, never from the request. It simulates on mainnet before returning anything and refuses unregistered mints, other wallets, locked configs, graduated coins, non-SOL quotes and holder-rewards coins.
+4. The hourly fee-sharing check (and `POST …/fee-sharing`) should then report the coin as matching.
+
+Decisions recorded as pending:
+- **D-NATIVE-FEES:** where DYNASTY's own creator fees go. The config uses the same 60/25/15 vaults; the backend does not book them as buyback revenue.
+- **D-LAUNCH-DEVBUY:** initial buy size.
+- **CROSSTOWN or BOATWORKS.**
+
+### 17.4 Defects fixed in this pass (each with a regression test)
+
+1. **Admin sign-in returned 500 for every admin call once GitHub OAuth was configured.** `src/server/auth/admin.ts` wrapped the request in `new NextRequest(req)`, which throws in the Next 16 route runtime ("Cannot read private member #state"). Found while testing the signed-in page against a real Auth.js session. The resolver now passes the parsed cookies and headers to `getToken`. Test: `tests/integration/admin-session.test.ts` (valid cookie → 200; missing, forged or wrong-key → 401; inactive admin → 403).
+2. **Cloudflare branch builds could migrate and seed the production database.** Workers Builds runs `npm run db:migrate && npm run db:seed && npm run build:cf` for every pushed branch, using the production `DATABASE_URL`. `db:migrate` and `db:seed` now go through `scripts/db-task.mjs`, which skips them on Workers Builds when `WORKERS_CI_BRANCH` is not `main` (`PRODUCTION_BRANCH` overrides). **Probable past effect:** the branch builds of 0e65898, 6ee156e and 72eaf6d (before this guard) most likely applied migration `20261118095539_multisig_proposals_fee_sharing` (additive: new tables, columns, indexes) and ran the idempotent seed against production. `main`'s later builds succeeded, which is consistent with the migration having applied cleanly. **Owner:** confirm in the Cloudflare build logs or the `_prisma_migrations` table. No rollback is needed for an additive migration that `main` ignores.
+3. **Test isolation:** the reset now truncates `MultisigProposal` and `FeeSharingCheck`.
+
+### 17.5 Signed-in flow tested in a browser (local)
+
+A local dev server ran with throwaway Auth.js settings, and a session cookie was minted with Auth.js's own encoder for a test admin (revoked afterwards). Phantom was stubbed to record transactions instead of signing. The flow:
+
+1. Connected as member `AmAU…7Gdi`. The page showed the live 2-of-3 multisig, the three vaults, permissions and "you".
+2. A fee-sharing setup from that wallet was refused ("Only the coin's creator wallet…").
+3. As the real creator of mainnet coin `FUrf…pump` (registered to STARLET in the **local** database only, reset afterwards), the review showed sweep → create → update, the three vaults at 60/25/15 and a mainnet simulation pass.
+4. "Sign in Phantom" handed the 1,033-byte transaction to the wallet. Nothing was sent.
+
+Not tested: real Phantom signing and sending, and a proposal approve/execute against a real on-chain proposal (none exists, and creating one is a live transaction).
+
+### 17.6 Dependency audit (`npm audit --omit=dev`)
+
+29 advisories (20 high). Nearly all are in build tooling (`@opennextjs/*`, `prisma` config, `shadcn`, glob/minimatch/picomatch). The runtime-relevant one is `bigint-buffer` (buffer overflow in `toBigIntLE`), pulled in by `@solana/spl-token` and `@sqds/multisig`. The pure-JS path is used and it only decodes fixed-size on-chain fields. The automatic fix requires `@solana/web3.js` 3 (breaking), so it is deferred and tracked here.
+
+### 17.7 Production checklist
+
+See `docs/PRODUCTION-CHECKLIST.md`.

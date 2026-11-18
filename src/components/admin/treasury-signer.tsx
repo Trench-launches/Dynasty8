@@ -62,6 +62,7 @@ export function TreasurySigner() {
   const [busy, setBusy] = useState<string | null>(null);
   const [review, setReview] = useState<Review | null>(null);
   const [sent, setSent] = useState<{ label: string; signature: string } | null>(null);
+  const [setupMint, setSetupMint] = useState("");
 
   const load = useCallback(async (member: string | null) => {
     try {
@@ -163,6 +164,29 @@ export function TreasurySigner() {
           ["Threshold", `${r.threshold} approvals`],
           ["Inner instructions", String(r.expectedMessage.instructions.length)],
           ["Fee payer / signer", `${wallet} (you)`],
+        ],
+      };
+    });
+
+  const roleOf = (address: string) => status?.wallets.find((w) => w.address === address)?.role ?? "unknown wallet";
+  const feeSharingSetup = () =>
+    prepare("setup", async () => {
+      const r = await api<{ token: { ticker: string; kind: string }; steps: string[]; shareholders: { address: string; shareBps: number }[]; transactionBase64: string; sharingConfig: string; warnings: string[] }>(
+        "/api/admin/demolition-fund/fee-sharing/setup",
+        { method: "POST", body: JSON.stringify({ mint: setupMint.trim(), creator: wallet }) },
+      );
+      return {
+        title: `Lock fee sharing for $${r.token.ticker}`,
+        signer: wallet!,
+        transactionBase64: r.transactionBase64,
+        lines: [
+          ["What it does", "Points this coin's Pump creator fees at the treasury vaults and locks the split permanently. It cannot be changed afterwards."],
+          ["Steps", r.steps.join(" → ")],
+          ...r.shareholders.map((h) => [`${roleOf(h.address)} · ${h.shareBps / 100}%`, h.address] as [string, string]),
+          ["Sharing config", r.sharingConfig],
+          ["Simulation", "Passed on Solana mainnet (nothing sent)"],
+          ...r.warnings.map((w) => ["Note", w] as [string, string]),
+          ["Fee payer / signer", `${wallet} (you, the coin's creator)`],
         ],
       };
     });
@@ -325,6 +349,25 @@ export function TreasurySigner() {
           ) : (
             <p className="text-sm text-[#6c757d]">No multisig fund wallet is registered yet. Register the fund vault first (see docs/DEMOLITION-FUND.md §16).</p>
           )}
+        </Card>
+      )}
+
+      {status && !authError && (
+        <Card title="Fee sharing for a launched coin">
+          <p className="text-sm text-[#6c757d]">
+            After launching a property coin (or $DYNASTY) on Pump.fun from this wallet and registering its mint, lock its creator fees to the treasury
+            vaults. The split comes from the registered wallets; it cannot be edited here.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <input
+              value={setupMint}
+              onChange={(e) => setSetupMint(e.target.value)}
+              placeholder="Coin mint address"
+              aria-label="Coin mint address"
+              className="min-w-0 flex-1 rounded border border-[#ced4da] px-2 py-1.5 font-mono text-xs"
+            />
+            <ActionButton label="Prepare" disabled={!wallet || setupMint.trim().length < 32} busy={busy === "setup"} onClick={feeSharingSetup} />
+          </div>
         </Card>
       )}
 

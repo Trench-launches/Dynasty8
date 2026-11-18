@@ -1,0 +1,12 @@
+{
+  "$comment": "Dynasty 8 treasury on Solana mainnet. Public addresses only; never put keys here. Confirmed by the owner on 2026-11-18: one Squads v4 multisig, three vaults. Register with `npm run fund:register -- --config config/treasury.mainnet.json` (verifies every vault on-chain first).",
+  "cluster": "mainnet-beta",
+  "multisig": "BF8XcyJ9iMF2fHqRMm8Z9nK44AV322NAKhhEvVRc2Ljn",
+  "squadsProgram": "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf",
+  "allocationMode": "ON_CHAIN_SPLIT",
+  "wallets": [
+    { "role": "FUND", "vaultIndex": 0, "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV", "shareBps": 6000, "label": "Demolition Fund (Squads Account 1)" },
+    { "role": "ECOSYSTEM", "vaultIndex": 1, "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH", "shareBps": 2500, "label": "Ecosystem (Squads Account 2)" },
+    { "role": "OPERATIONS", "vaultIndex": 2, "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR", "shareBps": 1500, "label": "Operations (Squads Account 3)" }
+  ]
+}
