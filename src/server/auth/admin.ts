@@ -1,7 +1,6 @@
 import "server-only";
 import type { AdminRole, AdminUser } from "@prisma/client";
 import { getToken } from "next-auth/jwt";
-import { NextRequest } from "next/server";
 import { adminAuthConfigured, getConfig } from "@/server/config";
 import { prisma } from "@/server/db";
 import { adminApiLimiter } from "@/server/http/rate-limit";
@@ -13,9 +12,32 @@ const RANK: Record<AdminRole, number> = { VIEWER: 1, EDITOR: 2, ADMIN: 3 };
 /** Resolves the GitHub id of the signed-in user, or null. Replaceable in tests. */
 export type SessionResolver = (req: Request) => Promise<string | null>;
 
+/** Cookie header -> { name: value } (what next-auth's getToken reads as `req.cookies`). */
+export function parseCookies(header: string | null): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const part of (header ?? "").split(";")) {
+    const i = part.indexOf("=");
+    if (i <= 0) continue;
+    const name = part.slice(0, i).trim();
+    const raw = part.slice(i + 1).trim();
+    try {
+      out[name] = decodeURIComponent(raw);
+    } catch {
+      out[name] = raw;
+    }
+  }
+  return out;
+}
+
 const nextAuthResolver: SessionResolver = async (req) => {
   if (!adminAuthConfigured()) return null;
-  const token = await getToken({ req: new NextRequest(req), secret: getConfig().NEXTAUTH_SECRET });
+  // Plain {cookies, headers} rather than `new NextRequest(req)`: wrapping the route's Request
+  // throws ("Cannot read private member #state") in the Next 16 route runtime, which made every
+  // admin call fail with 500 once sign-in was configured.
+  const token = await getToken({
+    req: { cookies: parseCookies(req.headers.get("cookie")), headers: req.headers } as unknown as Parameters<typeof getToken>[0]["req"],
+    secret: getConfig().NEXTAUTH_SECRET,
+  });
   const id = token?.githubId;
   return typeof id === "string" && /^\d{1,20}$/.test(id) ? id : null;
 };

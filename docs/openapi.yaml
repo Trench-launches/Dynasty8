@@ -390,3 +390,4 @@ x-demolition-fund-paths:
   /api/admin/demolition-fund/proposals/{id}/{action}: { post: { tags: [admin], summary: "ADMIN; action = approve | reject | execute; {member}; returns an unsigned transaction for that member to sign" } }
   /api/admin/demolition-fund/multisig: { get: { tags: [admin], summary: "VIEWER; registered wallets and the live fund multisig; query member marks the connected wallet" } }
   /api/admin/demolition-fund/fee-sharing: { get: { tags: [admin], summary: "VIEWER; expected shareholders and last config checks" }, post: { tags: [admin], summary: ADMIN; check every registered mint now } }
+  /api/admin/demolition-fund/fee-sharing/setup: { post: { tags: [admin], summary: "ADMIN; {mint, creator}; unsigned, simulated Pump fee-sharing setup (sweep, create, update to the registered vaults, locked) for the creator to sign" } }
