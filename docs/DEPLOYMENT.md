@@ -1,18 +1,46 @@
 # Deployment guide
 
-Nothing has been deployed. Production deployment, DNS, and any infrastructure change need the owner's explicit approval.
+Production deployment, DNS, and any infrastructure change need the owner's explicit approval.
 
-## Shape
+## Cloudflare (current host)
 
-One Next.js app (frontend + API) and one worker process, sharing a PostgreSQL database.
+The app runs on Cloudflare Workers via [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare), with PostgreSQL hosted elsewhere (Neon). The Worker is `dynasty8`, built from `main` by Workers Builds (push to deploy). Domain: `dynasty15.xyz` (DNS on Cloudflare).
+
+| Piece | Where | Notes |
+|---|---|---|
+| web + API | Worker `dynasty8` | `wrangler.jsonc`, entry `custom-worker.ts` (wraps the OpenNext build in `.open-next/`) |
+| background jobs | same Worker, Cron Trigger `* * * * *` | `scheduled()` calls `POST /api/internal/tick` with `CRON_SECRET`: one market sync + one Demolition Fund pass per minute (snapshot pruning hourly) |
+| database | Neon PostgreSQL | Optional Hyperdrive binding (`HYPERDRIVE`) in front of it; without it the Worker connects to `DATABASE_URL` directly |
+| migrations | build step | `prisma migrate deploy` before the OpenNext build |
+
+Workers Builds settings (Worker -> Settings -> Build):
+
+- Build command: `npm run db:migrate && npm run build:cf`
+- Deploy command: `npm run deploy`
+- Build variables: `DATABASE_URL` (direct, non-pooled Neon URL; needed by migrations)
+
+Worker secrets (Worker -> Settings -> Variables and Secrets), never in files: `DATABASE_URL`, `SOLANA_RPC_URL`, `CRON_SECRET` (any long random string; the background jobs stay off until it is set), and for admin `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `GITHUB_ID`, `GITHUB_SECRET`, plus any provider keys from `.env.example`.
+
+Plan: the app needs the Workers Paid plan. The free plan allows 10 ms of CPU per request, which server-rendered pages and the database client exceed.
+
+Why some things differ from a Node host:
+
+- Next.js Cache Components (`"use cache"`, partial prerendering) is off: the Cloudflare adapter does not yet run it reliably on Next 16.4 (opennextjs-cloudflare issues #1450, #1464). Pages render per request; re-enable when the adapter supports it.
+- A database connection may not outlive its request on Workers, so `src/server/db.ts` creates one Prisma client per request there (Node keeps one per process).
+- The fund pass lock is transaction-scoped (`pg_try_advisory_xact_lock`) so it cannot be stranded on a pooled connection.
+- Map tile URLs percent-encode their commas; Cloudflare's asset server redirects raw commas.
+
+Local check in Cloudflare's runtime: copy `.dev.vars.example` to `.dev.vars`, start the local database (`npm run db:local`), then `npm run preview`. On Windows, if `preview` fails with `read ECONNRESET`, run `npm run build:cf` and then `npx wrangler dev --port 8790 --ip 127.0.0.1 --inspector-port 9339`. Trigger the scheduled handler with `curl "http://127.0.0.1:8790/cdn-cgi/handler/scheduled?cron=*+*+*+*+*"`.
+
+## Any Node host
+
+The app also runs as a plain Node service (Railway, Render, a VPS): one Next.js app plus worker processes sharing PostgreSQL.
 
 | Process | Command | Notes |
 |---|---|---|
 | web | `npm run build` then `npm run start` | Stateless; scale horizontally once cache/rate-limit use Redis |
-| worker | `npm run sync:markets` | Exactly one instance. Or `npm run sync:markets -- --once` from a scheduler every minute |
+| workers | `npm run sync:markets`, `npm run fund:worker` | One instance each. Or run each with `-- --once` from a scheduler every minute |
 | release | `npm run db:migrate` | Run before starting new web/worker versions |
-
-Railway: no Railway configuration exists in this repository, so there is no existing project to share. On Railway, the same shape is three pieces in one project: a PostgreSQL plugin, a web service, and a worker service (start command `npm run sync:markets`), with `npm run db:migrate` as the pre-deploy command. Any platform with Node 22 + PostgreSQL works.
 
 ## Environment
 
@@ -30,7 +58,7 @@ npm run admin:grant -- --github-id <numeric id> --login <login> --role ADMIN
 2. Take a database backup (below).
 3. `npm run db:migrate` (`prisma migrate deploy`; applies only new migrations).
 4. `npm run db:seed` on first deploy only (idempotent; never overwrites edits).
-5. Deploy web, then worker.
+5. Deploy (on Cloudflare: merge to `main`; Workers Builds migrates, builds and deploys).
 6. Check `GET /api/health` is `ok`.
 
 ## Backups

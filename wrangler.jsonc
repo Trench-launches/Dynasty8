@@ -1,0 +1,19 @@
+// Cloudflare Workers config for the Next.js app (built with @opennextjs/cloudflare).
+// Secrets (DATABASE_URL, SOLANA_RPC_URL, NEXTAUTH_*, GITHUB_*, CRON_SECRET, provider keys) are set in the
+// Worker's Settings -> Variables and Secrets, never in this file. See docs/DEPLOYMENT.md.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dynasty8",
+  "main": "custom-worker.ts",
+  "compatibility_date": "2026-11-17",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "dynasty8" }],
+  "images": { "binding": "IMAGES" },
+  // Background jobs (market sync + Demolition Fund pass) once a minute, via /api/internal/tick.
+  "triggers": { "crons": ["* * * * *"] },
+  "observability": { "enabled": true },
+  // Connection pool in front of Postgres. Create it under Storage & databases -> Hyperdrive,
+  // then uncomment with its id. Without it the app connects straight to DATABASE_URL.
+  // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<hyperdrive id>" }],
+}

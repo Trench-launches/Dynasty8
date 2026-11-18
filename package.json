@@ -6,6 +6,9 @@
     "dev": "next dev --port 3530",
     "build": "next build",
     "start": "next start --port 3530",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "build:cf": "opennextjs-cloudflare build",
+    "deploy": "opennextjs-cloudflare deploy",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -21,6 +24,8 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "^1.20.17",
+    "@prisma/adapter-pg": "^6.19.3",
     "@prisma/client": "^6.19.3",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
@@ -32,6 +37,7 @@
     "motion": "^14.14.0",
     "next": "16.4.6",
     "next-auth": "^4.24.15",
+    "pg": "^8.23.1",
     "pino": "^10.4.0",
     "radix-ui": "^1.8.1",
     "react": "19.3.0",
@@ -46,6 +52,7 @@
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.187.0",
@@ -57,7 +64,8 @@
     "tailwindcss": "4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^5",
-    "vitest": "^3.2.7"
+    "vitest": "^3.2.7",
+    "wrangler": "^4.164.0"
   },
   "allowScripts": {
     "@embedded-postgres/windows-x64@18.6.0-beta.19": true,

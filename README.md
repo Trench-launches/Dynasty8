@@ -110,7 +110,7 @@ Rules the UI relies on (enforced in the adapter):
 - API spec: [docs/openapi.yaml](docs/openapi.yaml)
 - Frontend integration notes: [docs/FRONTEND-INTEGRATION.md](docs/FRONTEND-INTEGRATION.md)
 - Security review: [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md)
-- Deployment, backups, rollback, monitoring: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- Deployment (Cloudflare Workers + Neon), backups, rollback, monitoring: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - Demolition Fund (creator fees → DYNASTY buyback & burn): [docs/DEMOLITION-FUND.md](docs/DEMOLITION-FUND.md)
 
 ## The map
