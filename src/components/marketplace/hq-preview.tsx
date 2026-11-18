@@ -26,19 +26,13 @@ export function HqPreview({ token, onClose, compact = false }: HqPreviewProps) {
 
   return (
     <article className="flex flex-col" aria-label={`${DYNASTY_HQ.name} details`}>
-      <div
-        className={cn(
-          "relative grid shrink-0 place-items-center overflow-hidden rounded-t-2xl bg-d8-green",
-          compact ? "h-36" : "h-52",
-        )}
-      >
+      <div className={cn("relative shrink-0 overflow-hidden rounded-t-2xl bg-d8-green", compact ? "h-36" : "h-52")}>
         <Image
-          src="/brand/dynasty15-logo.png"
-          alt="DYNASTY 15"
-          width={1024}
-          height={515}
-          sizes="240px"
-          className={cn("h-auto", compact ? "w-40" : "w-56")}
+          src={DYNASTY_HQ.image}
+          alt="The DYNASTY Main Office: a marble and glass tower with a gold entrance"
+          fill
+          sizes="(max-width: 1024px) 100vw, 380px"
+          className="object-cover"
         />
         <button
           type="button"
