@@ -8,7 +8,7 @@ Done already (verified or tested):
 - Pump.fun accepts the three vaults at 6000/2500/1500, shown by mainnet simulation (update on an existing config, and the full post-launch setup on a fresh coin).
 - Signing page `/admin/treasury`: member proposals and votes, plus post-launch fee-sharing setup. Signed-in flow tested locally with a stubbed wallet.
 - Fixed: admin sign-in returned 500 once OAuth was configured; Cloudflare branch builds could migrate the production database.
-- 226 tests pass; lint, typecheck and `next build` are clean.
+- 226 tests pass; lint, typecheck and `next build` are clean (after merging current `main`).
 
 ## A. Decisions (you)
 
@@ -24,19 +24,30 @@ Done already (verified or tested):
 1. Send 0.001 SOL to Account 2 `FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH` and to Account 3 `A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR`. Neither exists on-chain yet; the minimum is 0.00065024 SOL.
 2. Re-run `npx tsx --conditions=react-server scripts/verify/check-treasury.ts BF8XcyJ9iMF2fHqRMm8Z9nK44AV322NAKhhEvVRc2Ljn`. All three vaults should exist.
 
-## C. Merge and deploy (you)
+## C. Merge, deploy and hosting (you)
 
-1. Review and merge [PR #12](https://github.com/Trench-launches/Dynasty8/pull/12) into `main`. On merge, Workers Builds migrates the production database, seeds and deploys.
-2. Before merging: open the Cloudflare build log for this branch's latest build. If it fails, the log shows why (I could not read Cloudflare build logs from here; the local OpenNext build needs Windows Developer Mode or WSL).
-3. Confirm in the production database (`_prisma_migrations`) whether `20261118095539_multisig_proposals_fee_sharing` is already applied. Earlier branch builds probably applied it before the guard existed; it is additive and safe either way.
-4. Optional, recommended: give non-production branch builds a separate preview database or a build command without database steps.
-5. Take a database backup before the merge (`docs/DEPLOYMENT.md` → Backups).
+State from the Cloudflare account (owner's notes, 2026-11-18):
+- Worker `dynasty8` on the **free** Workers plan serves dynasty15.xyz. The domain is at Namecheap with Cloudflare nameservers. Pushes to `main` deploy; other branches make preview builds.
+- [PR #12](https://github.com/Trench-launches/Dynasty8/pull/12) merged as 5052bf5, and its `main` build failed at `npm ci` ("Missing: diff@9.0.0 from lock file"). #16 re-synced the lock file, and `main` (a2ae60a, with #16 and #17) is live and working.
+- [PR #18](https://github.com/Trench-launches/Dynasty8/pull/18) failed with the same lock-file error because its branch predated #16. `main` is now merged into it (3af5130). Its lock file is `main`'s, and `npm ci` passes locally.
+- Until #18 is merged, **every build, previews included, runs `db:migrate` and `db:seed` against production Supabase**. #18's own builds already use the guard: Cloudflare sets `WORKERS_CI=1` and `WORKERS_CI_BRANCH` on every build, and `scripts/db-task.mjs` skips both steps unless the branch is `main`.
+
+Steps:
+1. Review PR #18 and check its new Cloudflare preview build passes. Its log should show `[db-task] Skipping "migrate"` and `Skipping "seed"`.
+2. Take a database backup (`docs/DEPLOYMENT.md` → Backups), then merge #18. The `main` build migrates (nothing new in #18), seeds and deploys.
+3. Confirm in the production database (`_prisma_migrations`) that `20261118095539_multisig_proposals_fee_sharing` is applied. Earlier branch builds and the #12 merge build probably applied it; it is additive.
+4. **Workers plan:** `docs/DEPLOYMENT.md` says the app needs Workers Paid (the free plan allows 10 ms CPU per request). Watch for CPU-limit errors on server-rendered pages and admin calls, and upgrade if they appear.
+5. **Supabase:** the free org has an over-quota warning; projects are restricted from **28 Nov** unless usage drops. Reduce usage or upgrade before then, or the site and fund jobs lose their database.
+6. **Account security:** turn on 2FA for the Trench-launches Cloudflare login, and add a second Administrator so there is more than one way in.
+7. Make the `DATABASE_URL` **build variable** a Secret (it is plain text today).
+8. Optional, recommended: give preview builds their own database, or a build command without database steps.
+9. Lock-file hygiene: regenerate `package-lock.json` only on a branch cut from current `main`, and check it with `npm ci --dry-run` before pushing. Lock files rebuilt elsewhere (as on #12) can drift from what Cloudflare's `npm ci` accepts.
 
 ## D. Production configuration (you)
 
 1. GitHub OAuth app plus Worker secrets `GITHUB_ID`, `GITHUB_SECRET`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL` (`docs/DEPLOYMENT.md` → GitHub OAuth).
 2. Keyed `SOLANA_RPC_URL` as a Worker secret. The public RPC rate-limits; reads and simulations need a real provider.
-3. `JUPITER_API_KEY` (optional), and `CRON_SECRET` if not already set (it turns on the minute-by-minute fund job).
+3. `CRON_SECRET` is **not set** (the background jobs are off), and `SOLANA_RPC_URL` is **not set** (the public RPC is used). Set both as Worker secrets. `JUPITER_API_KEY` is optional.
 4. Do **not** set `FUND_ALLOW_SINGLE_SIG` in production.
 5. Grant yourself admin: `npm run admin:grant -- --github-id <id> --login <login> --role ADMIN` against the production database.
 6. Register the treasury against production: `npm run fund:register -- --config config/treasury.mainnet.json --check`, then without `--check`.
