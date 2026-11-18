@@ -5,6 +5,7 @@ import { formatFundDate, formatSol, formatTokenAmount } from "@/lib/fund-format"
 import { PropertyArt } from "@/components/property/property-art";
 import type { PropertyContributionDto } from "@/contracts/demolition-fund";
 import type { Property } from "@/lib/types";
+import { PanelHeader } from "@/components/ui/panel";
 
 interface FundLeaderboardProps {
   contributions: PropertyContributionDto[];
@@ -20,16 +21,13 @@ export function FundLeaderboard({ contributions, properties, ticker, decimals }:
   const anyRanked = contributions.some((c) => c.rank !== null);
 
   return (
-    <section aria-labelledby="fund-leaderboard" className="min-w-0 rounded-md border border-[#ced4da] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-      <header className="flex flex-wrap items-end justify-between gap-2 border-b border-[#dee2e6] px-4 py-3">
-        <div>
-          <p className="text-[11px] font-semibold tracking-[0.14em] text-[#868e96] uppercase">Leaderboard</p>
-          <h2 id="fund-leaderboard" className="font-display text-2xl leading-tight font-bold text-[#212529]">
-            Top <span className="text-d8-green">contributors</span>
-          </h2>
-        </div>
-        {!anyRanked && <p className="text-xs text-[#6c757d]">No contributions yet. Properties rank here once their creator fees reach the fund.</p>}
-      </header>
+    <section aria-labelledby="fund-leaderboard" className="min-w-0 border border-[#e3e3e3] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+      <PanelHeader id="fund-leaderboard" title="Top contributors" note="Leaderboard" className="-mx-px -mt-px" />
+      {!anyRanked && (
+        <p className="border-b border-[#e3e3e3] px-4 py-3 text-[15px] text-[#555]">
+          No contributions yet. Properties rank here once their creator fees reach the fund.
+        </p>
+      )}
 
       <div className="overflow-x-auto">
         {/* Fixed layout: number columns keep their widths and the property column takes the rest (names truncate). */}

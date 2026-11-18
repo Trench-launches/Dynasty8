@@ -8,6 +8,7 @@ import { api } from "@/lib/api-client/client";
 import { shortAddress } from "@/lib/format";
 import { formatFundDate, formatSol, formatTokenAmount } from "@/lib/fund-format";
 import type { FundEventDto, FundEventType, FundHistoryDto } from "@/contracts/demolition-fund";
+import { PanelHeader } from "@/components/ui/panel";
 
 const PAGE = 20;
 
@@ -46,13 +47,8 @@ export function FundActivity({ initial, ticker, decimals }: FundActivityProps) {
   const token = (raw: string) => `${formatTokenAmount(raw, decimals)} $${ticker}`;
 
   return (
-    <section aria-labelledby="fund-activity" className="min-w-0 rounded-md border border-[#ced4da] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-      <header className="border-b border-[#dee2e6] px-4 py-3">
-        <p className="text-[11px] font-semibold tracking-[0.14em] text-[#868e96] uppercase">On-chain</p>
-        <h2 id="fund-activity" className="font-display text-2xl leading-tight font-bold text-[#212529]">
-          Fund <span className="text-d8-green">activity</span>
-        </h2>
-      </header>
+    <section aria-labelledby="fund-activity" className="min-w-0 border border-[#e3e3e3] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+      <PanelHeader id="fund-activity" title="Fund activity" note="On-chain" className="-mx-px -mt-px" />
 
       {items.length === 0 ? (
         <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">

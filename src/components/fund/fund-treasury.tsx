@@ -2,6 +2,7 @@ import { CheckCircle2, ExternalLink, ShieldCheck, TriangleAlert } from "lucide-r
 import { shortAddress } from "@/lib/format";
 import { formatBps, formatFundDate, formatSol, formatTokenAmount } from "@/lib/fund-format";
 import type { FundSummaryDto } from "@/contracts/demolition-fund";
+import { PanelHeader } from "@/components/ui/panel";
 
 const solscanAccount = (address: string) => `https://solscan.io/account/${address}`;
 
@@ -19,20 +20,15 @@ export function FundTreasury({ summary }: { summary: FundSummaryDto }) {
   const split = t.allocationMode === "ON_CHAIN_SPLIT";
 
   return (
-    <section aria-labelledby="fund-treasury" className="min-w-0 rounded-md border border-[#ced4da] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-      <header className="flex flex-wrap items-end justify-between gap-2 border-b border-[#dee2e6] px-4 py-3">
-        <div>
-          <p className="text-[11px] font-semibold tracking-[0.14em] text-[#868e96] uppercase">Transparency</p>
-          <h2 id="fund-treasury" className="font-display text-2xl leading-tight font-bold text-[#212529]">
-            Treasury <span className="text-d8-green">balances</span>
-          </h2>
-        </div>
-        <p className="max-w-md text-xs text-[#6c757d]">
+    <section aria-labelledby="fund-treasury" className="min-w-0 border border-[#e3e3e3] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+      <PanelHeader id="fund-treasury" title="Treasury balances" note="Transparency" className="-mx-px -mt-px" />
+      <div className="border-b border-[#e3e3e3] px-4 py-3">
+        <p className="text-[15px] leading-relaxed text-[#555]">
           {split
             ? `Pump.fun pays each property's fees straight to three wallets: ${formatBps(a.buybackBps)} to the fund, ${formatBps(a.ecosystemBps)} ecosystem, ${formatBps(a.operationsBps)} operations.`
             : `The fund receives all property fees and passes on ${formatBps(a.ecosystemBps)} ecosystem and ${formatBps(a.operationsBps)} operations.`}
         </p>
-      </header>
+      </div>
 
       <dl className="grid gap-px bg-[#dee2e6] sm:grid-cols-2 lg:grid-cols-4">
         <Cell
@@ -71,7 +67,7 @@ export function FundTreasury({ summary }: { summary: FundSummaryDto }) {
 
       <div className="grid gap-4 px-4 py-4 lg:grid-cols-2">
         <div className="min-w-0">
-          <h3 className="text-[11px] font-semibold tracking-[0.14em] text-[#868e96] uppercase">Treasury wallets</h3>
+          <h3 className="text-[17px] tracking-[0.04em] text-d8-green uppercase">Treasury wallets</h3>
           {t.wallets.length === 0 ? (
             <p className="mt-2 text-sm text-[#868e96]">Treasury wallets have not been registered yet.</p>
           ) : (
@@ -104,7 +100,7 @@ export function FundTreasury({ summary }: { summary: FundSummaryDto }) {
           )}
         </div>
         <div className="min-w-0">
-          <h3 className="text-[11px] font-semibold tracking-[0.14em] text-[#868e96] uppercase">Property fee sharing</h3>
+          <h3 className="text-[17px] tracking-[0.04em] text-d8-green uppercase">Property fee sharing</h3>
           {fs.checked === 0 ? (
             <p className="mt-2 text-sm text-[#868e96]">No property token has launched, so there is nothing to check yet.</p>
           ) : fs.issues.length === 0 ? (

@@ -12,7 +12,7 @@ function fundState(s: FundSummaryDto): FundState {
     return {
       label: "Not started",
       note: `Buybacks begin once ${ticker} is live and the fund has received creator fees.`,
-      className: "border-[#ced4da] bg-[#f8f9fa] text-[#495057]",
+      className: "border-[#ced4da] bg-[#f8f9fa] text-d8-ink",
       dot: "bg-[#adb5bd]",
     };
   }
@@ -54,7 +54,7 @@ export function FundOverview({ summary }: { summary: FundSummaryDto }) {
   return (
     <section
       aria-label="How the fund works"
-      className="grid gap-x-8 gap-y-5 rounded-md border border-[#ced4da] border-l-4 border-l-d8-green bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.06)] sm:p-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]"
+      className="grid gap-x-8 gap-y-5 border-2 border-d8-green bg-d8-mint-soft p-4 sm:p-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]"
     >
       <div className="flex min-w-0 items-start gap-4">
         <span aria-hidden className="grid size-14 shrink-0 place-items-center rounded-full bg-d8-green text-white sm:size-16">
@@ -62,7 +62,7 @@ export function FundOverview({ summary }: { summary: FundSummaryDto }) {
         </span>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[11px] font-semibold tracking-[0.16em] text-d8-green uppercase">Buyback &amp; burn</p>
+            <p className="text-[17px] tracking-[0.04em] text-d8-green uppercase">Buyback &amp; burn</p>
             <span
               className={cn(
                 "inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10px] font-semibold tracking-wider whitespace-nowrap uppercase",
@@ -73,17 +73,17 @@ export function FundOverview({ summary }: { summary: FundSummaryDto }) {
               {state.label}
             </span>
           </div>
-          <p className="font-display text-2xl leading-tight font-bold text-[#212529] sm:text-3xl">
+          <p className="mt-1 text-[26px] leading-tight font-bold text-d8-ink sm:text-[30px]">
             Property tax that burns <span className="text-d8-green">{ticker}</span>
           </p>
-          <ol className="mt-2 space-y-1 text-xs leading-relaxed text-[#6c757d]">
+          <ol className="mt-2 space-y-1 text-[15px] leading-relaxed text-[#444]">
             {summary.treasury.allocationMode === "ON_CHAIN_SPLIT" ? (
               <>
                 <li>
-                  <b className="text-[#495057]">1.</b> Every property token shares its Pump.fun creator fees on-chain.
+                  <b className="text-d8-ink">1.</b> Every property token shares its Pump.fun creator fees on-chain.
                 </li>
                 <li>
-                  <b className="text-[#495057]">2.</b> Pump.fun pays each fee straight to three wallets:{" "}
+                  <b className="text-d8-ink">2.</b> Pump.fun pays each fee straight to three wallets:{" "}
                   {formatBps(summary.allocation.buybackBps)} to the buyback fund, {formatBps(summary.allocation.ecosystemBps)} to the
                   ecosystem, {formatBps(summary.allocation.operationsBps)} to operations.
                 </li>
@@ -91,21 +91,21 @@ export function FundOverview({ summary }: { summary: FundSummaryDto }) {
             ) : (
               <>
                 <li>
-                  <b className="text-[#495057]">1.</b> Every property token pays Pump.fun creator fees into the fund wallet.
+                  <b className="text-d8-ink">1.</b> Every property token pays Pump.fun creator fees into the fund wallet.
                 </li>
                 <li>
-                  <b className="text-[#495057]">2.</b> Each fee is split: {formatBps(summary.allocation.buybackBps)} to buybacks,{" "}
+                  <b className="text-d8-ink">2.</b> Each fee is split: {formatBps(summary.allocation.buybackBps)} to buybacks,{" "}
                   {formatBps(summary.allocation.ecosystemBps)} to the ecosystem, {formatBps(summary.allocation.operationsBps)} to
                   operations.
                 </li>
               </>
             )}
             <li>
-              <b className="text-[#495057]">3.</b> The buyback share buys {ticker} on the open market, and every token bought is
+              <b className="text-d8-ink">3.</b> The buyback share buys {ticker} on the open market, and every token bought is
               burned. Each step is a multisig-approved transaction you can check on Solscan.
             </li>
           </ol>
-          <p className="mt-2 text-xs font-medium text-[#495057]">{state.note}</p>
+          <p className="mt-2 text-[15px] font-medium text-d8-ink">{state.note}</p>
         </div>
       </div>
 
@@ -143,12 +143,12 @@ export function FundOverview({ summary }: { summary: FundSummaryDto }) {
                 {shortAddress(summary.fundWallet)} <ExternalLink className="size-3" />
               </a>
             ) : (
-              <span className="font-semibold text-[#495057]">not registered yet</span>
+              <span className="font-semibold text-d8-ink">not registered yet</span>
             )}
           </span>
           <span>
             Last ledger check:{" "}
-            <span className="font-semibold text-[#495057]">
+            <span className="font-semibold text-d8-ink">
               {summary.status.lastReconciliation
                 ? `${summary.status.lastReconciliation.ok ? "balanced" : "mismatch"}, ${formatFundDate(summary.status.lastReconciliation.at)}`
                 : "none yet"}

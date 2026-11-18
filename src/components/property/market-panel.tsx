@@ -13,12 +13,25 @@ import {
   type TooltipContentProps,
 } from "recharts";
 import { Check, Copy, ExternalLink, LineChart } from "lucide-react";
+import { CATEGORY_LABELS, TOKEN_STATUS_LABELS, regionName } from "@/data/regions";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useMarket } from "@/hooks/use-market";
-import { formatCount, formatPrice, formatUsdCompact, tickerLabel } from "@/lib/format";
-import { ChangeText, MarketDataTag, TokenStatusBadge } from "@/components/property/badges";
-import type { ChartPoint, ChartRange, ChartSeries, ChartUnavailableReason, Property } from "@/lib/types";
+import { formatChange, formatCount, formatPrice, formatUsdCompact, tickerLabel } from "@/lib/format";
+import { ChangeText } from "@/components/property/badges";
+import {
+  BigFigure,
+  FigureLabel,
+  Panel,
+  PanelBody,
+  PanelHeader,
+  SpecList,
+  SpecRow,
+  Tag,
+  choiceBox,
+  ctaButton,
+} from "@/components/ui/panel";
+import type { ChartPoint, ChartRange, ChartSeries, ChartUnavailableReason, Property, TokenStatus } from "@/lib/types";
 
 const RANGES: ChartRange[] = ["24h", "7d", "30d"];
 const RANGE_LABEL: Record<ChartRange, string> = { "24h": "24H", "7d": "7D", "30d": "30D" };
@@ -41,46 +54,53 @@ const SOURCE_LABEL: Record<string, string> = { birdeye: "Birdeye", dexscreener: 
 
 type ChartLoad = { slug: string; range: ChartRange; series: ChartSeries | null; error: boolean };
 
-export function MarketPanel({ property }: { property: Property }) {
+const STATUS_NOTE: Record<TokenStatus, string> = {
+  live: "Live on Pump.fun",
+  coming_soon: "Launching soon",
+  unavailable: "Trading paused",
+};
+
+/**
+ * The live-market half of a property page, laid out by the page's grid: the spec table, the
+ * "Buy property" panel and the price chart. One market subscription feeds all three.
+ */
+export function PropertyMarket({
+  property,
+  specsClassName,
+  panelClassName,
+  chartClassName,
+}: {
+  property: Property;
+  specsClassName?: string;
+  panelClassName?: string;
+  chartClassName?: string;
+}) {
   const { market, status } = useMarket(property.slug, property.market);
   const token = property.token;
+  const tradeUrl = token.status === "live" && token.mintVerified ? token.pumpFunUrl : null;
 
   return (
-    <div className="space-y-4">
-      <section className="rounded-2xl border border-[#dee2e6] bg-card p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-bold tracking-[0.2em] text-[#868e96] uppercase">Property token</p>
-            <p className="font-display text-4xl leading-none text-lime">{tickerLabel(property)}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <MarketDataTag market={market} />
-            <TokenStatusBadge status={token.status} />
-          </div>
-        </div>
-
-        <dl className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Stat label="Price" value={formatPrice(market?.priceUsd)} />
-          <Stat label="Market cap" value={formatUsdCompact(market?.marketCapUsd)} />
-          <Stat label="24h change" value={<ChangeText value={market?.change24hPct} />} />
-          <Stat label="24h volume" value={formatUsdCompact(market?.volume24hUsd)} />
-          <Stat label="Holders" value={formatCount(market?.holders)} />
-          <Stat label="Launched" value={token.launchedAt ? formatLaunchDate(token.launchedAt) : "—"} />
-        </dl>
-        {!market && (
-          <p className="mt-3 text-sm text-[#6c757d]">
-            {status === "loading"
-              ? "Checking market…"
-              : status === "error"
-                ? "Market data is temporarily unavailable."
-                : "No market yet. Figures appear here once the token is live and verified."}
-          </p>
-        )}
+    <>
+      <div className={specsClassName}>
+        <SpecList>
+          <SpecRow label="Price">{formatPrice(market?.priceUsd)}</SpecRow>
+          <SpecRow label="Market cap">{formatUsdCompact(market?.marketCapUsd)}</SpecRow>
+          <SpecRow label="24h change">
+            <ChangeText value={market?.change24hPct} />
+          </SpecRow>
+          <SpecRow label="24h volume">{formatUsdCompact(market?.volume24hUsd)}</SpecRow>
+          <SpecRow label="Holders">{formatCount(market?.holders)}</SpecRow>
+          <SpecRow label="Launched">{token.launchedAt ? formatLaunchDate(token.launchedAt) : "Not yet"}</SpecRow>
+          <SpecRow label="Type">{CATEGORY_LABELS[property.category]}</SpecRow>
+          <SpecRow label="Neighbourhood">{property.neighbourhood}</SpecRow>
+          <SpecRow label="Region">{regionName(property.region) ?? "—"}</SpecRow>
+          <SpecRow label="Ticker">{tickerLabel(property)}</SpecRow>
+        </SpecList>
         {market?.source === "demo" && (
           <p className="mt-3 text-xs text-neon">Demo mode: these figures are generated for design preview and are not real.</p>
         )}
         {market?.stale && (
-          <p className="mt-3 text-xs text-amber-200">
+          <p className="mt-3 text-xs text-[#8a6d00]">
             Market data is delayed. Last updated{" "}
             {/* Local time differs between server and browser; let the browser's version stand. */}
             <time dateTime={market.updatedAt} suppressHydrationWarning>
@@ -89,27 +109,86 @@ export function MarketPanel({ property }: { property: Property }) {
             .
           </p>
         )}
+      </div>
 
-        <MintRow property={property} />
-      </section>
+      <aside className={panelClassName}>
+        <Panel aria-labelledby="buy-property">
+          <PanelHeader id="buy-property" title="Buy property" note={STATUS_NOTE[token.status]} />
+          <PanelBody className="space-y-6 bg-[#fafafa] px-5 pt-5 pb-6">
+            <div>
+              <FigureLabel>Price per token</FigureLabel>
+              {market?.priceUsd != null ? (
+                <BigFigure value={formatPrice(market.priceUsd)} unit="USD" className="mt-1" />
+              ) : (
+                <BigFigure value="Pending" className="mt-1 text-[#999]" />
+              )}
+              <p className="mt-2 text-[16px] text-[#444]">
+                {market ? (
+                  <>
+                    Market cap {formatUsdCompact(market.marketCapUsd)} · 24h <ChangeText value={market.change24hPct} />
+                  </>
+                ) : status === "loading" ? (
+                  "Checking the market…"
+                ) : status === "error" ? (
+                  "Market data is temporarily unavailable."
+                ) : token.status === "unavailable" ? (
+                  "This token is currently unavailable."
+                ) : (
+                  "Figures appear once the token is live and verified."
+                )}
+              </p>
+            </div>
 
-      <PriceChart property={property} />
-    </div>
+            <TokenCard property={property} />
+
+            <div className="space-y-2.5">
+              {tradeUrl ? (
+                <a href={tradeUrl} target="_blank" rel="noopener noreferrer" className={ctaButton}>
+                  Buy on Pump.fun <ExternalLink className="size-5" />
+                </a>
+              ) : (
+                <span aria-disabled="true" className={cn(ctaButton, "pointer-events-none border-[#8f9b93] bg-[#b4c0b8]")}>
+                  {token.status === "unavailable" ? "Trading paused" : "Trading opens at launch"}
+                </span>
+              )}
+              <p className="text-[13px] leading-relaxed text-[#777]">
+                {tradeUrl
+                  ? "Opens Pump.fun in a new tab. Check the mint address matches before you trade."
+                  : "The buy button links to Pump.fun once the token is live and its mint is verified."}{" "}
+                Nothing here is financial advice.
+              </p>
+            </div>
+          </PanelBody>
+        </Panel>
+      </aside>
+
+      <PriceChart property={property} className={chartClassName} />
+    </>
   );
 }
 
-function MintRow({ property }: { property: Property }) {
-  const { mint, mintVerified, pumpFunUrl } = property.token;
+/** The token, in the selected-option card style: ticker, status tag and the verified mint. */
+function TokenCard({ property }: { property: Property }) {
+  const { mint, mintVerified, status } = property.token;
   const [copied, setCopied] = useState(false);
   const verified = Boolean(mint && mintVerified);
 
   return (
-    <div className="mt-5 flex flex-col gap-3 border-t border-[#dee2e6] pt-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0">
-        <p className="text-[10px] tracking-[0.18em] text-[#868e96] uppercase">Verified mint address</p>
+    <div className="border-2 border-d8-green bg-d8-mint-soft px-4 py-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="flex min-w-0 items-center gap-3 text-[19px] font-bold tracking-[0.02em] text-d8-ink uppercase">
+          <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-d8-green">
+            <span className="size-2.5 rounded-full bg-white" />
+          </span>
+          <span className="truncate">{tickerLabel(property)}</span>
+        </p>
+        <Tag tone={status === "live" ? "green" : "gold"}>{TOKEN_STATUS_LABELS[status]}</Tag>
+      </div>
+      <div className="mt-2 pl-9">
+        <p className="text-[13px] tracking-[0.06em] text-[#777] uppercase">Verified mint address</p>
         {verified ? (
           <div className="mt-1 flex items-center gap-2">
-            <code className="truncate font-mono text-xs text-[#212529]">{mint}</code>
+            <code className="min-w-0 truncate font-mono text-[13px] text-d8-ink">{mint}</code>
             <button
               type="button"
               aria-label="Copy mint address"
@@ -119,34 +198,20 @@ function MintRow({ property }: { property: Property }) {
                   setTimeout(() => setCopied(false), 1500);
                 });
               }}
-              className="grid size-7 shrink-0 place-items-center rounded-md border border-[#dee2e6] text-[#6c757d] hover:text-[#212529]"
+              className="grid size-7 shrink-0 place-items-center border border-[#cfd8d2] bg-white text-[#555] hover:text-d8-ink"
             >
               {copied ? <Check className="size-3.5 text-d8-green" /> : <Copy className="size-3.5" />}
             </button>
           </div>
         ) : (
-          <p className="mt-1 text-sm text-[#6c757d]">Pending verification — never trust an unverified mint.</p>
+          <p className="mt-1 text-[16px] leading-relaxed text-[#444]">Pending verification. Never trust an unverified mint.</p>
         )}
       </div>
-      {verified && pumpFunUrl ? (
-        <a
-          href={pumpFunUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded bg-sunset-gradient px-6 text-[15px] font-bold text-ink transition-transform hover:scale-[1.02]"
-        >
-          Trade on Pump.fun <ExternalLink className="size-4" />
-        </a>
-      ) : (
-        <span className="inline-flex h-11 shrink-0 items-center justify-center rounded border-[1.5px] border-dashed border-[#ced4da] px-6 text-xs font-semibold text-[#868e96]">
-          Pump.fun link pending
-        </span>
-      )}
     </div>
   );
 }
 
-function PriceChart({ property }: { property: Property }) {
+function PriceChart({ property, className }: { property: Property; className?: string }) {
   // The backend only serves history for a LIVE token with a verified mint; ask for nothing before that.
   const live = property.token.status === "live";
   const [range, setRange] = useState<ChartRange>("24h");
@@ -188,17 +253,14 @@ function PriceChart({ property }: { property: Property }) {
   const stats = summarise(points);
 
   return (
-    <section className="rounded-2xl border border-[#dee2e6] bg-card p-5" aria-label="Price history">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="font-display text-2xl text-cream">Price history</h2>
-          {stats && (
-            <p className="mt-1 text-sm text-[#6c757d]">
-              <ChangeText value={stats.changePct} className="font-semibold" /> over {RANGE_LABEL[shownRange]}
-            </p>
-          )}
-        </div>
-        <div className="flex gap-1" role="group" aria-label="Chart range">
+    <Panel className={className} aria-labelledby="price-history">
+      <PanelHeader
+        id="price-history"
+        title="Price history"
+        note={stats?.changePct != null ? `${formatChange(stats.changePct)} over ${RANGE_LABEL[shownRange]}` : undefined}
+      />
+      <PanelBody className="p-4 sm:p-5">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Chart range">
           {RANGES.map((r) => (
             <button
               key={r}
@@ -206,68 +268,63 @@ function PriceChart({ property }: { property: Property }) {
               aria-pressed={range === r}
               disabled={!live}
               onClick={() => setRange(r)}
-              className={cn(
-                "rounded-full border px-3 py-1 text-xs font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40",
-                range === r
-                  ? "border-d8-green bg-d8-green text-white"
-                  : "border-[#ced4da] bg-white text-[#495057] hover:border-d8-green hover:text-d8-green",
-              )}
+              className={cn(choiceBox(range === r), "h-9 min-w-14 text-[15px] disabled:pointer-events-none disabled:opacity-40")}
             >
               {RANGE_LABEL[r]}
             </button>
           ))}
         </div>
-      </div>
 
-      <div className="mt-4 h-64">
-        {!live ? (
-          <EmptyChart text={UNAVAILABLE_TEXT.not_launched} />
-        ) : shown ? (
-          <div className={cn("h-full transition-opacity duration-200", pending && "opacity-50")} aria-busy={pending}>
-            <PriceArea points={points} range={shownRange} />
-          </div>
-        ) : pending ? (
-          <div className="h-full animate-pulse rounded-xl bg-[#f8f9fa]" />
-        ) : current?.error ? (
-          <EmptyChart text={UNAVAILABLE_TEXT.provider_unavailable} />
-        ) : (
-          <EmptyChart text={UNAVAILABLE_TEXT[current?.series?.unavailableReason ?? "no_history"]} />
-        )}
-      </div>
+        <div className="mt-4 h-64">
+          {!live ? (
+            <EmptyChart text={UNAVAILABLE_TEXT.not_launched} />
+          ) : shown ? (
+            <div className={cn("h-full transition-opacity duration-200", pending && "opacity-50")} aria-busy={pending}>
+              <PriceArea points={points} range={shownRange} />
+            </div>
+          ) : pending ? (
+            <div className="h-full animate-pulse bg-[#f4f4f2]" />
+          ) : current?.error ? (
+            <EmptyChart text={UNAVAILABLE_TEXT.provider_unavailable} />
+          ) : (
+            <EmptyChart text={UNAVAILABLE_TEXT[current?.series?.unavailableReason ?? "no_history"]} />
+          )}
+        </div>
 
-      {shown && stats && (
-        <>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-[#dee2e6] pt-3 text-xs">
-            <dl className="flex flex-wrap gap-x-4 gap-y-1">
-              <ChartFigure label="Latest" value={formatPrice(stats.last.priceUsd)} />
-              <ChartFigure label={`${RANGE_LABEL[shownRange]} high`} value={formatPrice(stats.high.priceUsd)} />
-              <ChartFigure label={`${RANGE_LABEL[shownRange]} low`} value={formatPrice(stats.low.priceUsd)} />
-            </dl>
-            <p className="text-[11px] text-[#868e96]">{sourceLine(shown)}</p>
-          </div>
-          {/* Every value on the chart, for screen readers (the tooltip is never the only way to read it). */}
-          <table className="sr-only">
-            <caption>
-              {tickerLabel(property)} price in US dollars, last {RANGE_LABEL[shownRange]}
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Time</th>
-                <th scope="col">Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {points.map((p) => (
-                <tr key={p.t}>
-                  <td>{formatWhen(p.t)}</td>
-                  <td>{formatPrice(p.priceUsd)}</td>
+        {shown && stats && (
+          <>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-[#dee2e6] pt-3 text-xs">
+              <dl className="flex flex-wrap gap-x-4 gap-y-1">
+                <ChartFigure label="Latest" value={formatPrice(stats.last.priceUsd)} />
+                <ChartFigure label={`${RANGE_LABEL[shownRange]} high`} value={formatPrice(stats.high.priceUsd)} />
+                <ChartFigure label={`${RANGE_LABEL[shownRange]} low`} value={formatPrice(stats.low.priceUsd)} />
+              </dl>
+              <p className="text-[11px] text-[#868e96]">{sourceLine(shown)}</p>
+            </div>
+            {/* Every value on the chart, for screen readers (the tooltip is never the only way to read it). */}
+            <table className="sr-only">
+              <caption>
+                {tickerLabel(property)} price in US dollars, last {RANGE_LABEL[shownRange]}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Time</th>
+                  <th scope="col">Price</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
-    </section>
+              </thead>
+              <tbody>
+                {points.map((p) => (
+                  <tr key={p.t}>
+                    <td>{formatWhen(p.t)}</td>
+                    <td>{formatPrice(p.priceUsd)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+      </PanelBody>
+    </Panel>
   );
 }
 
@@ -401,18 +458,9 @@ function sourceLine(series: ChartSeries): string {
 
 function EmptyChart({ text }: { text: string }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#dee2e6] px-6 text-center text-sm text-[#868e96]">
+    <div className="flex h-full flex-col items-center justify-center gap-2 border border-dashed border-[#d9d9d9] px-6 text-center text-[15px] text-[#888]">
       <LineChart className="size-6" />
       {text}
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="rounded-xl bg-[#f8f9fa] px-3 py-2.5">
-      <dt className="text-[10px] tracking-wider text-[#868e96] uppercase">{label}</dt>
-      <dd className="mt-0.5 text-sm font-semibold text-[#212529] tabular-nums">{value}</dd>
     </div>
   );
 }

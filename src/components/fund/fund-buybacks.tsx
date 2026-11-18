@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { shortAddress } from "@/lib/format";
 import { formatFundDate, formatSol, formatTokenAmount } from "@/lib/fund-format";
 import type { BuybackVerification, FundBuybackDto, FundPendingActionDto } from "@/contracts/demolition-fund";
+import { PanelHeader } from "@/components/ui/panel";
 
 const solscan = (signature: string) => `https://solscan.io/tx/${signature}`;
 
@@ -30,13 +31,8 @@ export function FundBuybacks({ buybacks, pending, ticker, decimals }: Props) {
   const token = (raw: string | null) => (raw === null ? "—" : `${formatTokenAmount(raw, decimals)} $${ticker}`);
 
   return (
-    <section aria-labelledby="fund-buybacks" className="min-w-0 rounded-md border border-[#ced4da] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-      <header className="border-b border-[#dee2e6] px-4 py-3">
-        <p className="text-[11px] font-semibold tracking-[0.14em] text-[#868e96] uppercase">Buy back &amp; burn</p>
-        <h2 id="fund-buybacks" className="font-display text-2xl leading-tight font-bold text-[#212529]">
-          Buyback <span className="text-d8-green">history</span>
-        </h2>
-      </header>
+    <section aria-labelledby="fund-buybacks" className="min-w-0 border border-[#e3e3e3] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+      <PanelHeader id="fund-buybacks" title="Buyback history" note="Buy back &amp; burn" className="-mx-px -mt-px" />
 
       {pending.length > 0 && (
         <div className="border-b border-[#dee2e6] bg-[#f8f9fa] px-4 py-3">
