@@ -31,16 +31,16 @@ describe("GET /api/properties", () => {
   });
 
   it("searches by name (case-insensitive) and by ticker with or without $", async () => {
-    expect((await list("?q=marina")).body.items.map((i) => i.name).sort()).toEqual(
-      ["Brian's Boat Works & Marina", "Key Lento Marina Club"],
-    );
+    expect((await list("?q=marina")).body.items.map((i) => i.name).sort()).toEqual(["Key Lento Marina Club"]);
+    expect((await list("?q=%24CROSSTOWN")).body.items.map((i) => i.slug)).toEqual(["cross-town-safehouse"]);
     expect((await list("?q=%24STARLET")).body.items.map((i) => i.slug)).toEqual(["starlet-motel"]);
     expect((await list("?q=mega")).body.items.map((i) => i.slug)).toEqual(["megamundo-hq"]);
   });
 
   it("filters by category, verification, featured and region", async () => {
     expect((await list("?category=GARAGE")).body.total).toBe(2);
-    expect((await list("?category=MARINA")).body.total).toBe(2);
+    expect((await list("?category=MARINA")).body.total).toBe(1); // BOATWORKS left the launch 15
+    expect((await list("?category=SAFEHOUSE")).body.items.map((i) => i.slug)).toContain("cross-town-safehouse");
     expect((await list("?verification=CONCEPT")).body.total).toBe(15);
     expect((await list("?verification=VERIFIED")).body.total).toBe(0);
     const featured = CATALOGUE.filter((e) => e.featured).map((e) => slugify(e.name));

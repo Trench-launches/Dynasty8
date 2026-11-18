@@ -1,263 +1,874 @@
 {
-  "simulatedAt": "2026-11-18T13:49:31.727Z",
+  "simulatedAt": "2026-11-18T15:03:30.154Z",
   "cluster": "mainnet-beta",
-  "note": "Read-only simulateTransaction with sigVerify=false and fresh mints. Nothing was signed, sent or created. The lookup table was borrowed from a recent Pump transaction for simulation only.",
-  "shareholders": [
-    {
-      "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
-      "shareBps": 6000
-    },
-    {
-      "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
-      "shareBps": 2500
-    },
-    {
-      "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
-      "shareBps": 1500
-    }
-  ],
-  "lookupTable": {
-    "address": "Hyif6eWb8x88RVrvjPfabsgRYnwkVnyByEXTVTXbUcyP",
-    "staticAccountsCovered": 22,
-    "staticAccountsNeeded": 24
-  },
-  "simulatedPayer": "BFp3vKyRGLdFkCFTQY6qeW8mULxkqHiPobNyg2R5zf2K",
+  "note": "Read-only simulateTransaction (sigVerify=false, fresh mints). Nothing was signed, sent or created. Lookup tables were borrowed from recent Pump transactions and the payer is a recent Pump trader, for simulation only; production uses the project's own lookup table and the dedicated launch wallet.",
+  "devBuyLamports": "10000000",
+  "expectedTokensForDevBuy": "353134762944",
+  "minTokensOut": "342540720055",
+  "buybackFeeRecipient": "5YxQFdt3Tr9zJLvkFccqXVUwhdTWJQc1fFg2YPbxvxeD",
+  "simulatedPayer": "Gygj9QQby4j2jryqyqBHvLP7ctv2SaANgh4sCb69BUpA",
   "allOk": true,
   "results": [
     {
       "symbol": "DYNASTY",
-      "name": "Dynasty",
-      "ok": true,
-      "err": null,
-      "bytes": 969,
-      "unitsConsumed": 247226,
-      "steps": [
-        "CreateV2",
-        "CreateFeeSharingConfig",
-        "UpdateFeeSharesV2"
+      "kind": "NATIVE",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 10000
+        }
       ],
-      "failure": null
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 919,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 264083,
+        "payerCostLamports": 11546680,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1134,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 308743,
+        "payerCostLamports": 25277870,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
     },
     {
       "symbol": "STARLET",
-      "name": "Starlet Motel",
-      "ok": true,
-      "err": null,
-      "bytes": 982,
-      "unitsConsumed": 252165,
-      "steps": [
-        "CreateV2",
-        "CreateFeeSharingConfig",
-        "UpdateFeeSharesV2"
+      "kind": "PROPERTY",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 6000
+        },
+        {
+          "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+          "shareBps": 2500
+        },
+        {
+          "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+          "shareBps": 1500
+        }
       ],
-      "failure": null
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 993,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 303564,
+        "payerCostLamports": 12448310,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1208,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 325724,
+        "payerCostLamports": 25831040,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
     },
     {
       "symbol": "KEYS",
-      "name": "Leonida Keys Safehouse",
-      "ok": true,
-      "err": null,
-      "bytes": 997,
-      "unitsConsumed": 250793,
-      "steps": [
-        "CreateV2",
-        "CreateFeeSharingConfig",
-        "UpdateFeeSharesV2"
+      "kind": "PROPERTY",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 6000
+        },
+        {
+          "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+          "shareBps": 2500
+        },
+        {
+          "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+          "shareBps": 1500
+        }
       ],
-      "failure": null
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 999,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 246383,
+        "payerCostLamports": 13001480,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1214,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 337543,
+        "payerCostLamports": 25861520,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
     },
     {
       "symbol": "BAYSIDE",
-      "name": "Bayside Safehouse",
-      "ok": true,
-      "err": null,
-      "bytes": 990,
-      "unitsConsumed": 266972,
-      "steps": [
-        "CreateV2",
-        "CreateFeeSharingConfig",
-        "UpdateFeeSharesV2"
+      "kind": "PROPERTY",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 6000
+        },
+        {
+          "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+          "shareBps": 2500
+        },
+        {
+          "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+          "shareBps": 1500
+        }
       ],
-      "failure": null
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 997,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 259336,
+        "payerCostLamports": 13862470,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1212,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 320496,
+        "payerCostLamports": 26722510,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
     },
     {
       "symbol": "STILT",
-      "name": "Jason's Stilt House",
-      "ok": true,
-      "err": null,
-      "bytes": 991,
-      "unitsConsumed": 261031,
-      "steps": [
-        "CreateV2",
-        "CreateFeeSharingConfig",
-        "UpdateFeeSharesV2"
+      "kind": "PROPERTY",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 6000
+        },
+        {
+          "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+          "shareBps": 2500
+        },
+        {
+          "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+          "shareBps": 1500
+        }
       ],
-      "failure": null
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 997,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 272850,
+        "payerCostLamports": 13862470,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1212,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 322010,
+        "payerCostLamports": 27245200,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
     },
     {
       "symbol": "SHORE",
-      "name": "Shorecourt Garage",
-      "ok": true,
-      "err": null,
-      "bytes": 988,
-      "unitsConsumed": 251916,
-      "steps": [
-        "CreateV2",
-        "CreateFeeSharingConfig",
-        "UpdateFeeSharesV2"
+      "kind": "PROPERTY",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 6000
+        },
+        {
+          "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+          "shareBps": 2500
+        },
+        {
+          "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+          "shareBps": 1500
+        }
       ],
-      "failure": null
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 995,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 241278,
+        "payerCostLamports": 14375000,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1210,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 330938,
+        "payerCostLamports": 27409270,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
     },
     {
       "symbol": "PARADISE",
-      "name": "Paradise Garage",
-      "ok": true,
-      "err": null,
-      "bytes": 987,
-      "unitsConsumed": 262835,
-      "steps": [
-        "CreateV2",
-        "CreateFeeSharingConfig",
-        "UpdateFeeSharesV2"
+      "kind": "PROPERTY",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 6000
+        },
+        {
+          "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+          "shareBps": 2500
+        },
+        {
+          "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+          "shareBps": 1500
+        }
       ],
-      "failure": null
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 996,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 282287,
+        "payerCostLamports": 14554310,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1211,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 329947,
+        "payerCostLamports": 27414350,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
     },
     {
       "symbol": "LENTO",
-      "name": "Key Lento Marina Club",
-      "ok": true,
-      "err": null,
-      "bytes": 996,
-      "unitsConsumed": 274741,
-      "steps": [
-        "CreateV2",
-        "CreateFeeSharingConfig",
-        "UpdateFeeSharesV2"
+      "kind": "PROPERTY",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 6000
+        },
+        {
+          "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+          "shareBps": 2500
+        },
+        {
+          "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+          "shareBps": 1500
+        }
       ],
-      "failure": null
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 999,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 277876,
+        "payerCostLamports": 15789160,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1214,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 346536,
+        "payerCostLamports": 28649200,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
     },
     {
       "symbol": "OCEAN",
-      "name": "Ocean View Hotel",
-      "ok": true,
-      "err": null,
-      "bytes": 986,
-      "unitsConsumed": 257808,
-      "steps": [
-        "CreateV2",
-        "CreateFeeSharingConfig",
-        "UpdateFeeSharesV2"
+      "kind": "PROPERTY",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 6000
+        },
+        {
+          "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+          "shareBps": 2500
+        },
+        {
+          "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+          "shareBps": 1500
+        }
       ],
-      "failure": null
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 994,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 242716,
+        "payerCostLamports": 15763760,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1209,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 342885,
+        "payerCostLamports": 29320720,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
     },
     {
       "symbol": "VENTURE",
-      "name": "Venture Apartments",
-      "ok": true,
-      "err": null,
-      "bytes": 992,
-      "unitsConsumed": 291129,
-      "steps": [
-        "CreateV2",
-        "CreateFeeSharingConfig",
-        "UpdateFeeSharesV2"
+      "kind": "PROPERTY",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 6000
+        },
+        {
+          "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+          "shareBps": 2500
+        },
+        {
+          "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+          "shareBps": 1500
+        }
       ],
-      "failure": null
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 998,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 283803,
+        "payerCostLamports": 16481000,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1213,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 353963,
+        "payerCostLamports": 29341040,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
     },
     {
       "symbol": "PEGASSI",
-      "name": "Pegassi Residences",
-      "ok": true,
-      "err": null,
-      "bytes": 992,
-      "unitsConsumed": 252129,
-      "steps": [
-        "CreateV2",
-        "CreateFeeSharingConfig",
-        "UpdateFeeSharesV2"
+      "kind": "PROPERTY",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 6000
+        },
+        {
+          "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+          "shareBps": 2500
+        },
+        {
+          "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+          "shareBps": 1500
+        }
       ],
-      "failure": null
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 998,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 264303,
+        "payerCostLamports": 17526380,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1213,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 370463,
+        "payerCostLamports": 30386420,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
     },
     {
       "symbol": "MEGA",
-      "name": "Megamundo HQ",
-      "ok": true,
-      "err": null,
-      "bytes": 976,
-      "unitsConsumed": 277450,
-      "steps": [
-        "CreateV2",
-        "CreateFeeSharingConfig",
-        "UpdateFeeSharesV2"
+      "kind": "PROPERTY",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 6000
+        },
+        {
+          "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+          "shareBps": 2500
+        },
+        {
+          "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+          "shareBps": 1500
+        }
       ],
-      "failure": null
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 989,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 241441,
+        "payerCostLamports": 17480660,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1204,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 335601,
+        "payerCostLamports": 30863390,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
     },
     {
       "symbol": "RAW",
-      "name": "Only Raw Records",
-      "ok": true,
-      "err": null,
-      "bytes": 984,
-      "unitsConsumed": 266800,
-      "steps": [
-        "CreateV2",
-        "CreateFeeSharingConfig",
-        "UpdateFeeSharesV2"
+      "kind": "PROPERTY",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 6000
+        },
+        {
+          "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+          "shareBps": 2500
+        },
+        {
+          "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+          "shareBps": 1500
+        }
       ],
-      "failure": null
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 992,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 238564,
+        "payerCostLamports": 18018590,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1207,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 316224,
+        "payerCostLamports": 31749780,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
     },
     {
       "symbol": "RIDEOUT",
-      "name": "Rideout Customs",
-      "ok": true,
-      "err": null,
-      "bytes": 986,
-      "unitsConsumed": 241783,
-      "steps": [
-        "CreateV2",
-        "CreateFeeSharingConfig",
-        "UpdateFeeSharesV2"
+      "kind": "PROPERTY",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 6000
+        },
+        {
+          "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+          "shareBps": 2500
+        },
+        {
+          "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+          "shareBps": 1500
+        }
       ],
-      "failure": null
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 995,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 264235,
+        "payerCostLamports": 18904980,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1210,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 338895,
+        "payerCostLamports": 31765020,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
     },
     {
       "symbol": "DELIGHTS",
-      "name": "Delights Cabaret",
-      "ok": true,
-      "err": null,
-      "bytes": 989,
-      "unitsConsumed": 250394,
-      "steps": [
-        "CreateV2",
-        "CreateFeeSharingConfig",
-        "UpdateFeeSharesV2"
+      "kind": "PROPERTY",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 6000
+        },
+        {
+          "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+          "shareBps": 2500
+        },
+        {
+          "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+          "shareBps": 1500
+        }
       ],
-      "failure": null
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 997,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 248803,
+        "payerCostLamports": 19612060,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1212,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 333963,
+        "payerCostLamports": 32472100,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
     },
     {
-      "symbol": "BOATWORKS",
-      "name": "Brian's Boat Works & Marina",
-      "ok": true,
-      "err": null,
-      "bytes": 1013,
-      "unitsConsumed": 250957,
+      "symbol": "CROSSTOWN",
+      "kind": "PROPERTY",
+      "shareholders": [
+        {
+          "address": "3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV",
+          "shareBps": 6000
+        },
+        {
+          "address": "FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH",
+          "shareBps": 2500
+        },
+        {
+          "address": "A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR",
+          "shareBps": 1500
+        }
+      ],
+      "configMatches": true,
+      "launchOnly": {
+        "ok": true,
+        "err": null,
+        "bytes": 1002,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 294073,
+        "payerCostLamports": 20334380,
+        "tokensReceived": null,
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2"
+        ],
+        "failure": null
+      },
+      "launchWithDevBuy": {
+        "ok": true,
+        "err": null,
+        "bytes": 1217,
+        "lookupTablesUsed": 1,
+        "unitsConsumed": 341733,
+        "payerCostLamports": 32497500,
+        "tokensReceived": "353134691458",
+        "steps": [
+          "CreateV2",
+          "CreateFeeSharingConfig",
+          "UpdateFeeSharesV2",
+          "BuyExactQuoteInV3"
+        ],
+        "failure": null
+      }
+    }
+  ],
+  "controls": {
+    "propertyBrokenSplit": {
+      "ok": false,
+      "err": {
+        "InstructionError": [
+          3,
+          {
+            "Custom": 6014
+          }
+        ]
+      },
+      "bytes": 993,
+      "lookupTablesUsed": 1,
+      "unitsConsumed": 248282,
+      "payerCostLamports": null,
+      "tokensReceived": null,
       "steps": [
         "CreateV2",
         "CreateFeeSharingConfig",
         "UpdateFeeSharesV2"
       ],
-      "failure": null
-    }
-  ],
-  "controlBrokenSplit": {
-    "err": {
-      "InstructionError": [
-        3,
-        {
-          "Custom": 6014
-        }
-      ]
+      "failure": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ failed: custom program error: 0x177e"
     },
-    "failure": "Program log: AnchorError thrown in programs/pump-fees/src/instructions/fee_sharing/update_fee_shares_v2.rs:325. Error Code: InvalidShareTotal. Error Number: 6014. Error Message: Invalid share total - must equal 10_000 basis points."
+    "dynastyNot10000": {
+      "ok": false,
+      "err": {
+        "InstructionError": [
+          3,
+          {
+            "Custom": 6014
+          }
+        ]
+      },
+      "bytes": 919,
+      "lookupTablesUsed": 1,
+      "unitsConsumed": 263719,
+      "payerCostLamports": null,
+      "tokensReceived": null,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2"
+      ],
+      "failure": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ failed: custom program error: 0x177e"
+    },
+    "devBuyMinTokensTooHigh": {
+      "ok": false,
+      "err": {
+        "InstructionError": [
+          5,
+          {
+            "Custom": 6042
+          }
+        ]
+      },
+      "bytes": 1208,
+      "lookupTablesUsed": 1,
+      "unitsConsumed": 319629,
+      "payerCostLamports": null,
+      "tokensReceived": null,
+      "steps": [
+        "CreateV2",
+        "CreateFeeSharingConfig",
+        "UpdateFeeSharesV2",
+        "BuyExactQuoteInV3"
+      ],
+      "failure": "Program 6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P failed: custom program error: 0x179a"
+    }
   }
 }

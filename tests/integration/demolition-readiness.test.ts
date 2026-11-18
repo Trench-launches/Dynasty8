@@ -534,12 +534,13 @@ describe("on-chain fee-sharing configuration checks", () => {
       owner: PUMP_PROGRAMS.fees,
       data: encodeSharingConfig({ mint: ocean.mint, admin: newKey(), revoked: false, holders: [{ address: newKey(), shareBps: 10_000 }] }),
     });
-    expect(await checkFeeSharing()).toEqual({ checked: 2, ok: 1, mismatched: 1 });
+    // $DYNASTY (registered by setupFund, no config here) is checked too under Option C.
+    expect(await checkFeeSharing()).toEqual({ checked: 3, ok: 1, mismatched: 2 });
     const bad = await db().feeSharingCheck.findUniqueOrThrow({ where: { tokenId: ocean.tokenId } });
     expect(bad.issues.join(" | ")).toMatch(/not locked.*missing shareholder.*unexpected shareholder/);
     const s = await getFundSummary();
-    expect(s.feeSharing).toMatchObject({ checked: 2, matching: 1 });
-    expect(s.feeSharing.issues[0]).toMatchObject({ ticker: "OCEAN" });
+    expect(s.feeSharing).toMatchObject({ checked: 3, matching: 1 });
+    expect(s.feeSharing.issues.map((i) => i.ticker).sort()).toEqual(["DYNASTY", "OCEAN"]);
 
     // A later change to a previously matching config is audited.
     h.chain.accounts.set(sharingConfigAddress(starlet.mint), { owner: PUMP_PROGRAMS.fees, data: encodeSharingConfig({ mint: starlet.mint, admin: newKey(), revoked: true, holders: [{ address: newKey(), shareBps: 10_000 }] }) });

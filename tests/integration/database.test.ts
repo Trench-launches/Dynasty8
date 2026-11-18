@@ -33,7 +33,7 @@ describe("migrations and seed", () => {
       expect(p.token?.deploymentStatus).toBe("NOT_LAUNCHED");
       expect(p.token?.ticker).toBe(p.proposedTicker);
     }
-    expect(props.filter((p) => p.catalogueGroup === "A")).toHaveLength(7);
+    expect(props.filter((p) => p.catalogueGroup === "A")).toHaveLength(8); // CROSSTOWN (A) replaced BOATWORKS (B)
   });
 
   it("contains no mint addresses, no pump links, no market data and no admins", async () => {

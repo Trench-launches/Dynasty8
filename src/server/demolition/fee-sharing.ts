@@ -21,10 +21,27 @@ import { decodeSharingConfig, PUMP_PROGRAMS, sharingConfigAddress } from "./pump
  * per event, so a changed config can never redirect booked revenue.
  */
 export interface ExpectedShareholders {
-  mode: "ON_CHAIN_SPLIT" | "FUND_SPLITS";
+  mode: "ON_CHAIN_SPLIT" | "FUND_SPLITS" | "NATIVE_FUND_100";
   holders: { address: string; shareBps: number }[];
 }
 
+/** Which fee policy applies: property coins split 60/25/15; $DYNASTY itself follows NATIVE_FEE_POLICY. */
+export type FeeTokenKind = "PROPERTY" | "NATIVE";
+
+/**
+ * Owner decision 2026-11-18 (Option C): 100% of $DYNASTY's own Pump creator fees go to the FUND
+ * vault and count as buyback revenue. Property coins are unaffected (60/25/15 on-chain split).
+ */
+export const NATIVE_FEE_POLICY = { fundBps: 10_000 } as const;
+
+export async function expectedShareholdersFor(kind: FeeTokenKind): Promise<ExpectedShareholders | null> {
+  if (kind === "PROPERTY") return expectedShareholders();
+  const fund = await getWallet("FUND");
+  if (!fund) return null;
+  return { mode: "NATIVE_FUND_100", holders: [{ address: fund.address, shareBps: NATIVE_FEE_POLICY.fundBps }] };
+}
+
+/** Expected shareholders for PROPERTY coins. */
 export async function expectedShareholders(): Promise<ExpectedShareholders | null> {
   const [cfg, fund, eco, ops] = await Promise.all([getFundConfig(), getWallet("FUND"), getWallet("ECOSYSTEM"), getWallet("OPERATIONS")]);
   if (!fund) return null;
@@ -51,14 +68,15 @@ export function compareShareholders(found: { address: string; shareBps: number }
 }
 
 export async function checkFeeSharing() {
-  const expected = await expectedShareholders();
-  const tokens = await prisma.token.findMany({ where: { isNative: false, mintAddress: { not: null } }, select: { id: true, mintAddress: true } });
+  const expectedFor = { PROPERTY: await expectedShareholdersFor("PROPERTY"), NATIVE: await expectedShareholdersFor("NATIVE") };
+  const tokens = await prisma.token.findMany({ where: { mintAddress: { not: null } }, select: { id: true, mintAddress: true, isNative: true } });
   const { chain } = getDemolitionDeps();
   let ok = 0;
   let bad = 0;
   for (const t of tokens) {
     const mint = t.mintAddress!;
     const sc = sharingConfigAddress(mint);
+    const expected = expectedFor[t.isNative ? "NATIVE" : "PROPERTY"];
     let issues: string[] = [];
     let data: Prisma.FeeSharingCheckUncheckedCreateInput;
     try {

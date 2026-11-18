@@ -31,7 +31,7 @@ export async function getFundSummary(): Promise<FundSummaryDto> {
     pendingBuybackLamports(),
     prisma.buybackRequest.findMany({ where: { status: { in: [...CONFIRMED] } }, orderBy: { swapConfirmedAt: "desc" } }),
     prisma.chainTransaction.findMany({ where: { purpose: "BURN", status: "FINALIZED" }, orderBy: { resolvedAt: "desc" } }),
-    prisma.feeReceipt.findMany({ distinct: ["tokenId"], select: { tokenId: true } }),
+    prisma.feeReceipt.findMany({ where: { propertyId: { not: null } }, distinct: ["propertyId"], select: { propertyId: true } }),
     prisma.reconciliationRun.findFirst({ orderBy: { createdAt: "desc" } }),
     prisma.multisigProposal.findMany({ where: { status: { in: ["PREPARED", "CREATED", "APPROVED"] } }, orderBy: { createdAt: "asc" } }),
     prisma.buybackRequest.findMany({ orderBy: { createdAt: "desc" }, take: 20, include: { proposals: true } }),
@@ -65,6 +65,9 @@ export async function getFundSummary(): Promise<FundSummaryDto> {
       successfulBurns: burns.length,
       feeReceipts: receiptCount,
       contributingProperties: contributing.length,
+      dynastyCreatorFeesLamports: s(
+        native ? ((await prisma.feeReceipt.aggregate({ where: { tokenId: native.id }, _sum: { lamports: true } }))._sum.lamports ?? 0n) : 0n,
+      ),
     },
     latestBuyback:
       latestSwap?.swapSignature && latestSwap.swapConfirmedAt

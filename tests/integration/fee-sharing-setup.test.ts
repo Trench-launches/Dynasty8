@@ -60,6 +60,9 @@ class FakeRpc implements PumpSetupRpc {
   async getLatestBlockhash() {
     return PublicKey.default.toBase58();
   }
+  async getBalance() {
+    return 1_000_000_000;
+  }
   async getSlot() {
     return 1000;
   }

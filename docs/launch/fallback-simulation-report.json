@@ -1,0 +1,144 @@
+{
+  "simulatedAt": "2026-11-18T15:04:49.711Z",
+  "note": "Read-only simulateTransaction (sigVerify=false). Nothing signed or sent. Fallback step 2 (fee-sharing setup on a live coin, incl. sweep) is evidenced by simulate-launch-setup.ts.",
+  "simulatedPayer": "Gygj9QQby4j2jryqyqBHvLP7ctv2SaANgh4sCb69BUpA",
+  "step1CreateOnly": [
+    {
+      "symbol": "DYNASTY",
+      "ok": true,
+      "err": null,
+      "bytes": 886,
+      "unitsConsumed": 120226
+    },
+    {
+      "symbol": "STARLET",
+      "ok": true,
+      "err": null,
+      "bytes": 892,
+      "unitsConsumed": 104351
+    },
+    {
+      "symbol": "KEYS",
+      "ok": true,
+      "err": null,
+      "bytes": 898,
+      "unitsConsumed": 120670
+    },
+    {
+      "symbol": "BAYSIDE",
+      "ok": true,
+      "err": null,
+      "bytes": 896,
+      "unitsConsumed": 102123
+    },
+    {
+      "symbol": "STILT",
+      "ok": true,
+      "err": null,
+      "bytes": 896,
+      "unitsConsumed": 109637
+    },
+    {
+      "symbol": "SHORE",
+      "ok": true,
+      "err": null,
+      "bytes": 894,
+      "unitsConsumed": 103565
+    },
+    {
+      "symbol": "PARADISE",
+      "ok": true,
+      "err": null,
+      "bytes": 895,
+      "unitsConsumed": 113074
+    },
+    {
+      "symbol": "LENTO",
+      "ok": true,
+      "err": null,
+      "bytes": 898,
+      "unitsConsumed": 117663
+    },
+    {
+      "symbol": "OCEAN",
+      "ok": true,
+      "err": null,
+      "bytes": 893,
+      "unitsConsumed": 105003
+    },
+    {
+      "symbol": "VENTURE",
+      "ok": true,
+      "err": null,
+      "bytes": 897,
+      "unitsConsumed": 107090
+    },
+    {
+      "symbol": "PEGASSI",
+      "ok": true,
+      "err": null,
+      "bytes": 897,
+      "unitsConsumed": 108590
+    },
+    {
+      "symbol": "MEGA",
+      "ok": true,
+      "err": null,
+      "bytes": 888,
+      "unitsConsumed": 112728
+    },
+    {
+      "symbol": "RAW",
+      "ok": true,
+      "err": null,
+      "bytes": 891,
+      "unitsConsumed": 103851
+    },
+    {
+      "symbol": "RIDEOUT",
+      "ok": true,
+      "err": null,
+      "bytes": 894,
+      "unitsConsumed": 107022
+    },
+    {
+      "symbol": "DELIGHTS",
+      "ok": true,
+      "err": null,
+      "bytes": 896,
+      "unitsConsumed": 109590
+    },
+    {
+      "symbol": "CROSSTOWN",
+      "ok": true,
+      "err": null,
+      "bytes": 901,
+      "unitsConsumed": 106860
+    }
+  ],
+  "step3DevBuy": {
+    "coin": "494XSMN9UuDEYNQ8QpDxFLeTkj9ZgVT7V569Yjq6pump",
+    "liveReserves": {
+      "virtualTokenReserves": "1055451312795366",
+      "virtualQuoteReserves": "16586261855"
+    },
+    "lamports": "10000000",
+    "expectedTokens": "628110589658",
+    "minTokensOut": "609267271968",
+    "ok": true,
+    "err": null,
+    "bytes": 786,
+    "unitsConsumed": 74364,
+    "tokensReceived": "628110462542",
+    "controlMinTooHigh": {
+      "err": {
+        "InstructionError": [
+          3,
+          {
+            "Custom": 6042
+          }
+        ]
+      }
+    }
+  }
+}
