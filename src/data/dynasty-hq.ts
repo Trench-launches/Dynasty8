@@ -13,4 +13,6 @@ export const DYNASTY_HQ = {
   name: "Dynasty Main Office",
   area: "Vice City",
   location: { x: 610, y: 700, precision: "approximate" } satisfies MapLocation,
+  /** Original AI-generated artwork (ChatGPT), 3:2 like the property photos. Bump -vN when replacing it. */
+  image: "/brand/dynasty-hq-v1.jpg",
 } as const;
