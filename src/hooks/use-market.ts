@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { api, usingMockApi } from "@/lib/api";
 import type { MarketSnapshot } from "@/lib/types";
 
-const POLL_MS = 30_000;
+const POLL_MS = 60_000;
 
 /**
  * Fresh market data for one property, seeded with whatever the list already had.
@@ -29,7 +29,8 @@ export function useMarket(slug: string, initial: MarketSnapshot | null) {
           if (!cancelled) setStatus("error");
         });
     load();
-    const timer = usingMockApi ? null : setInterval(load, POLL_MS);
+    // Background tabs skip refreshes (each one is a Worker request).
+    const timer = usingMockApi ? null : setInterval(() => !document.hidden && load(), POLL_MS);
     return () => {
       cancelled = true;
       if (timer) clearInterval(timer);

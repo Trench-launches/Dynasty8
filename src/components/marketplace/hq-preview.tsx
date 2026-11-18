@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, ExternalLink, MapPin, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DYNASTY_HQ } from "@/data/dynasty-hq";
+import { cardImage } from "@/data/property-images";
 import { formatPrice, formatUsdCompact, shortAddress } from "@/lib/format";
 import { ChangeText, MarketDataTag, TokenStatusBadge } from "@/components/property/badges";
 import type { EcosystemToken } from "@/lib/types";
@@ -29,7 +30,7 @@ export function HqPreview({ token, onClose, compact = false }: HqPreviewProps) {
     <article className="flex flex-col" aria-label={`${DYNASTY_HQ.name} details`}>
       <div className={cn("relative shrink-0 overflow-hidden rounded-t-2xl bg-d8-green", compact ? "h-36" : "h-52")}>
         <Image
-          src={DYNASTY_HQ.image}
+          src={cardImage(DYNASTY_HQ.image)}
           alt="The DYNASTY Main Office: a marble and glass tower with a gold entrance"
           fill
           sizes="(max-width: 1024px) 100vw, 380px"

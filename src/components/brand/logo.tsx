@@ -7,7 +7,8 @@ import { cn } from "@/lib/utils";
  * - dynasty15-logo.png      white house, for the green header / dark backgrounds
  * - dynasty15-logo-dark.png green house, for white pages
  */
-const LOGO = { light: "/brand/dynasty15-logo.png", dark: "/brand/dynasty15-logo-dark.png" } as const;
+// 360px-wide copies (scripts/make-thumbnails.mjs); the logo never shows wider than ~200px.
+const LOGO = { light: "/brand/dynasty15-logo-sm.png", dark: "/brand/dynasty15-logo-dark-sm.png" } as const;
 const LOGO_W = 1024;
 const LOGO_H = 515;
 
