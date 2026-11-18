@@ -4,22 +4,22 @@ Production deployment, DNS, and any infrastructure change need the owner's expli
 
 ## Cloudflare (current host)
 
-The app runs on Cloudflare Workers via [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare), with PostgreSQL hosted elsewhere (Neon). The Worker is `dynasty8`, built from `main` by Workers Builds (push to deploy). Domain: `dynasty15.xyz` (DNS on Cloudflare).
+The app runs on Cloudflare Workers via [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare), with PostgreSQL on Supabase (project `dynasty8`). The Worker is `dynasty8`, built from `main` by Workers Builds (push to deploy). Domain: `dynasty15.xyz` (DNS on Cloudflare).
 
 | Piece | Where | Notes |
 |---|---|---|
 | web + API | Worker `dynasty8` | `wrangler.jsonc`, entry `custom-worker.ts` (wraps the OpenNext build in `.open-next/`) |
 | background jobs | same Worker, Cron Trigger `* * * * *` | `scheduled()` calls `POST /api/internal/tick` with `CRON_SECRET`: one market sync + one Demolition Fund pass per minute (snapshot pruning hourly) |
-| database | Neon PostgreSQL | Optional Hyperdrive binding (`HYPERDRIVE`) in front of it; without it the Worker connects to `DATABASE_URL` directly |
-| migrations | build step | `prisma migrate deploy` before the OpenNext build |
+| database | Supabase PostgreSQL | Optional Hyperdrive binding (`HYPERDRIVE`) in front of it; without it the Worker connects to `DATABASE_URL` directly |
+| migrations + seed | build step | `prisma migrate deploy`, then the idempotent seed (adds missing launch listings, never overwrites edits), before the OpenNext build |
 
 Workers Builds settings (Worker -> Settings -> Build):
 
-- Build command: `npm run db:migrate && npm run build:cf`
+- Build command: `npm run db:migrate && npm run db:seed && npm run build:cf`
 - Deploy command: `npm run deploy`
-- Build variables: `DATABASE_URL` (direct, non-pooled Neon URL; needed by migrations)
+- Build variables: `DATABASE_URL` (Supabase **Session pooler** URL, port 5432; migrations need a session connection)
 
-Worker secrets (Worker -> Settings -> Variables and Secrets), never in files: `DATABASE_URL`, `SOLANA_RPC_URL`, `CRON_SECRET` (any long random string; the background jobs stay off until it is set), and for admin `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `GITHUB_ID`, `GITHUB_SECRET`, plus any provider keys from `.env.example`.
+Worker secrets (Worker -> Settings -> Variables and Secrets), never in files: `DATABASE_URL` (the same Session pooler URL; Supabase's direct host is IPv6-only), `SOLANA_RPC_URL`, `CRON_SECRET` (any long random string; the background jobs stay off until it is set), and for admin `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `GITHUB_ID`, `GITHUB_SECRET`, plus any provider keys from `.env.example`.
 
 Plan: the app needs the Workers Paid plan. The free plan allows 10 ms of CPU per request, which server-rendered pages and the database client exceed.
 
