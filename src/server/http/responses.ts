@@ -1,5 +1,4 @@
 import "server-only";
-import { unstable_rethrow } from "next/navigation";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import type { ApiErrorDto } from "@/contracts/api";
@@ -75,7 +74,9 @@ export function handle<A extends unknown[]>(fn: (...args: A) => Promise<Response
       return await fn(...args);
     } catch (e) {
       // Let Next.js control-flow signals through (e.g. "stop prerendering here" during the
-      // build); only real errors become JSON error responses.
+      // build); only real errors become JSON error responses. Loaded lazily so standalone
+      // scripts (worker, CLI) that import ApiError do not pull in Next's client router.
+      const { unstable_rethrow } = await import("next/navigation");
       unstable_rethrow(e);
       return errorResponse(e);
     }

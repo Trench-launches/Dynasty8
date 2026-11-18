@@ -79,7 +79,7 @@ Types: `src/contracts/demolition-fund.ts`. Details: `docs/DEMOLITION-FUND.md`.
 
 | Endpoint | Use |
 |---|---|
-| `GET /api/demolition-fund/summary` | Fund header: total fees, % split, pending buyback, DYNASTY purchased / burned, latest buyback and burn, paused / breaker state |
+| `GET /api/demolition-fund/summary` | Fund header: total fees, % split, pending buyback, DYNASTY purchased / burned, latest buyback and burn, paused / breaker state. Also `treasury` (allocation mode, balances observed at the last reconciliation — `null` until then —, reserve, liabilities, owed vs paid-direct shares, wallets with multisig `threshold` / `members`), `pendingActions` (multisig proposals waiting for signers), `buybacks` (last 20 with a `verification` status) and `feeSharing` (config check counts and issues) |
 | `GET /api/demolition-fund/properties` | Leaderboard and map overlay: rank, creator fees, buyback share, DYNASTY burned per property, `mapPosition` (null until verified) |
 | `GET /api/demolition-fund/history?limit&before` | Activity feed; pass `nextBefore` to page |
 | `GET /api/demolition-fund/burns` | Burn list with linked buyback |
@@ -91,3 +91,5 @@ Display rules:
 - Show `status.paused` / `status.circuitOpen` as a notice ("Buybacks paused").
 - Link every signature with the provided `explorerUrl`.
 - Contribution `rank` is null for properties with no verified revenue; sort those last.
+- `treasury.fundBalanceLamports` is `null` until the first reconciliation: show "Not observed yet", not 0.
+- The `/fund` page already uses all of these (`src/components/fund/*`). Members sign proposals at `/admin/treasury` (Phantom); see `docs/DEMOLITION-FUND.md` §16.4.

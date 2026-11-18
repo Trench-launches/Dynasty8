@@ -4,6 +4,9 @@ import { prisma } from "@/server/db";
 import { ApiError } from "@/server/http/responses";
 import { recordAudit, type Actor } from "@/server/services/audit";
 import { isValidPublicKey } from "@/server/solana/address";
+import { getConfig } from "@/server/config";
+import { getDemolitionDeps } from "./deps";
+import { assessMultisig, vaultAddress } from "./squads";
 
 type Tx = Prisma.TransactionClient | typeof prisma;
 
@@ -36,8 +39,60 @@ export function assertOperational(cfg: FundConfig) {
   if (cfg.circuitOpen) throw new ApiError(423 as number, "UNPROCESSABLE", `Circuit breaker open: ${cfg.circuitReason ?? "unknown"}`);
 }
 
-export async function setWallet(role: TreasuryRole, address: string, label: string, isMultisig: boolean, actor: Actor) {
+/**
+ * The fund wallet buybacks may act on. In production it must be a verified Squads vault, so
+ * no single key (and no backend hot wallet) can move fund money. A single-signature fund is
+ * accepted only outside production with FUND_ALLOW_SINGLE_SIG=true (local testing).
+ */
+export async function requireExecutableFund(tx: Tx = prisma) {
+  const w = await requireFundWallet(tx);
+  if (w.isMultisig && w.multisigAddress && w.multisigVerifiedAt) return w;
+  const cfg = getConfig();
+  if (cfg.NODE_ENV !== "production" && cfg.FUND_ALLOW_SINGLE_SIG) return w;
+  throw new ApiError(422, "UNPROCESSABLE", "The fund wallet must be a verified Squads multisig vault before buybacks can run");
+}
+
+export interface WalletInput {
+  address: string;
+  label: string;
+  isMultisig: boolean;
+  multisigAddress?: string | null;
+  vaultIndex?: number;
+}
+
+/**
+ * Registers a treasury wallet. A multisig vault is verified on-chain first: the account must
+ * be a Squads v4 multisig whose vault `vaultIndex` is exactly `address`, and it must meet the
+ * minimum policy (threshold >= 2, enough voters, an executor). Fails closed otherwise.
+ */
+export async function setWallet(role: TreasuryRole, input: WalletInput, actor: Actor) {
+  const { address, label, isMultisig } = input;
   if (!isValidPublicKey(address)) throw new ApiError(400, "BAD_REQUEST", "Not a valid Solana address");
+  let multisigFields: { multisigAddress: string | null; vaultIndex: number; multisigThreshold: number | null; multisigMembers: number | null; multisigVerifiedAt: Date | null } = {
+    multisigAddress: null,
+    vaultIndex: 0,
+    multisigThreshold: null,
+    multisigMembers: null,
+    multisigVerifiedAt: null,
+  };
+  let assessmentWarnings: string[] = [];
+  if (isMultisig) {
+    const ms = input.multisigAddress;
+    const vaultIndex = input.vaultIndex ?? 0;
+    if (!ms || !isValidPublicKey(ms)) throw new ApiError(400, "BAD_REQUEST", "multisigAddress is required for a multisig wallet");
+    if (vaultAddress(ms, vaultIndex) !== address) throw new ApiError(422, "UNPROCESSABLE", `Address is not vault ${vaultIndex} of multisig ${ms}`);
+    let info;
+    try {
+      info = await getDemolitionDeps().squads.readMultisig(ms);
+    } catch {
+      throw new ApiError(503, "INTERNAL", "Could not read the multisig from Solana; try again later");
+    }
+    if (!info) throw new ApiError(422, "UNPROCESSABLE", "No Squads v4 multisig exists at that address");
+    const assessment = assessMultisig(info);
+    if (!assessment.ok) throw new ApiError(422, "UNPROCESSABLE", `Multisig does not meet the treasury policy: ${assessment.problems.join("; ")}`);
+    assessmentWarnings = assessment.warnings;
+    multisigFields = { multisigAddress: ms, vaultIndex, multisigThreshold: info.threshold, multisigMembers: info.members.length, multisigVerifiedAt: new Date() };
+  }
   return prisma.$transaction(async (tx) => {
     const before = await tx.treasuryWallet.findUnique({ where: { role } });
     // Changing the fund wallet while money is in flight would orphan it.
@@ -47,11 +102,11 @@ export async function setWallet(role: TreasuryRole, address: string, label: stri
     }
     const after = await tx.treasuryWallet.upsert({
       where: { role },
-      create: { role, address, label, isMultisig },
-      update: { address, label, isMultisig },
+      create: { role, address, label, isMultisig, ...multisigFields },
+      update: { address, label, isMultisig, ...multisigFields },
     });
-    await recordAudit(tx, actor, "fund.wallet_set", "Fund", null, before, after);
-    return after;
+    await recordAudit(tx, actor, "fund.wallet_set", "Fund", null, before, { ...after, warnings: assessmentWarnings });
+    return { ...after, warnings: assessmentWarnings };
   });
 }
 

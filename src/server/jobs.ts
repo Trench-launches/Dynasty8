@@ -3,7 +3,9 @@ import { prisma } from "@/server/db";
 import { logger } from "@/server/logger";
 import { settleAll } from "@/server/demolition/buyback";
 import { createRpcTxSender, runExecutor } from "@/server/demolition/executor";
-import { getWallet } from "@/server/demolition/fund";
+import { checkFeeSharing } from "@/server/demolition/fee-sharing";
+import { getFundConfig, getWallet } from "@/server/demolition/fund";
+import { syncAllProposals } from "@/server/demolition/proposals";
 import { scanFundWallet } from "@/server/demolition/receipts";
 import { reconcile } from "@/server/demolition/reconcile";
 import { pruneSnapshots, syncMarkets } from "@/server/services/market-sync";
@@ -28,11 +30,13 @@ export async function marketSyncPass({ prune = false } = {}) {
   }
 }
 
+const FEE_SHARING_EVERY_MS = 60 * 60_000;
+
 /** Longest a fund pass may hold its lock (RPC scans can be slow). */
 const FUND_PASS_TIMEOUT_MS = 5 * 60_000;
 
 /**
- * One Demolition Fund pass: scan the fund wallet for new fee receipts -> settle submitted
+ * One Demolition Fund pass: scan the fund wallet for new fee receipts -> sync Squads proposals -> settle submitted
  * swaps/burns -> reconcile ledger vs chain -> run the executor (inert unless automated execution
  * is enabled by the owner AND a real signer is configured; neither is true in this release).
  *
@@ -54,10 +58,19 @@ export async function fundPass() {
           return { ran: false as const, reason: "no fund wallet" };
         }
         const scan = await scanFundWallet();
+        // Squads proposals: creation, approvals and execution (execution drives settlement).
+        const proposals = await syncAllProposals();
         const settled = await settleAll();
         const rec = await reconcile();
+        // Hourly: every property's on-chain Pump fee-sharing config vs the expected shareholders.
+        const cfg = await getFundConfig();
+        let feeSharing: unknown = "skipped";
+        if (!cfg.lastFeeSharingCheckAt || Date.now() - cfg.lastFeeSharingCheckAt.getTime() > FEE_SHARING_EVERY_MS) {
+          feeSharing = await checkFeeSharing();
+          await prisma.fundConfig.update({ where: { id: 1 }, data: { lastFeeSharingCheckAt: new Date() } });
+        }
         const exec = await runExecutor(createRpcTxSender());
-        logger.info({ scan, settled, reconciled: rec.ok, exec }, "fund worker pass complete");
+        logger.info({ scan, proposals, settled, reconciled: rec.ok, feeSharing, exec }, "fund worker pass complete");
         return { ran: true as const, reconciled: rec.ok };
       } catch (err) {
         logger.error({ err: err instanceof Error ? err.message : "unknown" }, "fund worker pass failed");

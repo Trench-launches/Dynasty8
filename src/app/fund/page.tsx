@@ -6,6 +6,9 @@ import { FundActivity } from "@/components/fund/fund-activity";
 import { FundLeaderboard } from "@/components/fund/fund-leaderboard";
 import { FundOverview } from "@/components/fund/fund-overview";
 import { FundStats } from "@/components/fund/fund-stats";
+import { FundBurnChart } from "@/components/fund/fund-burn-chart";
+import { FundBuybacks } from "@/components/fund/fund-buybacks";
+import { FundTreasury } from "@/components/fund/fund-treasury";
 import { getCatalogue, getEcosystemToken } from "@/lib/catalogue";
 import { getFundPage } from "@/lib/fund";
 import { formatCount } from "@/lib/format";
@@ -25,7 +28,7 @@ export default function FundPage() {
 }
 
 async function FundContent() {
-  const [{ summary, contributions, history }, properties, ecosystem] = await Promise.all([
+  const [{ summary, contributions, history, burns }, properties, ecosystem] = await Promise.all([
     getFundPage(),
     getCatalogue(),
     getEcosystemToken(),
@@ -55,6 +58,13 @@ async function FundContent() {
 
         <FundOverview summary={summary} />
         <FundStats summary={summary} />
+
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          <FundBuybacks buybacks={summary.buybacks} pending={summary.pendingActions} ticker={dynasty.ticker} decimals={dynasty.decimals} />
+          <FundBurnChart burns={burns} ticker={dynasty.ticker} decimals={dynasty.decimals} />
+        </div>
+
+        <FundTreasury summary={summary} />
 
         <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
           <FundLeaderboard

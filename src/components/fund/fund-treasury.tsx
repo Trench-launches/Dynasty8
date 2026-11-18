@@ -1,0 +1,140 @@
+import { CheckCircle2, ExternalLink, ShieldCheck, TriangleAlert } from "lucide-react";
+import { shortAddress } from "@/lib/format";
+import { formatBps, formatFundDate, formatSol, formatTokenAmount } from "@/lib/fund-format";
+import type { FundSummaryDto } from "@/contracts/demolition-fund";
+
+const solscanAccount = (address: string) => `https://solscan.io/account/${address}`;
+
+const ROLE_LABEL = { FUND: "Demolition Fund", ECOSYSTEM: "Ecosystem treasury", OPERATIONS: "Operations treasury" } as const;
+
+/**
+ * Treasury transparency: balances observed on-chain at the last reconciliation, what the
+ * ledger says the fund must still hold, the treasury wallets and their multisig thresholds,
+ * and whether every property's Pump fee-sharing config pays the expected wallets.
+ * Shows explicit empty states until there is verified data; never estimates.
+ */
+export function FundTreasury({ summary }: { summary: FundSummaryDto }) {
+  const { treasury: t, allocation: a, feeSharing: fs, dynasty } = summary;
+  const ticker = `$${dynasty.ticker}`;
+  const split = t.allocationMode === "ON_CHAIN_SPLIT";
+
+  return (
+    <section aria-labelledby="fund-treasury" className="min-w-0 rounded-md border border-[#ced4da] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+      <header className="flex flex-wrap items-end justify-between gap-2 border-b border-[#dee2e6] px-4 py-3">
+        <div>
+          <p className="text-[11px] font-semibold tracking-[0.14em] text-[#868e96] uppercase">Transparency</p>
+          <h2 id="fund-treasury" className="font-display text-2xl leading-tight font-bold text-[#212529]">
+            Treasury <span className="text-d8-green">balances</span>
+          </h2>
+        </div>
+        <p className="max-w-md text-xs text-[#6c757d]">
+          {split
+            ? `Pump.fun pays each property's fees straight to three wallets: ${formatBps(a.buybackBps)} to the fund, ${formatBps(a.ecosystemBps)} ecosystem, ${formatBps(a.operationsBps)} operations.`
+            : `The fund receives all property fees and passes on ${formatBps(a.ecosystemBps)} ecosystem and ${formatBps(a.operationsBps)} operations.`}
+        </p>
+      </header>
+
+      <dl className="grid gap-px bg-[#dee2e6] sm:grid-cols-2 lg:grid-cols-4">
+        <Cell
+          label="Fund balance (on-chain)"
+          value={t.fundBalanceLamports ? formatSol(t.fundBalanceLamports) : "Not observed yet"}
+          note={t.balanceObservedAt ? `Read ${formatFundDate(t.balanceObservedAt)}` : "Shown after the first reconciliation"}
+          muted={!t.fundBalanceLamports}
+        />
+        <Cell label="Verified revenue held" value={formatSol(t.liabilitiesLamports)} note="Unspent buyback share + shares owed onward" />
+        <Cell label="Reserve" value={formatSol(t.reserveLamports)} note="Kept for network fees; never spent on buybacks" />
+        <Cell label={`${ticker} awaiting burn`} value={`${formatTokenAmount(t.unburnedDynastyRaw, dynasty.decimals)} ${ticker}`} note="Bought but not yet burned" />
+        {split ? (
+          <>
+            <Cell label="Paid to ecosystem" value={formatSol(t.ecosystemPaidDirectLamports)} note="Directly by Pump.fun fee sharing" />
+            <Cell label="Paid to operations" value={formatSol(t.operationsPaidDirectLamports)} note="Directly by Pump.fun fee sharing" />
+          </>
+        ) : (
+          <>
+            <Cell label="Owed to ecosystem" value={formatSol(t.ecosystemOwedLamports)} note="Held by the fund until disbursed" />
+            <Cell label="Owed to operations" value={formatSol(t.operationsOwedLamports)} note="Held by the fund until disbursed" />
+          </>
+        )}
+        <Cell
+          label="Fee-sharing checks"
+          value={fs.checked === 0 ? "No tokens live yet" : `${fs.matching} of ${fs.checked} verified`}
+          note={fs.lastCheckedAt ? `Checked ${formatFundDate(fs.lastCheckedAt)}` : "Each property's Pump config is read on-chain"}
+          muted={fs.checked === 0}
+        />
+        <Cell
+          label="Reconciliation"
+          value={summary.status.lastReconciliation ? (summary.status.lastReconciliation.ok ? "Balanced" : "Shortfall") : "Not run yet"}
+          note={summary.status.lastReconciliation ? formatFundDate(summary.status.lastReconciliation.at) : "Ledger vs chain"}
+          muted={!summary.status.lastReconciliation}
+        />
+      </dl>
+
+      <div className="grid gap-4 px-4 py-4 lg:grid-cols-2">
+        <div className="min-w-0">
+          <h3 className="text-[11px] font-semibold tracking-[0.14em] text-[#868e96] uppercase">Treasury wallets</h3>
+          {t.wallets.length === 0 ? (
+            <p className="mt-2 text-sm text-[#868e96]">Treasury wallets have not been registered yet.</p>
+          ) : (
+            <ul className="mt-2 divide-y divide-[#dee2e6] rounded-[3px] border border-[#dee2e6]">
+              {t.wallets.map((w) => (
+                <li key={w.role} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <span className="min-w-0">
+                    <span className="block font-semibold text-[#212529]">{ROLE_LABEL[w.role]}</span>
+                    <span className="flex items-center gap-1 text-xs text-[#6c757d]">
+                      {w.isMultisig && w.threshold ? (
+                        <>
+                          <ShieldCheck className="size-3.5 text-d8-green" aria-hidden /> Squads multisig, {w.threshold} of {w.members} signers
+                        </>
+                      ) : (
+                        "Single-signature wallet"
+                      )}
+                    </span>
+                  </span>
+                  <a
+                    href={solscanAccount(w.address)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-[3px] border border-[#ced4da] px-2 py-0.5 text-xs font-semibold text-d8-green hover:border-d8-green"
+                  >
+                    {shortAddress(w.address)} <ExternalLink className="size-3" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-[11px] font-semibold tracking-[0.14em] text-[#868e96] uppercase">Property fee sharing</h3>
+          {fs.checked === 0 ? (
+            <p className="mt-2 text-sm text-[#868e96]">No property token has launched, so there is nothing to check yet.</p>
+          ) : fs.issues.length === 0 ? (
+            <p className="mt-2 flex items-center gap-1.5 text-sm text-d8-green">
+              <CheckCircle2 className="size-4" aria-hidden /> Every live property pays the expected wallets, and its shares are locked.
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-1.5">
+              {fs.issues.map((i) => (
+                <li key={i.mint} className="rounded-[3px] border border-[#ffe08a] bg-[#fff9e6] px-3 py-2 text-xs text-[#664d03]">
+                  <span className="flex items-center gap-1 font-semibold">
+                    <TriangleAlert className="size-3.5" aria-hidden /> ${i.ticker}
+                  </span>
+                  {i.issues.join("; ")}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Cell({ label, value, note, muted = false }: { label: string; value: string; note: string; muted?: boolean }) {
+  return (
+    <div className="min-w-0 bg-white px-4 py-3">
+      <dt className="truncate text-[10px] tracking-wider text-[#868e96] uppercase">{label}</dt>
+      <dd className={`mt-0.5 truncate text-lg font-semibold tabular-nums ${muted ? "text-[#868e96]" : "text-[#212529]"}`}>{value}</dd>
+      <dd className="truncate text-xs text-[#6c757d]">{note}</dd>
+    </div>
+  );
+}

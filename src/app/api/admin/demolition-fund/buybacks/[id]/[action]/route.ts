@@ -13,11 +13,14 @@ import {
   swapProposal,
 } from "@/server/demolition/buyback";
 import { ApiError, handle, json, readJsonBody } from "@/server/http/responses";
+import { prepareProposal } from "@/server/demolition/proposals";
+import { publicKeySchema } from "@/server/solana/address";
 
 const idSchema = z.string().regex(/^[a-z0-9]{20,40}$/);
 const sig = z.object({ signature: z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{64,88}$/) }).strict();
 const note = z.object({ note: z.string().trim().max(300).optional() }).strict();
 const reason = z.object({ reason: z.string().trim().min(3).max(300) }).strict();
+const proposeBody = z.object({ creator: publicKeySchema }).strict();
 
 type Ctx = { params: Promise<{ id: string; action: string }> };
 
@@ -27,6 +30,8 @@ type Ctx = { params: Promise<{ id: string; action: string }> };
  *   approve          one approval per admin; the creator cannot approve their own request
  *   cancel           release reserved revenue (only before any swap)
  *   swap-proposal    validated swap instructions for the multisig to execute
+ *   propose-swap     {creator}: unsigned Squads proposal (vault tx + proposal) for a member to sign
+ *   propose-burn     {creator}: same for the burn of exactly the purchased tokens
  *   swap-submitted   {signature} of the executed multisig swap; verified when finalized
  *   burn-proposal    BurnChecked instruction for exactly the purchased tokens
  *   burn-submitted   {signature} of the executed burn; verified when finalized
@@ -53,6 +58,12 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
         lookupTables: build.lookupTables,
         quote: { inAmount: build.inAmount, outAmount: build.outAmount, minOut: build.minOut, priceImpactBps: build.priceImpactBps, route: build.routeLabels },
       });
+    }
+    case "propose-swap":
+    case "propose-burn": {
+      // Returns an UNSIGNED Squads proposal-creation transaction for a multisig member.
+      const { creator } = proposeBody.parse(await readJsonBody(req));
+      return json(await prepareProposal(requestId, p.action === "propose-swap" ? "SWAP" : "BURN", creator, actor));
     }
     case "swap-submitted":
       return json(await recordSwapSubmission(requestId, sig.parse(await readJsonBody(req)).signature, actor));

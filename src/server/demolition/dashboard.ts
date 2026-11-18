@@ -6,6 +6,7 @@ import type {
   FundSummaryDto,
   FundTransactionDto,
   PropertyContributionDto,
+  BuybackVerification,
 } from "@/contracts/demolition-fund";
 import { prisma } from "@/server/db";
 import { ApiError } from "@/server/http/responses";
@@ -19,20 +20,29 @@ const s = (n: bigint | null | undefined) => (n ?? 0n).toString();
 const CONFIRMED = ["SWAP_CONFIRMED", "BURN_SUBMITTED", "BURNED"] as const;
 
 export async function getFundSummary(): Promise<FundSummaryDto> {
-  const [cfg, fund, native, receipts, totals, pending, swaps, burns, contributing, lastRun] = await Promise.all([
+  const [cfg, fund, wallets, native, allocTotals, receiptCount, totals, pending, swaps, burns, contributing, lastRun, openProposals, recent, checks] = await Promise.all([
     getFundConfig(),
     getWallet("FUND"),
+    prisma.treasuryWallet.findMany({ orderBy: { role: "asc" } }),
     prisma.token.findFirst({ where: { isNative: true } }),
-    prisma.feeReceipt.aggregate({ _sum: { lamports: true }, _count: true }),
+    prisma.revenueAllocation.aggregate({ _sum: { buybackLamports: true, ecosystemLamports: true, operationsLamports: true } }),
+    prisma.feeReceipt.count(),
     ledgerTotals(),
     pendingBuybackLamports(),
     prisma.buybackRequest.findMany({ where: { status: { in: [...CONFIRMED] } }, orderBy: { swapConfirmedAt: "desc" } }),
     prisma.chainTransaction.findMany({ where: { purpose: "BURN", status: "FINALIZED" }, orderBy: { resolvedAt: "desc" } }),
     prisma.feeReceipt.findMany({ distinct: ["tokenId"], select: { tokenId: true } }),
     prisma.reconciliationRun.findFirst({ orderBy: { createdAt: "desc" } }),
+    prisma.multisigProposal.findMany({ where: { status: { in: ["PREPARED", "CREATED", "APPROVED"] } }, orderBy: { createdAt: "asc" } }),
+    prisma.buybackRequest.findMany({ orderBy: { createdAt: "desc" }, take: 20, include: { proposals: true } }),
+    prisma.feeSharingCheck.findMany({ orderBy: { checkedAt: "desc" } }),
   ]);
   const latestSwap = swaps[0];
   const latestBurn = burns[0];
+  // Creator fees credited to the ecosystem: the fund's share plus any shares Pump paid straight
+  // to the ecosystem / operations wallets (ON_CHAIN_SPLIT).
+  const creatorFees = (allocTotals._sum.buybackLamports ?? 0n) + (allocTotals._sum.ecosystemLamports ?? 0n) + (allocTotals._sum.operationsLamports ?? 0n);
+  const tokenTickers = new Map((await prisma.token.findMany({ where: { id: { in: checks.map((c) => c.tokenId) } }, select: { id: true, ticker: true } })).map((t) => [t.id, t.ticker]));
   return {
     fundWallet: fund?.address ?? null,
     dynasty: {
@@ -43,7 +53,7 @@ export async function getFundSummary(): Promise<FundSummaryDto> {
     },
     allocation: { buybackBps: cfg.buybackBps, ecosystemBps: cfg.ecosystemBps, operationsBps: cfg.operationsBps },
     totals: {
-      creatorFeesLamports: s(receipts._sum.lamports),
+      creatorFeesLamports: s(creatorFees),
       buybackAllocatedLamports: s(totals.buybackAllocated),
       ecosystemAllocatedLamports: s(totals.ecosystemAllocated),
       operationsAllocatedLamports: s(totals.operationsAllocated),
@@ -53,7 +63,7 @@ export async function getFundSummary(): Promise<FundSummaryDto> {
       dynastyBurnedRaw: s(sumBig(burns.map((b) => b.amount ?? 0n))),
       successfulBuybacks: swaps.length,
       successfulBurns: burns.length,
-      feeReceipts: receipts._count,
+      feeReceipts: receiptCount,
       contributingProperties: contributing.length,
     },
     latestBuyback:
@@ -73,7 +83,81 @@ export async function getFundSummary(): Promise<FundSummaryDto> {
       circuitOpen: cfg.circuitOpen,
       lastReconciliation: lastRun ? { ok: lastRun.ok, at: lastRun.createdAt.toISOString() } : null,
     },
+    treasury: {
+      allocationMode: cfg.allocationMode,
+      fundBalanceLamports: lastRun ? lastRun.chainLamports.toString() : null,
+      fundDynastyRaw: lastRun ? lastRun.chainTokenRaw.toString() : null,
+      balanceObservedAt: lastRun ? lastRun.createdAt.toISOString() : null,
+      reserveLamports: s(cfg.reserveLamports),
+      liabilitiesLamports: s(totals.liabilities),
+      ecosystemOwedLamports: s(totals.ecosystemOwed),
+      operationsOwedLamports: s(totals.operationsOwed),
+      ecosystemPaidDirectLamports: s(totals.ecosystemPaidDirect),
+      operationsPaidDirectLamports: s(totals.operationsPaidDirect),
+      unburnedDynastyRaw: s(totals.unburnedTokens),
+      wallets: wallets.map((w) => ({
+        role: w.role,
+        address: w.address,
+        isMultisig: w.isMultisig,
+        threshold: w.multisigThreshold,
+        members: w.multisigMembers,
+        verifiedAt: w.multisigVerifiedAt?.toISOString() ?? null,
+      })),
+    },
+    pendingActions: openProposals.map((p) => ({
+      buybackId: p.requestId,
+      purpose: p.purpose as "SWAP" | "BURN",
+      status: p.status as "PREPARED" | "CREATED" | "APPROVED",
+      approvals: p.approvals,
+      threshold: p.threshold,
+      transactionIndex: p.transactionIndex.toString(),
+      proposalPda: p.proposalPda,
+      amount: p.amount.toString(),
+      createdAt: p.createdAt.toISOString(),
+    })),
+    buybacks: recent.map((r) => ({
+      id: r.id,
+      createdAt: r.createdAt.toISOString(),
+      verification: buybackVerification(r.status, r.proposals),
+      budgetLamports: s(r.budgetLamports),
+      solSpentLamports: r.solSpentLamports !== null ? r.solSpentLamports.toString() : null,
+      dynastyPurchasedRaw: r.tokensReceivedRaw !== null ? r.tokensReceivedRaw.toString() : null,
+      dynastyBurnedRaw: s(r.tokensBurnedRaw),
+      swapSignature: r.swapSignature,
+      burnSignature: r.status === "BURNED" || r.tokensBurnedRaw > 0n ? r.burnSignature : null,
+      confirmedAt: r.swapConfirmedAt?.toISOString() ?? null,
+      burnedAt: r.burnedAt?.toISOString() ?? null,
+    })),
+    feeSharing: {
+      checked: checks.length,
+      matching: checks.filter((c) => c.matches).length,
+      lastCheckedAt: checks[0]?.checkedAt.toISOString() ?? null,
+      issues: checks.filter((c) => !c.matches).map((c) => ({ ticker: tokenTickers.get(c.tokenId) ?? "", mint: c.mint, issues: c.issues })),
+    },
   };
+}
+
+function buybackVerification(status: string, proposals: { purpose: string; status: string }[]): BuybackVerification {
+  const swapProposal = proposals.find((p) => p.purpose === "SWAP" && ["PREPARED", "CREATED", "APPROVED"].includes(p.status));
+  switch (status) {
+    case "PLANNED":
+    case "QUOTED":
+      return "PLANNED";
+    case "APPROVED":
+      return swapProposal ? (swapProposal.status === "APPROVED" ? "AWAITING_EXECUTION" : "AWAITING_APPROVAL") : "AWAITING_APPROVAL";
+    case "SWAP_SUBMITTED":
+      return "SWAP_PENDING";
+    case "SWAP_CONFIRMED":
+      return "PURCHASE_VERIFIED";
+    case "BURN_SUBMITTED":
+      return "BURN_PENDING";
+    case "BURNED":
+      return "BURN_VERIFIED";
+    case "CANCELLED":
+      return "CANCELLED";
+    default:
+      return "FAILED";
+  }
 }
 
 async function propertyIndex() {
@@ -127,7 +211,9 @@ export async function getPropertyContributions(): Promise<PropertyContributionDt
   const last = new Map<string, Date>();
   for (const r of receipts) {
     if (!r.propertyId) continue;
-    fees.set(r.propertyId, (fees.get(r.propertyId) ?? 0n) + r.lamports);
+    // Everything this property's fees credited to the ecosystem (fund share + any direct shares).
+    const credited = r.allocation ? r.allocation.buybackLamports + r.allocation.ecosystemLamports + r.allocation.operationsLamports : r.lamports;
+    fees.set(r.propertyId, (fees.get(r.propertyId) ?? 0n) + credited);
     buyback.set(r.propertyId, (buyback.get(r.propertyId) ?? 0n) + (r.allocation?.buybackLamports ?? 0n));
     count.set(r.propertyId, (count.get(r.propertyId) ?? 0) + 1);
     const at = r.blockTime ?? r.createdAt;

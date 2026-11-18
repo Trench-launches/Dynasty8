@@ -15,8 +15,11 @@ import { sumBig } from "./money";
  * - disbursed: verified SOL transfers to the ecosystem / operations wallets
  */
 export async function ledgerTotals() {
-  const [alloc, disb, spent, unburned] = await Promise.all([
+  const [alloc, held, disb, spent, unburned] = await Promise.all([
     prisma.revenueAllocation.aggregate({ _sum: { buybackLamports: true, ecosystemLamports: true, operationsLamports: true } }),
+    // Only shares the fund itself received (FUND_SPLITS) are owed onward; ON_CHAIN_SPLIT shares
+    // were paid by Pump straight to the ecosystem / operations wallets.
+    prisma.revenueAllocation.aggregate({ _sum: { ecosystemLamports: true, operationsLamports: true }, where: { paidDirect: false } }),
     prisma.disbursement.groupBy({ by: ["role"], _sum: { lamports: true } }),
     prisma.buybackRequest.aggregate({ _sum: { solSpentLamports: true }, where: { status: { in: ["SWAP_CONFIRMED", "BURN_SUBMITTED", "BURNED"] } } }),
     prisma.buybackRequest.findMany({ where: { status: { in: ["SWAP_CONFIRMED", "BURN_SUBMITTED"] } }, select: { tokensReceivedRaw: true, tokensBurnedRaw: true } }),
@@ -26,15 +29,25 @@ export async function ledgerTotals() {
   const ecosystem = alloc._sum.ecosystemLamports ?? 0n;
   const operations = alloc._sum.operationsLamports ?? 0n;
   const spentOnBuybacks = spent._sum.solSpentLamports ?? 0n;
+  const ecosystemHeld = held._sum.ecosystemLamports ?? 0n;
+  const operationsHeld = held._sum.operationsLamports ?? 0n;
+  const ecosystemOwed = ecosystemHeld - disbursed("ECOSYSTEM");
+  const operationsOwed = operationsHeld - disbursed("OPERATIONS");
   return {
     buybackAllocated: buyback,
     ecosystemAllocated: ecosystem,
     operationsAllocated: operations,
+    /** Shares paid by Pump straight to the role wallets (ON_CHAIN_SPLIT). */
+    ecosystemPaidDirect: ecosystem - ecosystemHeld,
+    operationsPaidDirect: operations - operationsHeld,
     spentOnBuybacks,
     ecosystemDisbursed: disbursed("ECOSYSTEM"),
     operationsDisbursed: disbursed("OPERATIONS"),
-    /** SOL the fund must still hold: unspent buyback money + undisbursed shares. */
-    liabilities: buyback - spentOnBuybacks + (ecosystem - disbursed("ECOSYSTEM")) + (operations - disbursed("OPERATIONS")),
+    /** Ecosystem / operations money the fund still holds for onward transfer. */
+    ecosystemOwed,
+    operationsOwed,
+    /** SOL the fund must still hold: unspent buyback money + shares still owed onward. */
+    liabilities: buyback - spentOnBuybacks + ecosystemOwed + operationsOwed,
     /** Purchased tokens the fund must still hold until burned. */
     unburnedTokens: sumBig(unburned.map((r) => (r.tokensReceivedRaw ?? 0n) - r.tokensBurnedRaw)),
   };
@@ -85,7 +98,8 @@ export async function recordDisbursement(signature: string, role: "ECOSYSTEM" | 
   const received = lamportDelta(tx, dest.address);
   if (received <= 0n || lamportDelta(tx, fund.address) >= 0n) throw new ApiError(422, "UNPROCESSABLE", "No SOL moved from the fund to that wallet");
   const totals = await ledgerTotals();
-  const owed = role === "ECOSYSTEM" ? totals.ecosystemAllocated - totals.ecosystemDisbursed : totals.operationsAllocated - totals.operationsDisbursed;
+  // Only money the fund itself holds for that role can be disbursed (never shares Pump already paid directly).
+  const owed = role === "ECOSYSTEM" ? totals.ecosystemOwed : totals.operationsOwed;
   if (received > owed) throw new ApiError(422, "UNPROCESSABLE", `Transfer exceeds the ${role.toLowerCase()} allocation still held (${owed} lamports)`);
   return prisma.$transaction(async (db) => {
     if (await db.disbursement.findUnique({ where: { signature } })) throw new ApiError(409, "CONFLICT", "Disbursement already recorded");
