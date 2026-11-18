@@ -160,6 +160,7 @@ export function Marketplace({
           hoveredSlug={hoveredSlug}
           onSelect={select}
           onHover={setHoveredSlug}
+          hqToken={ecosystem}
         />
       </aside>
 
@@ -218,6 +219,7 @@ export function Marketplace({
               hoveredSlug={hoveredSlug}
               onSelect={selectFromList}
               onHover={setHoveredSlug}
+              hqToken={ecosystem}
               className="pb-20"
             />
           </div>
