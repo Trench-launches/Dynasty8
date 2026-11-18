@@ -18,7 +18,7 @@ import {
 } from "@/server/demolition/buyback";
 import { checkFeeSharing } from "@/server/demolition/fee-sharing";
 import { setWallet, updateFundConfig } from "@/server/demolition/fund";
-import { acquireLease, releaseLease } from "@/server/demolition/lease";
+import { fundPass } from "@/server/jobs";
 import { prepareProposal, syncAllProposals, type PreparedProposal } from "@/server/demolition/proposals";
 import { encodeDistributeEvent, PUMP_PROGRAMS, sharingConfigAddress, SHARING_CONFIG_DISCRIMINATOR } from "@/server/demolition/pump-fees";
 import { scanFundWallet, verifyAndRecordReceipt } from "@/server/demolition/receipts";
@@ -496,16 +496,12 @@ describe("concurrent workers", () => {
     expect(await db().auditLog.count({ where: { action: "buyback.swap_confirmed" } })).toBe(1);
   });
 
-  it("grants the worker lease to one owner at a time and lets an expired lease be taken over", async () => {
-    const t0 = new Date();
-    expect(await acquireLease("worker-a", 60_000, t0)).toBe(true);
-    expect(await acquireLease("worker-b", 60_000, t0)).toBe(false);
-    expect(await acquireLease("worker-a", 60_000, t0)).toBe(true); // renewal
-    expect(await acquireLease("worker-b", 60_000, new Date(t0.getTime() + 61_000))).toBe(true); // expired
-    await releaseLease("worker-a"); // not the holder: no effect
-    expect(await acquireLease("worker-a", 60_000, new Date(t0.getTime() + 62_000))).toBe(false);
-    await releaseLease("worker-b");
-    expect(await acquireLease("worker-a", 60_000, new Date(t0.getTime() + 63_000))).toBe(true);
+  it("runs one fund pass at a time (transaction-scoped lock) and includes proposal sync and the fee-sharing check", async () => {
+    const [x, y] = await Promise.all([fundPass(), fundPass()]);
+    expect([x, y].filter((r) => r.ran)).toHaveLength(1);
+    expect([x, y].find((r) => !r.ran)).toMatchObject({ reason: "locked" });
+    expect((await db().fundConfig.findUniqueOrThrow({ where: { id: 1 } })).lastFeeSharingCheckAt).not.toBeNull();
+    expect(await fundPass()).toMatchObject({ ran: true }); // the lock is released when a pass ends
   });
 });
 

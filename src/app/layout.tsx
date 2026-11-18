@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: {
-    default: "DYNASTY — Leonida Property Market",
+    default: "DYNASTY",
     template: "%s · DYNASTY",
   },
   description:

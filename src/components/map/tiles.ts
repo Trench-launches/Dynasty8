@@ -66,7 +66,9 @@ export function tileRect(z: number, row: number, col: number) {
   };
 }
 
-export const tileUrl = (z: number, row: number, col: number) => `${TILE_ROOT}/${z}/${z},${row},${col}.jpg`;
+// Commas are sent percent-encoded: Cloudflare's static asset server answers a raw "," with a redirect
+// to the encoded form, which would add a round trip per tile. Node serves both forms.
+export const tileUrl = (z: number, row: number, col: number) => `${TILE_ROOT}/${z}/${z}%2C${row}%2C${col}.jpg`;
 
 /** The island (with the Keys) in map units: what the camera frames at home. */
 export const ISLAND_VIEW = { x: 160, y: 170, w: 790, h: 1060 } as const;

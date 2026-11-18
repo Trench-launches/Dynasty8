@@ -1,5 +1,4 @@
 import "server-only";
-import { cacheLife } from "next/cache";
 import { connection } from "next/server";
 import { usingMockApi } from "@/lib/api";
 import { MOCK_PROPERTIES } from "@/data/properties";
@@ -19,7 +18,7 @@ export const FUND_HISTORY_PAGE = 20;
 
 /**
  * Server-side reads for the Demolition Fund page, same pattern as src/lib/catalogue.ts:
- * per request (never at build time), cached for a few seconds.
+ * per request (never at build time).
  */
 export async function getFundPage(): Promise<FundPageData> {
   if (usingMockApi) return mockFund();
@@ -28,8 +27,6 @@ export async function getFundPage(): Promise<FundPageData> {
 }
 
 async function dbFund(): Promise<FundPageData> {
-  "use cache";
-  cacheLife("seconds");
   const [summary, contributions, history, burns] = await Promise.all([
     getFundSummary(),
     getPropertyContributions(),

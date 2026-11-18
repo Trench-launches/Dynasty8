@@ -89,13 +89,13 @@ PLANNED ──quote──▶ QUOTED ──approvals──▶ APPROVED ──sign
 6. **Burn** (`…/burn-proposal` → multisig → `…/burn-submitted`): exactly the purchased, unburned amount; fund must hold it; BurnChecked with the mint's token program (SPL or Token-2022, detected on-chain) and decimals.
 7. **Settle burn**: finalized, successful, parsed burn/burnChecked of DYNASTY by the fund (top-level or inner), amount equal to the fund's balance drop and ≤ outstanding. Partial → stays SWAP_CONFIRMED with the remainder; failed → back to SWAP_CONFIRMED with tokens retained; a second swap is impossible from that state.
 
-Safety controls: per-tx cap, daily cap, minimum size, reserve, min liquidity, max price impact, slippage, cooldown, circuit breaker (N consecutive failures, mismatched executions, reconciliation shortfall), emergency pause (any EDITOR can pause, only ADMIN resumes; verification continues while paused), idempotent jobs, single-flight worker lease (database row with expiry, safe with pooled connections), block-height expiry, multisig execution binding (§9.2).
+Safety controls: per-tx cap, daily cap, minimum size, reserve, min liquidity, max price impact, slippage, cooldown, circuit breaker (N consecutive failures, mismatched executions, reconciliation shortfall), emergency pause (any EDITOR can pause, only ADMIN resumes; verification continues while paused), idempotent jobs, single-flight fund pass (transaction-scoped advisory lock, safe with pooled connections), block-height expiry, multisig execution binding (§9.2).
 
 ## 5. Accounting and reconciliation
 
 All amounts are `BigInt` columns (lamports / raw token units); database CHECKs enforce bps summing to 10,000, non-negative amounts, `tokensBurned ≤ tokensReceived`, and the singleton config.
 
-Tables: `TreasuryWallet`, `FundConfig`, `FeeReceipt` (unique signature+event), `RevenueAllocation` (one per receipt), `BuybackRequest` (state machine, unique swap signature), `BuybackFunding` (allocation → request), `BuybackApproval` (unique per admin), `ChainTransaction` (every swap/burn/disbursement signature with status, slot, attempt, last-valid height), `Disbursement`, `ReconciliationRun`, plus `AuditLog` for every action. Migration: `prisma/migrations/20261117133901_demolition_fund`. Readiness additions (`20261118095539_multisig_proposals_fee_sharing`): `MultisigProposal` (one live proposal per buyback step, enforced by a partial unique index), `FeeSharingCheck`, multisig fields on `TreasuryWallet`, `allocationMode` and the worker lease on `FundConfig`, and `RevenueAllocation.paidDirect`.
+Tables: `TreasuryWallet`, `FundConfig`, `FeeReceipt` (unique signature+event), `RevenueAllocation` (one per receipt), `BuybackRequest` (state machine, unique swap signature), `BuybackFunding` (allocation → request), `BuybackApproval` (unique per admin), `ChainTransaction` (every swap/burn/disbursement signature with status, slot, attempt, last-valid height), `Disbursement`, `ReconciliationRun`, plus `AuditLog` for every action. Migration: `prisma/migrations/20261117133901_demolition_fund`. Readiness additions (`20261118095539_multisig_proposals_fee_sharing`): `MultisigProposal` (one live proposal per buyback step, enforced by a partial unique index), `FeeSharingCheck`, multisig fields on `TreasuryWallet`, `allocationMode` on `FundConfig` (its `workerLeaseOwner` / `workerLeaseUntil` columns are unused since the merge in §9.4), and `RevenueAllocation.paidDirect`.
 
 Reconciliation (worker every pass, or `POST …/reconcile`): the fund's on-chain SOL must be ≥ liabilities (unspent buyback allocations + undisbursed ecosystem/operations shares that the fund actually holds; shares Pump paid directly to those wallets are excluded) and its DYNASTY balance ≥ purchased-but-unburned tokens. A shortfall opens the circuit breaker.
 
@@ -182,7 +182,7 @@ A mismatch shows as an issue on the public page. RPC failures skip the token rat
 5. run the fee-sharing check (hourly);
 6. run the executor (inert without a managed signer).
 
-A single-flight lease (a row on `FundConfig` with an owner and an expiry, set by an atomic UPDATE) replaced a session advisory lock that was unsafe with a connection pool. During an RPC outage the scan stops without advancing its cursor.
+Since `main` added Cloudflare deployment, the pass is `fundPass()` in `src/server/jobs.ts`. It is run by `npm run fund:worker` and, on Cloudflare, once a minute by the cron tick (`/api/internal/tick`). One pass runs at a time through a transaction-scoped advisory lock (`pg_try_advisory_xact_lock`), which is safe with connection poolers. It replaced both the old session lock and this branch's interim lease (lease module removed). During an RPC outage the scan stops without advancing its cursor.
 
 ### 9.5 Frontend (`/fund`)
 
@@ -217,7 +217,7 @@ Each defect below was found during this pass, fixed, and covered by a regression
 
 1. The scan advanced its cursor during an RPC outage, so receipts could be skipped permanently.
 2. The disbursement cap counted ecosystem/operations shares that Pump had already paid directly.
-3. The worker's session-level advisory lock was unsafe with a pooled connection (replaced by the lease).
+3. The worker's session-level advisory lock was unsafe with a pooled connection (replaced by a transaction-scoped lock in `fundPass`).
 4. Proposal sync treated an RPC error, or a different account type at the PDA, as a MISMATCH and opened the circuit (now propagated or STALE).
 5. Proposal preparation treated an RPC failure as "not created" and could replace a live proposal (now 503).
 6. A non-SOL quote mint in the distribute event was not handled (now ignored with a reason).
@@ -267,7 +267,7 @@ Status key: [ ] not done, [x] done.
 - [ ] Each property launched with a locked SharingConfig at the expected shareholders; the fee-sharing check shows every mint matching
 - [ ] Keyed `SOLANA_RPC_URL`; `JUPITER_API_KEY`; `BUYBACK_SWAP_PROGRAMS` confirmed
 - [ ] `FUND_ALLOW_SINGLE_SIG` unset in production; `NODE_ENV=production`
-- [ ] Migrations applied (`prisma migrate deploy`); worker deployed as a single service (the lease makes extra copies safe)
+- [ ] Migrations applied (`prisma migrate deploy`); one fund pass scheduler (Cloudflare cron tick or `npm run fund:worker`); the pass lock makes overlapping runs safe
 - [ ] Limits set: per-tx cap, daily cap, minimum, reserve, liquidity, impact, slippage, cooldown
 - [ ] A member signing UI exists to sign and send the prepared unsigned proposal transaction
 - [ ] A first small buyback rehearsed end to end with owner approval at each step

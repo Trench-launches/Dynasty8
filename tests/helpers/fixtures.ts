@@ -20,7 +20,7 @@ export function db() {
 export async function resetDatabase() {
   const p = db();
   await p.$executeRawUnsafe(
-    'TRUNCATE "AuditLog", "MarketSnapshot", "SourceReference", "Token", "Property", "AdminUser", "BuybackApproval", "BuybackFunding", "ChainTransaction", "BuybackRequest", "RevenueAllocation", "FeeReceipt", "Disbursement", "ReconciliationRun", "TreasuryWallet", "FundConfig" RESTART IDENTITY CASCADE',
+    'TRUNCATE "AuditLog", "MarketSnapshot", "SourceReference", "Token", "Property", "AdminUser", "BuybackApproval", "BuybackFunding", "ChainTransaction", "BuybackRequest", "RevenueAllocation", "FeeReceipt", "Disbursement", "ReconciliationRun", "TreasuryWallet", "FundConfig", "MultisigProposal", "FeeSharingCheck" RESTART IDENTITY CASCADE',
   );
   await seed(p);
   appCache.clear();
