@@ -4,6 +4,7 @@ import { Flame } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatFundDate, formatTokenAmount } from "@/lib/fund-format";
 import type { FundBurnDto } from "@/contracts/demolition-fund";
+import { PanelHeader } from "@/components/ui/panel";
 
 interface Props {
   burns: FundBurnDto[];
@@ -29,21 +30,15 @@ export function FundBurnChart({ burns, ticker, decimals }: Props) {
   const total = points.at(-1)?.cumulative.toString() ?? "0";
 
   return (
-    <section aria-labelledby="fund-burns" className="min-w-0 rounded-md border border-[#ced4da] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-      <header className="flex flex-wrap items-end justify-between gap-2 border-b border-[#dee2e6] px-4 py-3">
-        <div>
-          <p className="text-[11px] font-semibold tracking-[0.14em] text-[#868e96] uppercase">Burn analytics</p>
-          <h2 id="fund-burns" className="font-display text-2xl leading-tight font-bold text-[#212529]">
-            Cumulative <span className="text-d8-green">burns</span>
-          </h2>
-        </div>
-        <p className="text-right">
-          <span className="block text-[10px] tracking-wider text-[#868e96] uppercase">Verified total</span>
-          <span className="text-lg font-semibold text-[#212529] tabular-nums">
-            {formatTokenAmount(total, decimals)} ${ticker}
-          </span>
+    <section aria-labelledby="fund-burns" className="min-w-0 border border-[#e3e3e3] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+      <PanelHeader id="fund-burns" title="Cumulative burns" note="Burn analytics" className="-mx-px -mt-px" />
+      <div className="border-b border-[#e3e3e3] px-4 py-3">
+        <p className="text-[13px] tracking-[0.06em] text-[#777] uppercase">Verified total</p>
+        <p className="mt-1 flex items-baseline gap-2 leading-none text-d8-ink tabular-nums">
+          <span className="text-[30px]">{formatTokenAmount(total, decimals)}</span>
+          <span className="text-[15px] text-[#555] uppercase">${ticker}</span>
         </p>
-      </header>
+      </div>
       {data.length === 0 ? (
         <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
           <Flame className="size-8 text-[#adb5bd]" aria-hidden />

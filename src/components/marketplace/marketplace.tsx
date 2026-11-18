@@ -187,7 +187,7 @@ export function Marketplace({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 40 }}
                 transition={{ type: "spring", stiffness: 380, damping: 34 }}
-                className="scrollbar-thin absolute top-3 right-3 bottom-3 z-40 overflow-y-auto rounded-xl border border-[#dee2e6] bg-white/95 shadow-2xl shadow-black/60 backdrop-blur-md"
+                className="scrollbar-thin absolute top-3 right-3 bottom-3 z-40 overflow-x-hidden overflow-y-auto border border-[#e3e3e3] bg-white/95 shadow-2xl shadow-black/60 backdrop-blur-md"
                 style={{ width: PANEL_WIDTH }}
               >
                 {selected ? (
@@ -268,7 +268,7 @@ export function Marketplace({
               <div className="flex shrink-0 justify-center pt-2 pb-1">
                 <span className="h-1 w-10 rounded-full bg-[#e9ecef]" aria-hidden />
               </div>
-              <div className={cn("scrollbar-thin min-h-0 flex-1 overflow-y-auto")} onPointerDown={(e) => e.stopPropagation()}>
+              <div className={cn("scrollbar-thin min-h-0 flex-1 overflow-x-hidden overflow-y-auto")} onPointerDown={(e) => e.stopPropagation()}>
                 {selected ? (
                   <PropertyPreview key={selected.slug} property={selected} onClose={() => select(null)} compact />
                 ) : (

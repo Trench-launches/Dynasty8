@@ -12,6 +12,15 @@
   --color-d8-green-dark: #135c31;
   --color-d8-teal: #20866b;
   --color-d8-dark: #333333;
+  /* Listing styling (after the in-game estate agent look): yellow category bands and status notes,
+     a pale green price strip, soft green / soft gold tags, and a warm grey page. */
+  --color-d8-yellow: #f2c23a;
+  --color-d8-mint: #d5e6da;
+  --color-d8-mint-soft: #f1f6f2;
+  --color-d8-gold-soft: #fcefc4;
+  --color-d8-gold-ink: #7a5b00;
+  --color-d8-paper: #f6f6f4;
+  --color-d8-ink: #222222;
   --color-sunset: #18713c; /* primary green: buttons, active states */
   --color-coral: #20866b;
   --color-tropic: #18713c; /* tickers */
@@ -71,10 +80,11 @@
 
 /* Light Dynasty 8 theme: white surfaces, dark grey text, green primary, grey borders. */
 :root {
+  /* Arimo (metric-compatible with Arial) so every OS gets the same plain estate-agent sans. */
   --font-system:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --background: #ffffff;
+    var(--font-arimo), "Helvetica Neue", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
+  --background: #f6f6f4;
   --foreground: #212529;
   --card: #ffffff;
   --card-foreground: #212529;
@@ -146,6 +156,14 @@
 
 @utility bg-header-gradient {
   background-image: var(--header-gradient);
+}
+
+/* Serrated bottom edge (the green "BUY PROPERTY" bar). Leaves --zz-size / 2 of teeth below the
+   content, so give the element that much extra bottom padding. */
+@utility zigzag-bottom {
+  --zz-size: 9px;
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--zz-size) 100%;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--zz-size) 100%;
 }
 
 @utility bg-sunset-gradient {

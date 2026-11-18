@@ -3,11 +3,13 @@
 import { memo, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Crown } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { DYNASTY_HQ } from "@/data/dynasty-hq";
 import { formatUsdCompact } from "@/lib/format";
 import type { Filters } from "@/lib/filters";
-import { ChangeText, MarketDataTag, TokenStatusBadge } from "@/components/property/badges";
+import { ChangeText, MarketDataTag } from "@/components/property/badges";
+import { Tag } from "@/components/ui/panel";
+import { TOKEN_STATUS_LABELS } from "@/data/regions";
+import { CategoryBand, listingCardFrame } from "./listing-card";
 import type { EcosystemToken } from "@/lib/types";
 
 const SEARCH_TERMS = ["dynasty", "hq", "headquarters", "main office", "main token"];
@@ -57,44 +59,39 @@ export const HqListingCard = memo(function HqListingCard({ token, selected, hove
       onPointerLeave={() => onHover(null)}
       onFocus={() => onHover(DYNASTY_HQ.id)}
       onBlur={() => onHover(null)}
-      className={cn(
-        "group relative flex w-full gap-3 rounded-xl border p-2 text-left transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        selected
-          ? "border-sunset/60 bg-gradient-to-r from-sunset/15 to-transparent"
-          : hovered
-            ? "border-[#e0b13a] bg-[#fdf8ea]"
-            : "border-[#e0b13a]/60 bg-[#fdf8ea] hover:border-[#e0b13a]",
-      )}
+      className={listingCardFrame(selected, hovered)}
     >
-      {selected && <span aria-hidden className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-sunset" />}
-      <div className="relative h-[64px] w-[84px] shrink-0 overflow-hidden rounded-lg bg-d8-green">
+      <div className="relative h-[76px] w-[104px] shrink-0 overflow-hidden bg-d8-green">
         <Image
           src={DYNASTY_HQ.image}
           alt=""
           fill
-          sizes="84px"
+          sizes="104px"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
+        <CategoryBand>Headquarters</CategoryBand>
       </div>
 
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-display text-[16px] leading-tight text-cream">{DYNASTY_HQ.name}</p>
-        <p className="truncate text-[11px] text-[#6c757d]">{DYNASTY_HQ.area} · Headquarters</p>
-        <div className="mt-1.5 flex items-center justify-between gap-2">
-          <span className="flex min-w-0 items-center gap-1.5">
-            <span className="text-xs font-extrabold tracking-wide text-tropic">${token.ticker}</span>
-            <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-[#e0b13a] px-1.5 py-px text-[9px] font-bold tracking-wider text-[#212529] uppercase">
-              <Crown className="size-2.5" aria-hidden /> Main token
-            </span>
-          </span>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <p className="truncate text-[16px] leading-tight font-bold text-d8-ink">{DYNASTY_HQ.name}</p>
+        <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[13px] text-[#666]">
+          <span className="truncate">{DYNASTY_HQ.area}</span>
+          <Tag tone="gold" className="px-1.5 py-0.5 text-[10px]">
+            <Crown className="size-2.5" aria-hidden /> Main token
+          </Tag>
+        </p>
+        <div className="mt-auto flex items-center justify-between gap-2 bg-d8-mint px-2 py-1">
+          <span className="truncate text-[13px] font-bold text-d8-green">${token.ticker}</span>
           {m ? (
-            <span className="flex items-center gap-1.5 text-[11px] tabular-nums">
-              <span className="text-[#212529]">{formatUsdCompact(m.marketCapUsd)}</span>
+            <span className="flex shrink-0 items-center gap-1.5 text-[12px] text-d8-ink tabular-nums">
+              {formatUsdCompact(m.marketCapUsd)}
               <ChangeText value={m.change24hPct} />
               <MarketDataTag market={m} />
             </span>
           ) : (
-            <TokenStatusBadge status={token.status} />
+            <span className="shrink-0 text-[11px] tracking-[0.06em] text-[#4d6a57] uppercase">
+              {TOKEN_STATUS_LABELS[token.status]}
+            </span>
           )}
         </div>
       </div>
