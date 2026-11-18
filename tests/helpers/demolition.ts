@@ -1,11 +1,11 @@
 import bs58 from "bs58";
-import { AddressLookupTableAccount, Keypair, PublicKey, type VersionedTransaction } from "@solana/web3.js";
+import { AddressLookupTableAccount, Keypair, PublicKey, TransactionInstruction, type VersionedTransaction } from "@solana/web3.js";
 import type { ChainReader, ChainTx, FlatInstruction, SignatureState } from "@/server/demolition/chain";
 import { setDemolitionDepsForTests } from "@/server/demolition/deps";
 import type { SwapBuild, SwapProvider } from "@/server/demolition/jupiter";
 import { encodeDistributeEvent, PUMP_PROGRAMS, sharingConfigAddress } from "@/server/demolition/pump-fees";
 import type { TransactionSigner } from "@/server/demolition/signer";
-import { SQUADS_V4_PROGRAM, VAULT_TX_EXECUTE_DISCRIMINATOR, vaultAddress, type CanonicalMessage, type MultisigInfo, type ProposalState, type SquadsReader } from "@/server/demolition/squads";
+import { proposalAddress, SQUADS_V4_PROGRAM, transactionAddress, VAULT_TX_EXECUTE_DISCRIMINATOR, vaultAddress, type CanonicalMessage, type MultisigInfo, type ProposalState, type SquadsReader } from "@/server/demolition/squads";
 import type { TxSender } from "@/server/demolition/executor";
 import { JUPITER_V6_PROGRAM } from "@/server/demolition/policy";
 import { PROGRAMS } from "@/server/solana/address";
@@ -319,6 +319,19 @@ export class FakeSquads implements SquadsReader {
           state: { deactivationSlot: 2n ** 64n - 1n, lastExtendedSlot: 0, lastExtendedSlotStartIndex: 0, authority: undefined, addresses: [] },
         }),
     );
+  }
+
+  async buildExecuteInstruction(multisig: string, transactionIndex: bigint, member: string) {
+    if (this.outage) throw new Error("RPC outage");
+    const keys = [multisig, proposalAddress(multisig, transactionIndex), transactionAddress(multisig, transactionIndex), member];
+    return {
+      instruction: new TransactionInstruction({
+        programId: new PublicKey(SQUADS_V4_PROGRAM),
+        keys: keys.map((k, i) => ({ pubkey: new PublicKey(k), isSigner: i === 3, isWritable: i !== 3 })),
+        data: Buffer.from(VAULT_TX_EXECUTE_DISCRIMINATOR),
+      }),
+      lookupTables: [],
+    };
   }
 
   /** A member signs and sends the prepared creation transaction (optionally with a tampered message). */

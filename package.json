@@ -18,6 +18,7 @@
     "sync:markets": "tsx --conditions=react-server --env-file-if-exists=.env scripts/sync-worker.ts",
     "admin:grant": "tsx --conditions=react-server --env-file-if-exists=.env scripts/admin-grant.ts",
     "fund:worker": "tsx --conditions=react-server --env-file-if-exists=.env scripts/demolition-worker.ts",
+    "fund:register": "tsx --conditions=react-server --env-file-if-exists=.env scripts/register-treasury.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

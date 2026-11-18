@@ -9,7 +9,18 @@ import { burnProposal, getRequest, recordBurnSubmission, recordSwapSubmission, s
 import { getDemolitionDeps } from "./deps";
 import { assertOperational, getFundConfig, openCircuit, requireExecutableFund } from "./fund";
 import type { SwapInstructionJson } from "./jupiter";
-import { buildVaultProposal, executedViaProposal, messageHash, ProposalBuildError, toInstruction, type CanonicalMessage } from "./squads";
+import {
+  assessMultisig,
+  buildMemberActionTransaction,
+  buildVaultProposal,
+  executedViaProposal,
+  EXECUTE_SWAP_COMPUTE_UNITS,
+  messageHash,
+  ProposalBuildError,
+  toInstruction,
+  type CanonicalMessage,
+  type MemberAction,
+} from "./squads";
 
 /**
  * Squads proposals for buyback swaps and burns.
@@ -244,6 +255,119 @@ export async function bindExecution(requestId: string, purpose: "SWAP" | "BURN",
     return true;
   }
   return false;
+}
+
+export interface MemberTransaction {
+  proposalId: string;
+  action: MemberAction;
+  purpose: "SWAP" | "BURN";
+  member: string;
+  multisig: string;
+  transactionIndex: bigint;
+  proposalPda: string;
+  approvals: number;
+  threshold: number;
+  /** Unsigned v0 transaction, fee payer = member. Sign and send it from the member's wallet. */
+  transactionBase64: string;
+  transactionBytes: number;
+  amount: bigint;
+}
+
+/**
+ * Builds the unsigned transaction a multisig member signs to approve, reject or execute a
+ * buyback proposal. Every check runs against fresh on-chain state first:
+ *   - the proposal is re-synced, which re-verifies the on-chain message hash (a mismatch
+ *     opens the circuit breaker and nothing is built);
+ *   - the wallet must be a current member with the needed permission and must not have voted;
+ *   - execute additionally needs the on-chain status Approved, buybacks not paused, the
+ *     circuit closed, a verified multisig fund, and the buyback in the matching state.
+ * The backend never signs. Approvals are counted by the Squads program, not by this code.
+ */
+export async function buildMemberTransaction(proposalId: string, action: MemberAction, member: string, actor: Actor): Promise<MemberTransaction> {
+  const { squads } = getDemolitionDeps();
+  let p = await prisma.multisigProposal.findUnique({ where: { id: proposalId } });
+  if (!p) throw new ApiError(404, "NOT_FOUND", "Proposal not found");
+  let status: MultisigProposal["status"];
+  let ms, state;
+  try {
+    status = await syncProposal(p);
+    [ms, state] = await Promise.all([squads.readMultisig(p.multisigAddress), squads.readProposal(p.proposalPda)]);
+  } catch {
+    throw new ApiError(503, "INTERNAL", "Could not read multisig state from Solana; try again later");
+  }
+  p = (await prisma.multisigProposal.findUnique({ where: { id: proposalId } }))!;
+  if (status === "MISMATCH") throw new ApiError(409, "CONFLICT", "The on-chain proposal does not match what was prepared; buybacks are stopped for review");
+  if (!ms || !state) throw new ApiError(409, "CONFLICT", "The proposal has not been created on-chain yet");
+
+  const m = ms.members.find((x) => x.key === member);
+  if (!m) throw new ApiError(403, "FORBIDDEN", "This wallet is not a member of the multisig");
+  if (action === "execute") {
+    if (status !== "APPROVED" || state.status !== "Approved") throw new ApiError(409, "CONFLICT", `Proposal is not approved yet (${state.approved.length} of ${ms.threshold} approvals)`);
+    if (!m.execute) throw new ApiError(403, "FORBIDDEN", "This member does not have execute permission");
+    assertOperational(await getFundConfig());
+    const fund = await requireExecutableFund();
+    if (!fund.isMultisig || fund.multisigAddress !== p.multisigAddress || fund.vaultIndex !== p.vaultIndex) {
+      throw new ApiError(409, "CONFLICT", "The registered fund vault changed since this proposal was prepared");
+    }
+    const req = await getRequest(p.requestId);
+    const want = p.purpose === "SWAP" ? "APPROVED" : "SWAP_CONFIRMED";
+    if (req.status !== want) throw new ApiError(409, "CONFLICT", `Buyback is ${req.status}; ${p.purpose.toLowerCase()} can only execute from ${want}`);
+  } else {
+    if (status !== "CREATED" || state.status !== "Active") throw new ApiError(409, "CONFLICT", `Proposal is ${state.status.toLowerCase()}; votes are only possible while it is active`);
+    if (!m.vote) throw new ApiError(403, "FORBIDDEN", "This member does not have vote permission");
+    if (state.approved.includes(member) || state.rejected.includes(member)) throw new ApiError(409, "CONFLICT", "This member has already voted on the proposal");
+  }
+
+  let built;
+  try {
+    built = await buildMemberActionTransaction(squads, {
+      multisig: p.multisigAddress,
+      transactionIndex: p.transactionIndex,
+      member,
+      action,
+      computeUnits: action === "execute" && p.purpose === "SWAP" ? EXECUTE_SWAP_COMPUTE_UNITS : undefined,
+      memo: `dynasty8 ${action} ${p.purpose.toLowerCase()} ${p.requestId}`,
+    });
+  } catch (e) {
+    if (e instanceof ProposalBuildError) throw new ApiError(422, "UNPROCESSABLE", e.message);
+    throw new ApiError(503, "INTERNAL", "Could not read multisig state from Solana; try again later");
+  }
+  await recordAudit(prisma, actor, `proposal.${action}_tx_built`, "Buyback", p.requestId, null, { proposalPda: p.proposalPda, member });
+  return {
+    proposalId: p.id,
+    action,
+    purpose: p.purpose as "SWAP" | "BURN",
+    member,
+    multisig: p.multisigAddress,
+    transactionIndex: p.transactionIndex,
+    proposalPda: p.proposalPda,
+    approvals: state.approved.length,
+    threshold: ms.threshold,
+    transactionBase64: built.transactionBase64,
+    transactionBytes: built.transactionBytes,
+    amount: p.amount,
+  };
+}
+
+/** Live view of the fund multisig for the signing page; `member` marks the connected wallet. */
+export async function fundMultisigStatus(member?: string) {
+  const wallets = await prisma.treasuryWallet.findMany({ orderBy: { role: "asc" } });
+  const fund = wallets.find((w) => w.role === "FUND");
+  if (!fund?.isMultisig || !fund.multisigAddress) return { wallets, multisig: null, assessment: null, connected: null };
+  let info;
+  try {
+    info = await getDemolitionDeps().squads.readMultisig(fund.multisigAddress);
+  } catch {
+    throw new ApiError(503, "INTERNAL", "Could not read the multisig from Solana; try again later");
+  }
+  if (!info) return { wallets, multisig: null, assessment: null, connected: null };
+  const me = member ? info.members.find((x) => x.key === member) ?? null : null;
+  return {
+    wallets,
+    multisig: { ...info, vaults: wallets.filter((w) => w.multisigAddress === fund.multisigAddress).map((w) => ({ role: w.role, index: w.vaultIndex, address: w.address })) },
+    assessment: assessMultisig(info),
+    connected: member ? { address: member, isMember: !!me, permissions: me } : null,
+  };
 }
 
 export async function listProposals(requestId?: string) {

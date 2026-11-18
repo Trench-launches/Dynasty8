@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import bs58 from "bs58";
 import * as multisig from "@sqds/multisig";
 import {
+  ComputeBudgetProgram,
   Connection,
   PublicKey,
   TransactionInstruction,
@@ -62,6 +63,11 @@ export interface SquadsReader {
   readVaultTransactionMessage(vaultTransactionPda: string): Promise<CanonicalMessage | null | "OTHER">;
   getLatestBlockhash(): Promise<string>;
   getLookupTables(addresses: string[]): Promise<AddressLookupTableAccount[]>;
+  /**
+   * The `vault_transaction_execute` instruction for an approved proposal, with the inner
+   * message's accounts resolved from the on-chain VaultTransaction (built, never sent).
+   */
+  buildExecuteInstruction(multisig: string, transactionIndex: bigint, member: string): Promise<{ instruction: TransactionInstruction; lookupTables: AddressLookupTableAccount[] }>;
 }
 
 export const vaultAddress = (multisigPda: string, index = 0) =>
@@ -128,7 +134,51 @@ export function createRpcSquadsReader(conn: Connection): SquadsReader {
       }
       return out;
     },
+    async buildExecuteInstruction(ms, transactionIndex, member) {
+      const r = await multisig.instructions.vaultTransactionExecute({ connection: conn, multisigPda: new PublicKey(ms), transactionIndex, member: new PublicKey(member) });
+      return { instruction: r.instruction, lookupTables: r.lookupTableAccounts };
+    },
   };
+}
+
+// ── Member actions (approve / reject / execute) ─────────────────────────────
+
+export type MemberAction = "approve" | "reject" | "execute";
+
+/** Compute limit for executing a vault transaction that wraps a Jupiter swap (CPI-heavy). */
+export const EXECUTE_SWAP_COMPUTE_UNITS = 1_000_000;
+
+/**
+ * Unsigned v0 transaction for one member action, fee payer = the member. The member signs
+ * it in their own wallet; the backend never holds a key. Approve / reject only cast a vote;
+ * execute succeeds on-chain only once the multisig threshold (and any time lock) is met.
+ */
+export async function buildMemberActionTransaction(
+  reader: SquadsReader,
+  p: { multisig: string; transactionIndex: bigint; member: string; action: MemberAction; computeUnits?: number; memo?: string },
+): Promise<{ transactionBase64: string; transactionBytes: number }> {
+  const msPk = new PublicKey(p.multisig);
+  const memberPk = new PublicKey(p.member);
+  const ixs: TransactionInstruction[] = [];
+  let alts: AddressLookupTableAccount[] = [];
+  if (p.action === "execute") {
+    if (p.computeUnits) ixs.push(ComputeBudgetProgram.setComputeUnitLimit({ units: p.computeUnits }));
+    const built = await reader.buildExecuteInstruction(p.multisig, p.transactionIndex, p.member);
+    ixs.push(built.instruction);
+    alts = built.lookupTables;
+  } else {
+    const args = { multisigPda: msPk, transactionIndex: p.transactionIndex, member: memberPk, memo: p.memo?.slice(0, 120) };
+    ixs.push(p.action === "approve" ? multisig.instructions.proposalApprove(args) : multisig.instructions.proposalReject(args));
+  }
+  const msg = new TransactionMessage({ payerKey: memberPk, recentBlockhash: await reader.getLatestBlockhash(), instructions: ixs }).compileToV0Message(alts);
+  let bytes: Uint8Array;
+  try {
+    bytes = new VersionedTransaction(msg).serialize();
+  } catch {
+    throw new ProposalBuildError("Member transaction exceeds Solana's size limit");
+  }
+  if (bytes.length > MAX_TX_BYTES) throw new ProposalBuildError(`Member transaction is ${bytes.length} bytes (max ${MAX_TX_BYTES})`);
+  return { transactionBase64: Buffer.from(bytes).toString("base64"), transactionBytes: bytes.length };
 }
 
 // ── Policy ──────────────────────────────────────────────────────────────────

@@ -92,4 +92,4 @@ Display rules:
 - Link every signature with the provided `explorerUrl`.
 - Contribution `rank` is null for properties with no verified revenue; sort those last.
 - `treasury.fundBalanceLamports` is `null` until the first reconciliation: show "Not observed yet", not 0.
-- The `/fund` page already uses all of these (`src/components/fund/*`). Still missing: a wallet UI for multisig members to sign and send the unsigned proposal transaction returned by `POST /api/admin/demolition-fund/buybacks/{id}/propose-swap|propose-burn`.
+- The `/fund` page already uses all of these (`src/components/fund/*`). Members sign proposals at `/admin/treasury` (Phantom); see `docs/DEMOLITION-FUND.md` §16.4.

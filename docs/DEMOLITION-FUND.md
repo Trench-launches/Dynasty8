@@ -247,6 +247,8 @@ Not done: independent human security review, and an audit of Squads or Pump prog
 |---|---|
 | `tests/integration/demolition-readiness.test.ts` (new) | 33 passed |
 | Whole repository (`npx vitest run`), after merging `main` @ 2db0b4d | 194 passed, 0 failed, 5 live skipped |
+| `tests/integration/demolition-signing.test.ts` (owner setup, §16) | 11 passed |
+| Whole repository after §16 | 205 passed, 0 failed, 5 live skipped; lint, typecheck, build clean |
 | `npm run lint` | clean |
 | `npm run typecheck` | clean |
 | `next build` | succeeds |
@@ -298,3 +300,76 @@ FUND_ALLOW_SINGLE_SIG=""          # never set in production; ignored when NODE_E
 ```
 
 Wallet addresses and multisig settings live in the database (`PUT …/wallets`), not in environment variables. No private key is configured anywhere.
+
+## 16. Owner treasury setup: the "Dynasty" multisig (2026-11-18)
+
+### 16.1 On-chain verification (read-only, finalized, mainnet-beta)
+
+`npx tsx --conditions=react-server scripts/verify/check-treasury.ts BF8XcyJ9iMF2fHqRMm8Z9nK44AV322NAKhhEvVRc2Ljn 3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV`
+
+| Item | Result |
+|---|---|
+| Multisig account `BF8XcyJ9iMF2fHqRMm8Z9nK44AV322NAKhhEvVRc2Ljn` | Exists; owner `SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf` (Squads v4) |
+| Threshold | 2 of 3 |
+| Config authority | none (autonomous: member changes need a 2-of-3 vote) |
+| Time lock | 0 seconds (warning: approved transactions can execute immediately) |
+| Transaction index | 0 (no proposals yet) |
+| Members (all can propose, vote and execute) | `AmAU7AEHnBYnvsuKe4SPzX2KB9tKNxMs7UbnMus7Gdi`, `4EmLpWNvKQqifcKxGxGev7rYoGRPkPMyVfxnP6XhuHU2`, `Cq3EGix162DX5DZZbLdDNK9DcggFxhfHUK9yEphtzN5P` |
+| Treasury "Account 1" `3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV` | Is vault **index 0** of this multisig; system-owned account holding 0.001 SOL; no data, not executable |
+
+The backend's treasury policy check passes (threshold ≥ 2, enough voters, initiators and executors).
+
+### 16.2 One multisig, three vaults
+
+The backend supports this. Each role is a separate vault of the same Squads multisig. The database needs only distinct addresses per role, each proposal is built for the fund's own vault index, and settlement accepts only the execution of that buyback's proposal. Tests: `tests/integration/demolition-signing.test.ts`.
+
+| Role | Share | Squads account | Vault index | Address |
+|---|---|---|---|---|
+| FUND | 60% | Account 1 | 0 | `3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV` |
+| ECOSYSTEM | 25% | Account 2 | 1 | `FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH` |
+| OPERATIONS | 15% | Account 3 | 2 | `A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR` |
+
+Vault addresses are derived from the multisig and the index, so they are fixed. Vaults 1 and 2 have no account on-chain yet (0 SOL).
+
+**Trade-off:** the same three keys control all three treasuries. That gives the owner the control they want, but there is no separation of duties between the fund and the other shares. A compromise of two member keys exposes all three vaults. Separate multisigs remain the stricter option.
+
+**Shared transaction index:** a proposal made for vault 1 or 2 (for example an ecosystem payment) uses the next index. A fund proposal that was prepared but not yet created then becomes STALE (never MISMATCH, never a circuit trip) and is simply prepared again.
+
+### 16.3 What is registered
+
+- `FUND` = vault 0 is registered in the **local development database** with `npm run fund:register -- --role FUND --multisig BF8XcyJ9iMF2fHqRMm8Z9nK44AV322NAKhhEvVRc2Ljn --vault-index 0`. The script ran the same on-chain checks as the admin API; the result is 2 of 3, verified 2026-11-18.
+- No production database exists yet. Run the same command against the production database at deployment, or use `PUT /api/admin/demolition-fund/wallets`.
+- ECOSYSTEM and OPERATIONS are **not registered**: that waits for the owner to confirm the vault 1 / vault 2 layout. Commands:
+  - `npm run fund:register -- --role ECOSYSTEM --multisig BF8XcyJ9iMF2fHqRMm8Z9nK44AV322NAKhhEvVRc2Ljn --vault-index 1`
+  - `npm run fund:register -- --role OPERATIONS --multisig BF8XcyJ9iMF2fHqRMm8Z9nK44AV322NAKhhEvVRc2Ljn --vault-index 2`
+  - Add `--check` to verify without writing.
+
+### 16.4 Signing interface (`/admin/treasury`)
+
+A members-only page (not indexed) where the owner connects Phantom and signs proposals.
+
+- **Wallet:** connect Phantom. The page shows whether the wallet is a member of the fund multisig and its permissions (`GET /api/admin/demolition-fund/multisig?member=`).
+- **Create proposals:** "Create buyback proposal" or "Create burn proposal" for buybacks that admins have planned, quoted and approved. A review dialog shows the amount, minimum output, vault, proposal number and threshold; then Phantom signs and sends the unsigned creation transaction.
+- **Vote and execute:** "Approve" or "Reject" on active proposals, then "Execute" once the threshold is met (`POST /api/admin/demolition-fund/proposals/{id}/approve|reject|execute`, body `{member}`).
+  - Before building anything, the server re-syncs the proposal and re-verifies the on-chain message hash.
+  - It checks membership, permission and that the member has not already voted.
+  - For execute it also requires on-chain Approved, buybacks not paused, the circuit closed, and the buyback in the right state.
+- **Wallet-side checks:** before sending, the page checks the transaction has exactly one signer, the connected wallet, which is also the fee payer. No key, seed phrase or signature ever reaches the server.
+- **Approval counting:** the Squads program counts approvals and enforces the threshold. The backend cannot bypass it, and a single wallet cannot approve twice.
+- **Access:** GitHub admin sign-in (ADMIN to act, VIEWER to view) plus multisig membership. Members who prefer can use the Squads app instead; sync picks up their votes either way.
+
+Not verified in a browser yet: the signed-in view needs `NEXTAUTH_*` / GitHub OAuth configured and Phantom installed. The server side is covered by 11 integration tests.
+
+### 16.5 Owner actions (each needs the owner's authorization)
+
+1. **Confirm the vault layout:** vault 0 = fund, vault 1 = ecosystem, vault 2 = operations. Optionally add "Account 2" and "Account 3" in the Squads app and check they show `FF5m…KokH` and `A5op…RQPR`.
+2. **Make vaults 1 and 2 rent-exempt** by sending each at least 0.00089088 SOL (0.001 SOL is fine), as vault 0 already has. Solana rejects a payment that would create an account below the rent-exempt minimum, so a small Pump distribution to an empty vault could fail the whole distribute transaction.
+3. **Control:** with 2-of-3, the owner approves alone only by holding two member keys, ideally on separate devices (one on a hardware wallet). The third key is the recovery key; keep it offline and separate.
+4. **Optional time lock** (for example 24 hours) via a Squads config proposal approved 2-of-3. It gives time to reject a bad execute, but delays every buyback by that long.
+5. **Pump fee sharing per property token:** create the sharing config with shareholders `3wKBqqEkx53ntNQ3UWpJBNH7cxed1VhyYsJ5V1aUKecV` 6000, `FF5mJunnU3Wx216iwnqtaBaANJsUajSvYoMVZ9XoKokH` 2500, `A5optT3YTSHpxvTD4xiD5brxvSG9cKxjCcesZjRSRQPR` 1500. Revoke the admin after checking it. The hourly check flags any difference.
+6. **Admin sign-in for the deployed app:** create a GitHub OAuth app, set `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `GITHUB_ID` and `GITHUB_SECRET`, then run `npm run admin:grant` for the owner's GitHub account.
+7. **Register the wallets in the production database** (§16.3) once it exists.
+
+Unchanged: no deployment, no funding, no buyback, and nothing signed or sent by this work. Automated execution stays off.
+
+Fixed while doing this: `src/server/http/responses.ts` imported `next/navigation` at module load, which crashed every standalone script that loads the API error type, including `npm run fund:worker`. It is now imported lazily inside the route error handler. The worker was run once afterwards: it scanned the vault's history (1 transaction, nothing to book) and reconciled, with execution skipped.

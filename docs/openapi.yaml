@@ -387,4 +387,6 @@ x-demolition-fund-paths:
   /api/admin/demolition-fund/buybacks: { get: { tags: [admin], summary: VIEWER }, post: { tags: [admin], summary: "ADMIN; {idempotencyKey, budgetLamports?}" } }
   /api/admin/demolition-fund/buybacks/{id}/{action}: { post: { tags: [admin], summary: "ADMIN; action = quote | approve | cancel | swap-proposal | propose-swap | swap-submitted | burn-proposal | propose-burn | burn-submitted | settle; propose-* take {creator} and return an unsigned Squads proposal transaction" } }
   /api/admin/demolition-fund/proposals: { get: { tags: [admin], summary: "VIEWER; multisig proposals, query buybackId" }, post: { tags: [admin], summary: ADMIN; sync proposals with chain } }
+  /api/admin/demolition-fund/proposals/{id}/{action}: { post: { tags: [admin], summary: "ADMIN; action = approve | reject | execute; {member}; returns an unsigned transaction for that member to sign" } }
+  /api/admin/demolition-fund/multisig: { get: { tags: [admin], summary: "VIEWER; registered wallets and the live fund multisig; query member marks the connected wallet" } }
   /api/admin/demolition-fund/fee-sharing: { get: { tags: [admin], summary: "VIEWER; expected shareholders and last config checks" }, post: { tags: [admin], summary: ADMIN; check every registered mint now } }
