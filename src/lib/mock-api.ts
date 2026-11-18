@@ -2,6 +2,7 @@ import { MOCK_PROPERTIES } from "@/data/properties";
 import type {
   ChartPoint,
   ChartRange,
+  ChartSeries,
   EcosystemMarkets,
   EcosystemToken,
   MarketSnapshot,
@@ -94,14 +95,14 @@ function respond<T>(value: T): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), 250));
 }
 
-const RANGE_POINTS: Record<ChartRange, { points: number; stepMs: number }> = {
-  "24h": { points: 48, stepMs: 30 * 60 * 1000 },
-  "7d": { points: 84, stepMs: 2 * 60 * 60 * 1000 },
-  "30d": { points: 90, stepMs: 8 * 60 * 60 * 1000 },
+const RANGE_POINTS: Record<ChartRange, { points: number; stepMs: number; interval: string }> = {
+  "24h": { points: 48, stepMs: 30 * 60 * 1000, interval: "30m" },
+  "7d": { points: 84, stepMs: 2 * 60 * 60 * 1000, interval: "2h" },
+  "30d": { points: 90, stepMs: 8 * 60 * 60 * 1000, interval: "8h" },
 };
 
 function demoChart(property: Property, range: ChartRange): ChartPoint[] {
-  const { priceUsd, volume24hUsd } = property.market ?? {};
+  const { priceUsd, volume24hUsd, change24hPct } = property.market ?? {};
   if (priceUsd == null || volume24hUsd == null) return [];
   const { points, stepMs } = RANGE_POINTS[range];
   const r = rng(hash(`${property.slug}:${range}`));
@@ -117,6 +118,15 @@ function demoChart(property: Property, range: ChartRange): ChartPoint[] {
     });
     price = Math.max(price * (1 + (r() - 0.52) * 0.12), 1e-9);
   }
+  // Keep the demo 24H chart in step with the demo "24h change" figure shown beside it:
+  // bend the walk so it starts where that change implies, still ending at the current price.
+  if (range === "24h" && change24hPct != null && change24hPct > -100 && series.length > 1) {
+    const ratio = priceUsd / (1 + change24hPct / 100) / series[0].priceUsd;
+    const last = series.length - 1;
+    series.forEach((p, i) => {
+      p.priceUsd *= ratio ** (1 - i / last);
+    });
+  }
   return series;
 }
 
@@ -130,9 +140,16 @@ export const mockApi = {
   getPropertyMarket(slug: string): Promise<MarketSnapshot | null> {
     return respond(PROPERTIES.find((p) => p.slug === slug)?.market ?? null);
   },
-  getPropertyChart(slug: string, range: ChartRange): Promise<ChartPoint[]> {
+  getPropertyChart(slug: string, range: ChartRange): Promise<ChartSeries> {
     const p = PROPERTIES.find((x) => x.slug === slug);
-    return respond(p ? demoChart(p, range) : []);
+    const points = p ? demoChart(p, range) : [];
+    return respond({
+      points,
+      unavailableReason: points.length ? null : "not_launched",
+      interval: points.length ? RANGE_POINTS[range].interval : null,
+      source: points.length ? "demo" : null,
+      fetchedAt: new Date().toISOString(),
+    });
   },
   getEcosystem(): Promise<EcosystemToken> {
     return respond(ECOSYSTEM);
