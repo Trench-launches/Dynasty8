@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PageLoading } from "@/components/layout/page-loading";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { FundActivity } from "@/components/fund/fund-activity";
 import { FundLeaderboard } from "@/components/fund/fund-leaderboard";
@@ -82,6 +83,7 @@ async function FundContent() {
           collectibles. Not affiliated with Rockstar Games or Take-Two Interactive. Nothing here is financial advice.
         </p>
       </main>
+      <SiteFooter />
     </div>
   );
 }
