@@ -7,6 +7,7 @@ import { recordAudit, SYSTEM_ACTOR, type Actor } from "@/server/services/audit";
 import { isValidPublicKey } from "@/server/solana/address";
 import { lamportDelta, type ChainTx } from "./chain";
 import { getDemolitionDeps } from "./deps";
+import { NATIVE_FEE_POLICY } from "./fee-sharing";
 import { getFundConfig, getWallet, requireFundWallet } from "./fund";
 import { applyBps, splitByBps, sumBig } from "./money";
 import { distributeEventsIn, isSolQuote, sharingConfigAddress } from "./pump-fees";
@@ -56,6 +57,8 @@ export interface Candidate {
   splitMatches: boolean;
   tokenId: string;
   propertyId: string | null;
+  /** $DYNASTY itself (Option C: 100% FUND, all buyback revenue). */
+  native: boolean;
 }
 
 export interface ReceiptWallets {
@@ -74,7 +77,7 @@ export interface SplitConfig {
 export function candidatesFromTx(
   tx: ChainTx,
   wallets: ReceiptWallets,
-  registry: Map<string, { tokenId: string; propertyId: string | null }>,
+  registry: Map<string, { tokenId: string; propertyId: string | null; native?: boolean }>,
   split: SplitConfig,
 ): { candidates: Candidate[]; ignored: ReceiptResult["ignored"]; warnings: ReceiptResult["warnings"] } {
   const ignored: ReceiptResult["ignored"] = [];
@@ -94,7 +97,15 @@ export function candidatesFromTx(
     let directEcosystem = 0n;
     let directOperations = 0n;
     let splitMatches: boolean;
-    if (split.mode === "ON_CHAIN_SPLIT") {
+    if (reg.native) {
+      // $DYNASTY's own fees (Option C): the FUND vault is the only shareholder at 100%. Any other
+      // shareholder Pump paid is recorded as paid direct (truthfully) and flagged as a mismatch.
+      const eco = wallets.ecosystem ? e.shareholders.find((s) => s.address === wallets.ecosystem) : undefined;
+      const ops = wallets.operations ? e.shareholders.find((s) => s.address === wallets.operations) : undefined;
+      directEcosystem = eco ? applyBps(e.distributed, eco.shareBps) : 0n;
+      directOperations = ops ? applyBps(e.distributed, ops.shareBps) : 0n;
+      splitMatches = e.shareholders.length === 1 && holder.shareBps === NATIVE_FEE_POLICY.fundBps;
+    } else if (split.mode === "ON_CHAIN_SPLIT") {
       const eco = wallets.ecosystem ? e.shareholders.find((s) => s.address === wallets.ecosystem) : undefined;
       const ops = wallets.operations ? e.shareholders.find((s) => s.address === wallets.operations) : undefined;
       directEcosystem = eco ? applyBps(e.distributed, eco.shareBps) : 0n;
@@ -108,7 +119,7 @@ export function candidatesFromTx(
       splitMatches = e.shareholders.length === 1 && holder.shareBps === 10_000;
     }
     if (!splitMatches) warnings.push({ reason: "split_mismatch", mint: e.mint });
-    candidates.push({ eventIndex, mint: e.mint, sharingConfig: e.sharingConfig, distributed: e.distributed, shareBps: holder.shareBps, lamports, directEcosystem, directOperations, splitMatches, tokenId: reg.tokenId, propertyId: reg.propertyId });
+    candidates.push({ eventIndex, mint: e.mint, sharingConfig: e.sharingConfig, distributed: e.distributed, shareBps: holder.shareBps, lamports, directEcosystem, directOperations, splitMatches, tokenId: reg.tokenId, propertyId: reg.propertyId, native: !!reg.native });
   });
 
   // The money must really have arrived, for every wallet we credit. Add back the network fee
@@ -127,9 +138,13 @@ export function candidatesFromTx(
   return { candidates, ignored, warnings };
 }
 
-async function propertyTokenRegistry() {
-  const tokens = await prisma.token.findMany({ where: { isNative: false, mintAddress: { not: null } }, select: { id: true, mintAddress: true, propertyId: true } });
-  return new Map(tokens.map((t) => [t.mintAddress!, { tokenId: t.id, propertyId: t.propertyId }]));
+/**
+ * Mints whose Pump creator fees count as fund revenue: every registered property coin and, under
+ * Option C, $DYNASTY itself (propertyId null, so it never appears on the property leaderboard).
+ */
+async function feeTokenRegistry() {
+  const tokens = await prisma.token.findMany({ where: { mintAddress: { not: null } }, select: { id: true, mintAddress: true, propertyId: true, isNative: true } });
+  return new Map(tokens.map((t) => [t.mintAddress!, { tokenId: t.id, propertyId: t.isNative ? null : t.propertyId, native: t.isNative }]));
 }
 
 export class RpcUnavailable extends ApiError {
@@ -156,7 +171,7 @@ export async function verifyAndRecordReceipt(signature: string, source: "AUTO_SC
     found = candidatesFromTx(
       tx,
       { fund: fund.address, ecosystem: eco?.address ?? null, operations: ops?.address ?? null },
-      await propertyTokenRegistry(),
+      await feeTokenRegistry(),
       { mode: cfg.allocationMode, buybackBps: cfg.buybackBps, ecosystemBps: cfg.ecosystemBps, operationsBps: cfg.operationsBps },
     );
   } catch (e) {
@@ -186,19 +201,20 @@ export async function verifyAndRecordReceipt(signature: string, source: "AUTO_SC
             recordedById: actor.id,
           },
         });
+        // $DYNASTY's own fees (Option C) are 100% buyback revenue in every allocation mode; the
+        // property split never applies to them.
         const allocation =
-          cfg.allocationMode === "ON_CHAIN_SPLIT"
+          c.native || cfg.allocationMode === "ON_CHAIN_SPLIT"
             ? { buyback: c.lamports, ecosystem: c.directEcosystem, operations: c.directOperations, paidDirect: true }
             : { ...splitByBps(c.lamports, { buyback: cfg.buybackBps, ecosystem: cfg.ecosystemBps, operations: cfg.operationsBps }), paidDirect: false };
+        const bps = c.native ? { buybackBps: NATIVE_FEE_POLICY.fundBps, ecosystemBps: 0, operationsBps: 0 } : { buybackBps: cfg.buybackBps, ecosystemBps: cfg.ecosystemBps, operationsBps: cfg.operationsBps };
         await db.revenueAllocation.create({
           data: {
             receiptId: receipt.id,
             buybackLamports: allocation.buyback,
             ecosystemLamports: allocation.ecosystem,
             operationsLamports: allocation.operations,
-            buybackBps: cfg.buybackBps,
-            ecosystemBps: cfg.ecosystemBps,
-            operationsBps: cfg.operationsBps,
+            ...bps,
             paidDirect: allocation.paidDirect,
           },
         });

@@ -1,0 +1,340 @@
+{
+  "readAt": "2026-11-18T14:01:24.573Z",
+  "cluster": "mainnet-beta",
+  "pump": {
+    "feeConfig": "8Wf5TiAheLUqBrKXeYg2JtAFFMWtKdG2BSFgqUcPVwTt",
+    "flatFees": {
+      "lpFeeBps": 0,
+      "protocolFeeBps": 95,
+      "creatorFeeBps": 30
+    },
+    "feeTiers": [
+      {
+        "marketCapThresholdSol": 0,
+        "lpFeeBps": 0,
+        "protocolFeeBps": 95,
+        "creatorFeeBps": 30
+      }
+    ],
+    "stableFeeTiers": [
+      {
+        "marketCapThresholdSol": 0,
+        "lpFeeBps": 0,
+        "protocolFeeBps": 95,
+        "creatorFeeBps": 30
+      }
+    ]
+  },
+  "pumpSwap": {
+    "feeConfig": "5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqazxPD7RaTjx",
+    "flatFees": {
+      "lpFeeBps": 25,
+      "protocolFeeBps": 5,
+      "creatorFeeBps": 0
+    },
+    "feeTiers": [
+      {
+        "marketCapThresholdSol": 0,
+        "lpFeeBps": 2,
+        "protocolFeeBps": 93,
+        "creatorFeeBps": 30
+      },
+      {
+        "marketCapThresholdSol": 420,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 95
+      },
+      {
+        "marketCapThresholdSol": 1470,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 90
+      },
+      {
+        "marketCapThresholdSol": 2460,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 85
+      },
+      {
+        "marketCapThresholdSol": 3440,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 80
+      },
+      {
+        "marketCapThresholdSol": 4420,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 75
+      },
+      {
+        "marketCapThresholdSol": 9820,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 70
+      },
+      {
+        "marketCapThresholdSol": 14740,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 65
+      },
+      {
+        "marketCapThresholdSol": 19650,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 60
+      },
+      {
+        "marketCapThresholdSol": 24560,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 55
+      },
+      {
+        "marketCapThresholdSol": 29470,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 50
+      },
+      {
+        "marketCapThresholdSol": 34380,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 45
+      },
+      {
+        "marketCapThresholdSol": 39300,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 40
+      },
+      {
+        "marketCapThresholdSol": 44210,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 35
+      },
+      {
+        "marketCapThresholdSol": 49120,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 30
+      },
+      {
+        "marketCapThresholdSol": 54030,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 28
+      },
+      {
+        "marketCapThresholdSol": 58940,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 25
+      },
+      {
+        "marketCapThresholdSol": 63860,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 23
+      },
+      {
+        "marketCapThresholdSol": 68770,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 20
+      },
+      {
+        "marketCapThresholdSol": 73681,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 18
+      },
+      {
+        "marketCapThresholdSol": 78590,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 15
+      },
+      {
+        "marketCapThresholdSol": 83500,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 13
+      },
+      {
+        "marketCapThresholdSol": 88400,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 10
+      },
+      {
+        "marketCapThresholdSol": 93330,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 8
+      },
+      {
+        "marketCapThresholdSol": 98240,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 5
+      }
+    ],
+    "stableFeeTiers": [
+      {
+        "marketCapThresholdSol": 0,
+        "lpFeeBps": 2,
+        "protocolFeeBps": 93,
+        "creatorFeeBps": 30
+      },
+      {
+        "marketCapThresholdSol": 59,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 95
+      },
+      {
+        "marketCapThresholdSol": 300,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 90
+      },
+      {
+        "marketCapThresholdSol": 500,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 85
+      },
+      {
+        "marketCapThresholdSol": 700,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 80
+      },
+      {
+        "marketCapThresholdSol": 900,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 75
+      },
+      {
+        "marketCapThresholdSol": 2000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 70
+      },
+      {
+        "marketCapThresholdSol": 3000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 65
+      },
+      {
+        "marketCapThresholdSol": 4000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 60
+      },
+      {
+        "marketCapThresholdSol": 5000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 55
+      },
+      {
+        "marketCapThresholdSol": 6000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 50
+      },
+      {
+        "marketCapThresholdSol": 7000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 45
+      },
+      {
+        "marketCapThresholdSol": 8000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 40
+      },
+      {
+        "marketCapThresholdSol": 9000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 35
+      },
+      {
+        "marketCapThresholdSol": 10000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 30
+      },
+      {
+        "marketCapThresholdSol": 11000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 28
+      },
+      {
+        "marketCapThresholdSol": 12000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 25
+      },
+      {
+        "marketCapThresholdSol": 13000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 23
+      },
+      {
+        "marketCapThresholdSol": 14000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 20
+      },
+      {
+        "marketCapThresholdSol": 15000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 18
+      },
+      {
+        "marketCapThresholdSol": 16000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 15
+      },
+      {
+        "marketCapThresholdSol": 17000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 13
+      },
+      {
+        "marketCapThresholdSol": 18000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 10
+      },
+      {
+        "marketCapThresholdSol": 19000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 8
+      },
+      {
+        "marketCapThresholdSol": 20000,
+        "lpFeeBps": 20,
+        "protocolFeeBps": 5,
+        "creatorFeeBps": 5
+      }
+    ]
+  }
+}

@@ -5,7 +5,8 @@ import { CheckCircle2, ExternalLink, Loader2, RefreshCw, ShieldCheck, Wallet, XC
 import { cn } from "@/lib/utils";
 import { shortAddress } from "@/lib/format";
 import { formatSol, formatTokenAmount } from "@/lib/fund-format";
-import { getPhantom, signAndSend } from "@/lib/phantom";
+import { Keypair } from "@solana/web3.js";
+import { getPhantom, signAndSend, signWithMintAndSend } from "@/lib/phantom";
 
 /**
  * Treasury signing page for multisig members. Connect Phantom, review a buyback proposal, then
@@ -34,7 +35,20 @@ type Proposal = {
   createdAt: string;
 };
 type Buyback = { id: string; status: string; budgetLamports: string; tokensReceivedRaw: string | null; tokensBurnedRaw: string; createdAt: string };
-type Review = { title: string; lines: [string, string][]; transactionBase64: string; signer: string };
+/** `more`: further transactions signed in order after the first (one Phantom prompt each). */
+type Review = { title: string; lines: [string, string][]; transactionBase64: string; signer: string; mint?: Keypair; more?: string[]; onSent?: (signature: string) => void };
+type LaunchCoin = {
+  slug: string;
+  kind: "NATIVE" | "PROPERTY";
+  name: string;
+  symbol: string;
+  status: string;
+  pending: string[];
+  policy: string;
+  approved: boolean;
+  registered: { mint: string | null; deploymentStatus: string | null };
+};
+const LT_KEY = "d8.launchLookupTable";
 
 const solscan = (kind: "account" | "tx", v: string) => `https://solscan.io/${kind}/${v}`;
 const LIVE = ["PREPARED", "CREATED", "APPROVED", "EXECUTED"];
@@ -63,18 +77,47 @@ export function TreasurySigner() {
   const [review, setReview] = useState<Review | null>(null);
   const [sent, setSent] = useState<{ label: string; signature: string } | null>(null);
   const [setupMint, setSetupMint] = useState("");
+  const [launchCoins, setLaunchCoins] = useState<LaunchCoin[]>([]);
+  const [launchSlug, setLaunchSlug] = useState("");
+  const [launchUri, setLaunchUri] = useState("");
+  const [lookupTable, setLookupTableState] = useState("");
+  useEffect(() => {
+    // Remembered per browser (a convenience only); read after mount so server and client HTML match.
+    void Promise.resolve().then(() => {
+      try {
+        const saved = window.localStorage.getItem(LT_KEY);
+        if (saved) setLookupTableState(saved);
+      } catch {
+        /* storage unavailable */
+      }
+    });
+  }, []);
+  const [launched, setLaunched] = useState<{ slug: string; kind: string; symbol: string; mint: string; signature: string; mode: "atomic" | "split" } | null>(null);
+  const [fallbackAck, setFallbackAck] = useState(false);
+  /** Fallback coins whose mint is registered: steps 2 (lock fee sharing) and 3 (dev buy) remain. */
+  const [fallbackNext, setFallbackNext] = useState<{ slug: string; symbol: string; mint: string } | null>(null);
+  const setLookupTable = (v: string) => {
+    setLookupTableState(v);
+    try {
+      window.localStorage.setItem(LT_KEY, v);
+    } catch {
+      /* storage unavailable: keep it in memory */
+    }
+  };
 
   const load = useCallback(async (member: string | null) => {
     try {
       const q = member ? `?member=${member}` : "";
-      const [s, p, b] = await Promise.all([
+      const [s, p, b, l] = await Promise.all([
         api<Status>(`/api/admin/demolition-fund/multisig${q}`),
         api<{ items: Proposal[] }>("/api/admin/demolition-fund/proposals"),
         api<{ items: Buyback[] }>("/api/admin/demolition-fund/buybacks"),
+        api<{ items: LaunchCoin[] }>("/api/admin/demolition-fund/launch"),
       ]);
       setStatus(s);
       setProposals(p.items);
       setBuybacks(b.items);
+      setLaunchCoins(l.items);
       setAuthError(null);
     } catch (e) {
       const st = (e as { status?: number }).status;
@@ -133,8 +176,10 @@ export function TreasurySigner() {
     setBusy("sign");
     setError(null);
     try {
-      const signature = await signAndSend(review.transactionBase64, review.signer);
+      const signature = review.mint ? await signWithMintAndSend(review.transactionBase64, review.signer, review.mint) : await signAndSend(review.transactionBase64, review.signer);
+      for (const next of review.more ?? []) await signAndSend(next, review.signer);
       setSent({ label: review.title, signature });
+      review.onSent?.(signature);
       setReview(null);
       await api("/api/admin/demolition-fund/proposals", { method: "POST" }).catch(() => {});
       await load(wallet);
@@ -168,12 +213,149 @@ export function TreasurySigner() {
       };
     });
 
+  const createLookupTable = () =>
+    prepare("lookup-table", async () => {
+      const r = await api<{ lookupTable: string; addresses: string[]; transactions: { transactionBase64: string; transactionBytes: number }[] }>("/api/admin/demolition-fund/launch/lookup-table", {
+        method: "POST",
+        body: JSON.stringify({ authority: wallet }),
+      });
+      return {
+        title: "Create the launch lookup table",
+        signer: wallet!,
+        transactionBase64: r.transactions[0]!.transactionBase64,
+        more: r.transactions.slice(1).map((t) => t.transactionBase64),
+        lines: [
+          ["What it does", "Creates a small on-chain address table (one time, about 0.005 SOL rent) so each coin launch, with its 0.01 SOL buy, fits in a single transaction. It moves no funds and grants no permissions."],
+          ["Table address", r.lookupTable],
+          ["Addresses stored", `${r.addresses.length} (Pump programs, globals, event authorities, fee config, Mayhem accounts, token programs, and this wallet's WSOL and volume accounts)`],
+          ["Phantom prompts", `${r.transactions.length} (approve each in order)`],
+          ["Fee payer / signer", `${wallet} (you, the launch wallet)`],
+        ],
+        onSent: () => setLookupTable(r.lookupTable),
+      };
+    });
+
+  const prepareLaunch = () =>
+    prepare("launch", async () => {
+      const coin = launchCoins.find((c) => c.slug === launchSlug);
+      if (!coin) throw new Error("Choose a coin");
+      // The mint keypair lives only in this tab; only its public key is sent to the server.
+      const mint = Keypair.generate();
+      const r = await api<{
+        name: string;
+        symbol: string;
+        policy: string;
+        uri: string;
+        metadata: { imageUrl: string; imageSha256: string };
+        mint: string;
+        shareholders: { address: string; shareBps: number }[];
+        devBuy: { lamports: string; expectedTokens: string; minTokensOut: string; slippageBps: number };
+        priorityMicroLamports: number | null;
+        launchWalletBalanceLamports: number;
+        transactionBase64: string;
+        transactionBytes: number;
+        simulation: { unitsConsumed: number | null };
+      }>("/api/admin/demolition-fund/launch/prepare", {
+        method: "POST",
+        body: JSON.stringify({ slug: coin.slug, creator: wallet, mint: mint.publicKey.toBase58(), uri: launchUri.trim(), lookupTable: lookupTable.trim() }),
+      });
+      return {
+        title: `Launch $${r.symbol} on Pump.fun`,
+        signer: wallet!,
+        mint,
+        transactionBase64: r.transactionBase64,
+        lines: [
+          ["What it does", "Creates the coin on Pump.fun, locks its creator fees to the treasury and makes the 0.01 SOL initial buy, all in one transaction. This is a live launch; it cannot be undone."],
+          ["Name / symbol", `${r.name} / ${r.symbol}`],
+          ["Metadata (verified)", `${r.uri} · image sha256 ${r.metadata.imageSha256.slice(0, 16)}…`],
+          ["New mint", r.mint],
+          ["Fee policy", r.policy === "DYNASTY_FUND_100" ? "100% to the buyback fund (Option C)" : "60% fund / 25% ecosystem / 15% operations"],
+          ...r.shareholders.map((h) => [`${roleOf(h.address)} · ${h.shareBps / 100}%`, h.address] as [string, string]),
+          ["Initial buy", `${formatSol(r.devBuy.lamports)} → about ${formatTokenAmount(r.devBuy.expectedTokens, 6)} $${r.symbol} (at least ${formatTokenAmount(r.devBuy.minTokensOut, 6)}, ${r.devBuy.slippageBps / 100}% tolerance)`],
+          ["Priority fee", r.priorityMicroLamports ? `${r.priorityMicroLamports} micro-lamports per compute unit` : "none (kept the transaction under the size limit)"],
+          ["Launch wallet balance", formatSol(String(r.launchWalletBalanceLamports))],
+          ["Simulation", `Passed on Solana mainnet (${r.simulation.unitsConsumed ?? "?"} compute units, ${r.transactionBytes} bytes; nothing sent)`],
+          ["Signers", `the new mint (in this browser) and ${wallet} (you, the launch wallet: creator and fee payer)`],
+        ],
+        onSent: (signature: string) => setLaunched({ slug: coin.slug, kind: coin.kind, symbol: coin.symbol, mint: r.mint, signature, mode: "atomic" }),
+      };
+    });
+
+  async function registerLaunchedMint() {
+    if (!launched || !wallet) return;
+    setBusy("register");
+    setError(null);
+    try {
+      if (launched.kind === "NATIVE") {
+        await api("/api/admin/ecosystem/token", { method: "POST", body: JSON.stringify({ mintAddress: launched.mint }) });
+      } else {
+        await api(`/api/admin/properties/${launched.slug}/token`, { method: "POST", body: JSON.stringify({ mintAddress: launched.mint, creatorWallet: wallet }) });
+      }
+      setSent({ label: `$${launched.symbol} mint registered (pending verification)`, signature: launched.signature });
+      if (launched.mode === "split") setFallbackNext({ slug: launched.slug, symbol: launched.symbol, mint: launched.mint });
+      setLaunched(null);
+      await load(wallet);
+    } catch (e) {
+      setError(`Registration failed: ${(e as Error).message}. The coin is live; retry once the transaction is finalized.`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /** FALLBACK step 1: create only. Fees from trades before step 2 do NOT reach the treasury. */
+  const prepareSplitLaunch = () =>
+    prepare("split", async () => {
+      const coin = launchCoins.find((c) => c.slug === launchSlug);
+      if (!coin) throw new Error("Choose a coin");
+      const mint = Keypair.generate(); // browser-only, like the atomic launch
+      const r = await api<{ symbol: string; mint: string; uri: string; risk: string; transactionBase64: string; transactionBytes: number; simulation: { unitsConsumed: number | null } }>(
+        "/api/admin/demolition-fund/launch/prepare-split",
+        { method: "POST", body: JSON.stringify({ slug: coin.slug, creator: wallet, mint: mint.publicKey.toBase58(), uri: launchUri.trim(), acknowledgeGapRisk: true }) },
+      );
+      return {
+        title: `FALLBACK step 1 of 3: create $${r.symbol}`,
+        signer: wallet!,
+        mint,
+        transactionBase64: r.transactionBase64,
+        lines: [
+          ["What it does", "Creates the coin ONLY. Fee sharing and the 0.01 SOL buy are separate transactions (steps 2 and 3)."],
+          ["Risk you accepted", r.risk],
+          ["New mint", r.mint],
+          ["Metadata (verified)", r.uri],
+          ["Simulation", `Passed on Solana mainnet (${r.simulation.unitsConsumed ?? "?"} compute units, ${r.transactionBytes} bytes; nothing sent)`],
+          ["Signers", `the new mint (in this browser) and ${wallet} (you, the launch wallet)`],
+        ],
+        onSent: (signature: string) => setLaunched({ slug: coin.slug, kind: coin.kind, symbol: coin.symbol, mint: r.mint, signature, mode: "split" }),
+      };
+    });
+
+  /** Step 3 (fallback): the 0.01 SOL buy, priced from the live curve; refused until fee sharing is locked. */
+  const prepareDevBuy = (slug: string) =>
+    prepare("dev-buy", async () => {
+      const r = await api<{ symbol: string; mint: string; devBuy: { lamports: string; expectedTokens: string; minTokensOut: string; slippageBps: number }; transactionBase64: string; transactionBytes: number; simulation: { unitsConsumed: number | null } }>(
+        "/api/admin/demolition-fund/launch/dev-buy",
+        { method: "POST", body: JSON.stringify({ slug, creator: wallet }) },
+      );
+      return {
+        title: `Step 3 of 3: 0.01 SOL buy of $${r.symbol}`,
+        signer: wallet!,
+        transactionBase64: r.transactionBase64,
+        lines: [
+          ["What it does", "Buys the coin with exactly 0.01 SOL. Fee sharing is already locked on-chain, so this buy's creator fee goes to the treasury."],
+          ["Buy", `${formatSol(r.devBuy.lamports)} → about ${formatTokenAmount(r.devBuy.expectedTokens, 6)} $${r.symbol} at the live price (at least ${formatTokenAmount(r.devBuy.minTokensOut, 6)})`],
+          ["Simulation", `Passed on Solana mainnet (${r.simulation.unitsConsumed ?? "?"} compute units; nothing sent)`],
+          ["Signer", `${wallet} (you, the launch wallet)`],
+        ],
+        onSent: () => setFallbackNext(null),
+      };
+    });
+
   const roleOf = (address: string) => status?.wallets.find((w) => w.address === address)?.role ?? "unknown wallet";
-  const feeSharingSetup = () =>
+  const feeSharingSetup = (mintArg?: string) =>
     prepare("setup", async () => {
       const r = await api<{ token: { ticker: string; kind: string }; steps: string[]; shareholders: { address: string; shareBps: number }[]; transactionBase64: string; sharingConfig: string; warnings: string[] }>(
         "/api/admin/demolition-fund/fee-sharing/setup",
-        { method: "POST", body: JSON.stringify({ mint: setupMint.trim(), creator: wallet }) },
+        { method: "POST", body: JSON.stringify({ mint: (mintArg ?? setupMint).trim(), creator: wallet }) },
       );
       return {
         title: `Lock fee sharing for $${r.token.ticker}`,
@@ -353,6 +535,107 @@ export function TreasurySigner() {
       )}
 
       {status && !authError && (
+        <Card title="Launch a coin (fees locked to the treasury from the first trade)">
+          <ol className="list-decimal space-y-1 pl-5 text-sm text-vc-muted">
+            <li>One time: connect the dedicated launch wallet and create the launch lookup table.</li>
+            <li>Pin the coin&apos;s image and metadata with <code>scripts/launch/pin-assets.ts</code> (Pinata); paste the metadata URL.</li>
+            <li>Prepare (the server verifies the pinned metadata and simulates the launch with its 0.01 SOL buy), review, sign in Phantom. Then register the mint.</li>
+          </ol>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <label className="text-xs text-vc-text-2">
+              Coin
+              <select
+                value={launchSlug}
+                onChange={(e) => setLaunchSlug(e.target.value)}
+                aria-label="Coin to launch"
+                className="mt-1 block w-full rounded border border-vc-line-strong px-2 py-1.5 text-sm"
+              >
+                <option value="">Choose…</option>
+                {launchCoins.map((c) => (
+                  <option key={c.slug} value={c.slug} disabled={c.status !== "READY_FOR_OWNER_REVIEW" || !!c.registered.mint || !c.approved}>
+                    ${c.symbol} · {c.name}
+                    {c.registered.mint
+                      ? " (launched)"
+                      : c.status !== "READY_FOR_OWNER_REVIEW"
+                        ? " (decision pending)"
+                        : !c.approved
+                          ? " (not approved yet)"
+                          : c.policy === "DYNASTY_FUND_100"
+                            ? " · 100% fund"
+                            : " · 60/25/15"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs text-vc-text-2">
+              Lookup table
+              <span className="mt-1 flex gap-2">
+                <input
+                  value={lookupTable}
+                  onChange={(e) => setLookupTable(e.target.value)}
+                  placeholder="Lookup table address"
+                  aria-label="Lookup table address"
+                  className="min-w-0 flex-1 rounded border border-vc-line-strong px-2 py-1.5 font-mono text-xs"
+                />
+                <ActionButton label="Create" variant="ghost" disabled={!wallet} busy={busy === "lookup-table"} onClick={createLookupTable} />
+              </span>
+            </label>
+            <label className="text-xs text-vc-text-2 sm:col-span-2">
+              Metadata URL (IPFS)
+              <input
+                value={launchUri}
+                onChange={(e) => setLaunchUri(e.target.value)}
+                placeholder="https://ipfs.io/ipfs/…"
+                aria-label="Metadata URL"
+                className="mt-1 block w-full rounded border border-vc-line-strong px-2 py-1.5 font-mono text-xs"
+              />
+            </label>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <ActionButton
+              label="Prepare launch"
+              disabled={!wallet || !launchSlug || lookupTable.trim().length < 32 || !launchUri.startsWith("https://")}
+              busy={busy === "launch"}
+              onClick={prepareLaunch}
+            />
+            {launched && (
+              <span className="text-sm">
+                ${launched.symbol} sent as {shortAddress(launched.mint)}.{" "}
+                <ActionButton label="Register mint" busy={busy === "register"} onClick={registerLaunchedMint} />
+              </span>
+            )}
+          </div>
+          <details className="mt-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm">
+            <summary className="cursor-pointer font-semibold text-amber-900">Fallback: separate transactions (only if the atomic launch cannot be used)</summary>
+            <p className="mt-2 text-xs text-amber-900">
+              Three steps instead of one: create, then lock fee sharing, then the 0.01 SOL buy. Between steps 1 and 2 anyone can trade; those trades&apos;
+              creator fees go to the launch wallet&apos;s own creator vault, not the treasury, and are not counted as fund revenue. Fee routing to the
+              treasury is guaranteed only from step 2 onward. Do steps 2 and 3 immediately after step 1.
+            </p>
+            <label className="mt-2 flex items-center gap-2 text-xs text-amber-900">
+              <input type="checkbox" checked={fallbackAck} onChange={(e) => setFallbackAck(e.target.checked)} aria-label="Accept the fallback risk" />
+              I accept that fees from trades before step 2 do not reach the treasury.
+            </label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <ActionButton
+                label="Step 1: create only"
+                variant="ghost"
+                disabled={!fallbackAck || !wallet || !launchSlug || !launchUri.startsWith("https://")}
+                busy={busy === "split"}
+                onClick={prepareSplitLaunch}
+              />
+              {fallbackNext && (
+                <>
+                  <ActionButton label={`Step 2: lock fee sharing for $${fallbackNext.symbol}`} busy={busy === "setup"} onClick={() => feeSharingSetup(fallbackNext.mint)} />
+                  <ActionButton label="Step 3: 0.01 SOL buy" busy={busy === "dev-buy"} onClick={() => prepareDevBuy(fallbackNext.slug)} />
+                </>
+              )}
+            </div>
+          </details>
+        </Card>
+      )}
+
+      {status && !authError && (
         <Card title="Fee sharing for a launched coin">
           <p className="text-sm text-vc-muted">
             After launching a property coin (or $DYNASTY) on Pump.fun from this wallet and registering its mint, lock its creator fees to the treasury
@@ -366,7 +649,7 @@ export function TreasurySigner() {
               aria-label="Coin mint address"
               className="min-w-0 flex-1 rounded border border-vc-line-strong px-2 py-1.5 font-mono text-xs"
             />
-            <ActionButton label="Prepare" disabled={!wallet || setupMint.trim().length < 32} busy={busy === "setup"} onClick={feeSharingSetup} />
+            <ActionButton label="Prepare" disabled={!wallet || setupMint.trim().length < 32} busy={busy === "setup"} onClick={() => feeSharingSetup()} />
           </div>
         </Card>
       )}

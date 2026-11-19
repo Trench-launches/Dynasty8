@@ -60,6 +60,7 @@ function mockFund(): FundPageData {
         successfulBurns: 0,
         feeReceipts: 0,
         contributingProperties: 0,
+        dynastyCreatorFeesLamports: zero,
       },
       latestBuyback: null,
       latestBurn: null,

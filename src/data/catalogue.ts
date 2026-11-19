@@ -203,6 +203,19 @@ export const CATALOGUE: CatalogueEntry[] = [
     description:
       "A neon-soaked cabaret on the Vice Beach strip, with a velvet rope, a rooftop terrace and a bass line you can feel from the boardwalk.",
   },
+  // Owner decision 2026-11-18: CROSSTOWN replaces BOATWORKS in the launch 15. Only the name,
+  // ticker, type and category exist so far; description, map placement and artwork are NOT
+  // invented and await the owner's approval (the launch tool refuses CROSSTOWN until then).
+  { group: "A", name: "Cross Town Safehouse", ticker: "CROSSTOWN", typeLabel: "Safehouse", category: "SAFEHOUSE" },
+];
+
+/**
+ * Proposed listings held back from the first release. NOT seeded. An admin can add any of
+ * them later through POST /api/admin/properties.
+ */
+export const RESERVE_CANDIDATES: CatalogueEntry[] = [
+  // Moved out of the launch 15 on 2026-11-18 (replaced by CROSSTOWN). Kept with its full data;
+  // databases seeded earlier keep their BOATWORKS listing (the seed never deletes or edits rows).
   {
     group: "B",
     name: "Brian's Boat Works & Marina",
@@ -215,14 +228,6 @@ export const CATALOGUE: CatalogueEntry[] = [
     description:
       "A working boatyard and marina on the Vice City waterfront, with slipways, a dry stack and a chandlery.",
   },
-];
-
-/**
- * Proposed listings held back from the first release. NOT seeded. An admin can add any of
- * them later through POST /api/admin/properties.
- */
-export const RESERVE_CANDIDATES: CatalogueEntry[] = [
-  { group: "A", name: "Cross Town Safehouse", ticker: "CROSSTOWN", typeLabel: "Safehouse", category: "SAFEHOUSE" },
   { group: "A", name: "Washington Beach Marina", ticker: "WBM", typeLabel: "Marina", category: "MARINA" },
   { group: "B", name: "Vercetti Estate", ticker: "ESTATE", typeLabel: "Mansion", category: "LUXURY" },
   { group: "B", name: "Stock 305", ticker: "STOCK305", typeLabel: "Retail", category: "RETAIL" },

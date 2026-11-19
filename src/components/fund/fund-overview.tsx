@@ -101,8 +101,9 @@ export function FundOverview({ summary }: { summary: FundSummaryDto }) {
               </>
             )}
             <li>
-              <b className="text-vc-text">3.</b> The buyback share buys {ticker} on the open market, and every token bought is
-              burned. Each step is a multisig-approved transaction you can check on Solscan.
+              <b className="text-vc-text">3.</b> {ticker}&apos;s own creator fees go 100% to the buyback fund. The buyback share buys{" "}
+              {ticker} on the open market, and every token bought is burned. Each step is a multisig-approved transaction you can check
+              on Solscan.
             </li>
           </ol>
           <p className="mt-2 text-[15px] font-medium text-vc-text">{state.note}</p>

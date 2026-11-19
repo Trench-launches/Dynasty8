@@ -27,6 +27,8 @@ export interface FundSummaryDto {
     successfulBurns: number;
     feeReceipts: number;
     contributingProperties: number;
+    /** $DYNASTY's own creator fees received by the fund (Option C: 100% buyback revenue). Included in creatorFeesLamports. */
+    dynastyCreatorFeesLamports: string;
   };
   latestBuyback: { signature: string; solSpentLamports: Lamports; dynastyReceivedRaw: RawAmount; confirmedAt: string } | null;
   latestBurn: { signature: string; dynastyBurnedRaw: RawAmount; burnedAt: string } | null;

@@ -7,12 +7,13 @@ import {
   TransactionMessage,
   VersionedTransaction,
   type AccountMeta,
+  type AddressLookupTableAccount,
 } from "@solana/web3.js";
 import { getConfig } from "@/server/config";
 import { prisma } from "@/server/db";
 import { ApiError } from "@/server/http/responses";
 import { recordAudit, type Actor } from "@/server/services/audit";
-import { expectedShareholders } from "./fee-sharing";
+import { expectedShareholdersFor } from "./fee-sharing";
 import { decodeSharingConfig, PUMP_PROGRAMS, sharingConfigAddress, type SharingConfig } from "./pump-fees";
 import { MAX_TX_BYTES } from "./squads";
 
@@ -185,7 +186,11 @@ export function buildFeeSharingInstructions(p: { mint: string; creator: string; 
 export interface PumpSetupRpc {
   getAccount(address: string): Promise<{ owner: string; data: Buffer } | null>;
   getLatestBlockhash(): Promise<string>;
-  simulate(tx: VersionedTransaction): Promise<{ err: unknown; logs: string[] }>;
+  getSlot(): Promise<number>;
+  getBalance(address: string): Promise<number>;
+  simulate(tx: VersionedTransaction): Promise<{ err: unknown; logs: string[]; unitsConsumed?: number }>;
+  /** Active address lookup table, or null. */
+  getLookupTable(address: string): Promise<AddressLookupTableAccount | null>;
 }
 
 function rpcFromConfig(): PumpSetupRpc {
@@ -198,14 +203,27 @@ function rpcFromConfig(): PumpSetupRpc {
     async getLatestBlockhash() {
       return (await conn.getLatestBlockhash()).blockhash;
     },
+    async getSlot() {
+      return conn.getSlot("finalized");
+    },
+    async getBalance(a) {
+      return conn.getBalance(new PublicKey(a));
+    },
     async simulate(tx) {
       const r = await conn.simulateTransaction(tx, { sigVerify: false, replaceRecentBlockhash: true });
-      return { err: r.value.err, logs: r.value.logs ?? [] };
+      return { err: r.value.err, logs: r.value.logs ?? [], unitsConsumed: r.value.unitsConsumed };
+    },
+    async getLookupTable(a) {
+      const r = await conn.getAddressLookupTable(new PublicKey(a));
+      return r.value && r.value.isActive() ? r.value : null;
     },
   };
 }
 
 let rpcOverride: PumpSetupRpc | null = null;
+export function getPumpSetupRpc(): PumpSetupRpc {
+  return rpcOverride ?? rpcFromConfig();
+}
 export function setPumpSetupRpcForTests(r: PumpSetupRpc | null) {
   rpcOverride = r;
 }
@@ -231,10 +249,11 @@ export interface FeeSharingSetup {
  * transaction whose simulation fails (the caller gets the error, not a transaction to sign).
  */
 export async function prepareFeeSharingSetup(mint: string, creator: string, actor: Actor): Promise<FeeSharingSetup> {
-  const rpc = rpcOverride ?? rpcFromConfig();
+  const rpc = getPumpSetupRpc();
   const token = await prisma.token.findUnique({ where: { mintAddress: mint }, select: { id: true, ticker: true, isNative: true } });
   if (!token) throw new ApiError(422, "UNPROCESSABLE", "Register this mint to its property (or as the DYNASTY token) first");
-  const expected = await expectedShareholders();
+  // Property coins: 60/25/15. $DYNASTY itself: 100% FUND (Option C).
+  const expected = await expectedShareholdersFor(token.isNative ? "NATIVE" : "PROPERTY");
   if (!expected) throw new ApiError(422, "UNPROCESSABLE", "Register the FUND, ECOSYSTEM and OPERATIONS treasury wallets first");
 
   let bcAcct, scAcct;
@@ -277,7 +296,6 @@ export async function prepareFeeSharingSetup(mint: string, creator: string, acto
   if (bytes.length > MAX_TX_BYTES) throw new ApiError(422, "UNPROCESSABLE", `Transaction is ${bytes.length} bytes (max ${MAX_TX_BYTES})`);
   const ok = sim.err === null || sim.err === undefined;
   const warnings: string[] = [];
-  if (token.isNative) warnings.push("DYNASTY's own creator fees go to the treasury vaults but are not booked as buyback revenue (pending owner decision D-NATIVE-FEES).");
   await recordAudit(prisma, actor, "fee_sharing.setup_prepared", "Token", token.id, null, { mint, creator, holders: expected.holders, simulationOk: ok });
   if (!ok) {
     throw new ApiError(422, "UNPROCESSABLE", `Simulation failed: ${JSON.stringify(sim.err)} ${sim.logs.filter((l) => /Error|failed/.test(l)).slice(-2).join(" | ")}`.slice(0, 500));
