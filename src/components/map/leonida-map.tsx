@@ -22,7 +22,7 @@ import { NIGHT_SEA, type MapTime } from "./day-night";
 import { LEONIDA_MAP_CREDIT } from "./tiles";
 
 export type { Insets } from "./leonida-scene";
-import { MapPin, PIN_GOLD, PIN_GREEN, PinGlyph, type PinState } from "./map-pin";
+import { MapPin, PIN_ACCENT, PIN_GREEN, PinGlyph, type PinState } from "./map-pin";
 import { HqGlyph, HqPin, type HqMarker } from "./hq-pin";
 
 export interface LeonidaMapHandle {
@@ -411,7 +411,7 @@ export default function LeonidaMap({
                   "pointer-events-auto grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[3px] border-white font-display leading-none text-white shadow-[0_2px_6px_rgba(0,0,0,0.45)] transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2",
                   isOpen ? "size-6 text-sm" : "size-10 text-lg",
                 )}
-                style={{ background: PIN_GREEN, outlineColor: PIN_GOLD }}
+                style={{ background: PIN_GREEN, outlineColor: PIN_ACCENT }}
               >
                 {isOpen ? <X className="size-3.5" strokeWidth={3.2} aria-hidden="true" /> : c.slugs.length}
               </button>
@@ -490,11 +490,11 @@ export default function LeonidaMap({
         <Compass />
       </div>
 
-      {/* Gold frame */}
+      {/* Accent frame */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-40 border-[3px]"
-        style={{ borderColor: PIN_GOLD, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.6)" }}
+        style={{ borderColor: PIN_ACCENT, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.6)" }}
       />
 
       {/* Legend */}
