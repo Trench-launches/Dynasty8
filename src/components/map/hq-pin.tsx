@@ -76,7 +76,7 @@ export const HqPin = memo(function HqPin({ hq, state, onSelect, onHover }: HqPin
 
       {/* Always labelled, at every zoom: it is the one landmark on the map. */}
       <span className="pointer-events-none absolute top-full left-1/2 mt-1 -translate-x-1/2 rounded bg-vc-cream px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide whitespace-nowrap text-vc-text shadow">
-        DYNASTY HQ
+        VICE HQ
       </span>
 
       {state === "hovered" && (
