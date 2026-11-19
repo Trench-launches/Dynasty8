@@ -26,7 +26,7 @@ For each coin:
 - Metadata template: `config/launch/metadata/starlet-motel.json`
 - Website: https://vicecityrealestate.city/property/starlet-motel
 - Registration: `POST /api/admin/properties/starlet-motel/token` (the signing page's **Register mint** button does this)
-- Description: A roadside motel with a flickering neon sign, a drained pool and a parking lot that has seen things. The Gulf-coast hideout that started it all. Fan-made concept listing in the Dynasty 8 catalogue. Not affiliated with or endorsed by Rockstar Games or Take-Two. Not an official or purchasable GTA VI property. Speculative digital collectible; it does not represent ownership of any real or in-game property.
+- Description: A roadside motel with a flickering neon sign, a drained pool and a parking lot that has seen things. The roadside hideout that started it all. Fan-made concept listing in the Dynasty 8 catalogue. Not affiliated with or endorsed by Rockstar Games or Take-Two. Not an official or purchasable GTA VI property. Speculative digital collectible; it does not represent ownership of any real or in-game property.
 
 ## $KEYS: Leonida Keys Safehouse
 
@@ -143,7 +143,7 @@ For each coin:
 - Metadata template: `config/launch/metadata/delights-cabaret.json`
 - Website: https://vicecityrealestate.city/property/delights-cabaret
 - Registration: `POST /api/admin/properties/delights-cabaret/token` (the signing page's **Register mint** button does this)
-- Description: A neon-soaked cabaret off the interstate in Port Gellhorn, with a velvet rope, a rooftop terrace and a bass line you can feel from the parking lot. Fan-made concept listing in the Dynasty 8 catalogue. Not affiliated with or endorsed by Rockstar Games or Take-Two. Not an official or purchasable GTA VI property. Speculative digital collectible; it does not represent ownership of any real or in-game property.
+- Description: A neon-soaked cabaret on the Vice Beach strip, with a velvet rope, a rooftop terrace and a bass line you can feel from the boardwalk. Fan-made concept listing in the Dynasty 8 catalogue. Not affiliated with or endorsed by Rockstar Games or Take-Two. Not an official or purchasable GTA VI property. Speculative digital collectible; it does not represent ownership of any real or in-game property.
 
 ## $CROSSTOWN: Cross Town Safehouse
 

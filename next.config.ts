@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
   // run it reliably on Next 16.4 (opennextjs-cloudflare issues #1450, #1464). Pages render per request.
   // Prisma ships a separate build for Cloudflare Workers; keep it out of the Next bundle so both resolve.
   serverExternalPackages: ["@prisma/client", ".prisma/client"],
+  // Images are served as plain static files. The Next.js optimizer would run every image request
+  // through the Worker and use up the Workers free plan's CPU allowance; cards load pre-sized copies
+  // instead (scripts/make-thumbnails.mjs).
+  images: { unoptimized: true },
   turbopack: {
     root: projectRoot,
     rules: {

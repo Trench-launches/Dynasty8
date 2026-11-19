@@ -29,7 +29,7 @@ describe("launch catalogue: CROSSTOWN replaces BOATWORKS", () => {
   });
 
   it("keeps BOATWORKS' data in the reserve list and invents nothing for CROSSTOWN", () => {
-    expect(RESERVE_CANDIDATES.find((e) => e.ticker === "BOATWORKS")).toMatchObject({ name: "Brian's Boat Works & Marina", map: [608, 1134] });
+    expect(RESERVE_CANDIDATES.find((e) => e.ticker === "BOATWORKS")).toMatchObject({ name: "Brian's Boat Works & Marina", region: "vice-city", map: [705, 905] });
     expect(RESERVE_CANDIDATES.find((e) => e.ticker === "CROSSTOWN")).toBeUndefined();
     const crosstown = CATALOGUE.find((e) => e.ticker === "CROSSTOWN")!;
     expect(crosstown).toEqual({ group: "A", name: "Cross Town Safehouse", ticker: "CROSSTOWN", typeLabel: "Safehouse", category: "SAFEHOUSE" });

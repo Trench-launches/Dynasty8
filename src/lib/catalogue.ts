@@ -13,11 +13,31 @@ import type { EcosystemMarkets, EcosystemToken, Property } from "@/lib/types";
  * Server-side reads for pages. They call the backend services directly (no HTTP round trip
  * to this app's own API) and convert the DTOs with the same adapter the browser client uses.
  *
- * Database reads always happen per request: `connection()` keeps them out of the build, so
- * `next build` never needs a database. Each read runs at most once per request (React `cache`);
- * live market numbers are then refreshed client-side. There is no cross-request cache: Next.js
- * Cache Components ("use cache") is off because it does not yet run reliably on Cloudflare.
+ * Database reads happen at request time: `connection()` keeps them out of the build, so
+ * `next build` never needs a database. Each read runs at most once per request (React `cache`),
+ * and a server instance reuses a result for SHARED_MS, so a burst of visitors shares one database
+ * read (this keeps the Cloudflare Worker inside the free plan's CPU allowance). Live market numbers
+ * are refreshed client-side. Next.js Cache Components ("use cache") stays off because it does not
+ * yet run reliably on Cloudflare.
  */
+
+const SHARED_MS = 30_000;
+
+/**
+ * Keeps the last loaded value for SHARED_MS within this server instance. Only settled values are
+ * shared: a Cloudflare Worker must not await I/O that another request started. Treat the value as
+ * read-only (it is handed to every request in the window).
+ */
+function shared<K, T>(load: (key: K) => Promise<T>) {
+  const hits = new Map<K, { value: T; at: number }>();
+  return async (key: K): Promise<T> => {
+    const hit = hits.get(key);
+    if (hit && Date.now() - hit.at < SHARED_MS) return hit.value;
+    const value = await load(key);
+    hits.set(key, { value, at: Date.now() });
+    return value;
+  };
+}
 
 export async function getCatalogue(): Promise<Property[]> {
   if (usingMockApi) return mockApi.getProperties();
@@ -43,9 +63,10 @@ export async function getEcosystemMarkets(): Promise<EcosystemMarkets> {
   return toEcosystemMarkets(await dbEcosystem());
 }
 
-const dbCatalogue = cache(async () => (await listAllProperties()).map(toProperty));
+const sharedCatalogue = shared(async () => (await listAllProperties()).map(toProperty));
+const dbCatalogue = cache(() => sharedCatalogue(null));
 
-const dbProperty = cache(async (slug: string) => {
+const sharedProperty = shared(async (slug: string) => {
   try {
     return toProperty(await getProperty(slug));
   } catch (e) {
@@ -53,5 +74,7 @@ const dbProperty = cache(async (slug: string) => {
     throw e;
   }
 });
+const dbProperty = cache((slug: string) => sharedProperty(slug));
 
-const dbEcosystem = cache(() => getEcosystem());
+const sharedEcosystem = shared(() => getEcosystem());
+const dbEcosystem = cache(() => sharedEcosystem(null));

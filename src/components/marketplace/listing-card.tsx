@@ -3,10 +3,10 @@
 import { memo, useEffect, useRef } from "react";
 import { MapPinOff, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CATEGORY_LABELS } from "@/data/regions";
+import { CATEGORY_LABELS, TOKEN_STATUS_LABELS } from "@/data/regions";
 import { formatUsdCompact, tickerLabel } from "@/lib/format";
 import { PropertyArt } from "@/components/property/property-art";
-import { ChangeText, MarketDataTag, TokenStatusBadge } from "@/components/property/badges";
+import { ChangeText, MarketDataTag } from "@/components/property/badges";
 import type { Property } from "@/lib/types";
 
 interface ListingCardProps {
@@ -15,6 +15,31 @@ interface ListingCardProps {
   hovered: boolean;
   onSelect: (slug: string) => void;
   onHover: (slug: string | null) => void;
+}
+
+/** Shared frame for the sidebar cards: grey border, green border and pale green fill when selected. */
+export const listingCardFrame = (selected: boolean, hovered: boolean) =>
+  cn(
+    "group relative flex w-full gap-3 border-2 p-2 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+    selected
+      ? "border-vc-violet bg-vc-surface-2"
+      : hovered
+        ? "border-vc-line-strong bg-vc-surface"
+        : "border-vc-line bg-vc-surface hover:border-vc-line-strong",
+  );
+
+/** Yellow band across the bottom of a card photo with the property type. */
+export function CategoryBand({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "absolute inset-x-0 bottom-0 truncate bg-vc-primary/95 px-1 py-0.5 text-center text-[11px] leading-tight font-bold tracking-[0.04em] text-white uppercase text-shadow-[0_1px_1px_rgb(0_0_0/0.35)]",
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
 }
 
 export const ListingCard = memo(function ListingCard({ property, selected, hovered, onSelect, onHover }: ListingCardProps) {
@@ -36,45 +61,38 @@ export const ListingCard = memo(function ListingCard({ property, selected, hover
       onPointerLeave={() => onHover(null)}
       onFocus={() => onHover(property.slug)}
       onBlur={() => onHover(null)}
-      className={cn(
-        "group relative flex w-full gap-3 rounded-xl border p-2 text-left transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        selected
-          ? "border-sunset/60 bg-gradient-to-r from-sunset/15 to-transparent"
-          : hovered
-            ? "border-[#dee2e6] bg-[#f8f9fa]"
-            : "border-transparent bg-[#f8f9fa] hover:border-[#dee2e6] hover:bg-[#f8f9fa]",
-      )}
+      className={listingCardFrame(selected, hovered)}
     >
-      {selected && <span aria-hidden className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-sunset" />}
-      <div className="relative h-[64px] w-[84px] shrink-0 overflow-hidden rounded-lg bg-[#f8f9fa]">
-        <PropertyArt property={property} sizes="84px" className="h-full w-full transition-transform duration-500 group-hover:scale-105" />
+      <div className="relative h-[76px] w-[104px] shrink-0 overflow-hidden bg-vc-surface-3">
+        <PropertyArt property={property} sizes="104px" className="h-full w-full transition-transform duration-500 group-hover:scale-105" />
         {property.featured && (
-          <span className="absolute top-1 left-1 grid size-5 place-items-center rounded-full bg-white/95 text-tropic">
+          <span className="absolute top-1 left-1 grid size-5 place-items-center rounded-full bg-vc-surface/95 text-vc-accent">
             <Star className="size-3 fill-current" aria-label="Featured" />
           </span>
         )}
+        <CategoryBand>{CATEGORY_LABELS[property.category]}</CategoryBand>
       </div>
 
-      <div className="min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-start justify-between gap-2">
-          <p className="truncate font-display text-[16px] leading-tight text-cream">{property.name}</p>
+          <p className="truncate text-[16px] leading-tight font-bold text-vc-text">{property.name}</p>
           {!property.location && (
-            <MapPinOff className="mt-1 size-3.5 shrink-0 text-[#868e96]" aria-label="Map placement pending" />
+            <MapPinOff className="mt-0.5 size-3.5 shrink-0 text-vc-faint" aria-label="Map placement pending" />
           )}
         </div>
-        <p className="truncate text-[11px] text-[#6c757d]">
-          {property.neighbourhood} · {CATEGORY_LABELS[property.category]}
-        </p>
-        <div className="mt-1.5 flex items-center justify-between gap-2">
-          <span className="text-xs font-extrabold tracking-wide text-tropic">{tickerLabel(property)}</span>
+        <p className="mt-0.5 truncate text-[13px] text-vc-muted">{property.neighbourhood}</p>
+        <div className="mt-auto flex items-center justify-between gap-2 bg-vc-surface-3 px-2 py-1">
+          <span className="truncate text-[13px] font-bold text-vc-accent">{tickerLabel(property)}</span>
           {m ? (
-            <span className="flex items-center gap-1.5 text-[11px] tabular-nums">
-              <span className="text-[#212529]">{formatUsdCompact(m.marketCapUsd)}</span>
+            <span className="flex shrink-0 items-center gap-1.5 text-[12px] text-vc-text tabular-nums">
+              {formatUsdCompact(m.marketCapUsd)}
               <ChangeText value={m.change24hPct} />
               <MarketDataTag market={m} />
             </span>
           ) : (
-            <TokenStatusBadge status={property.token.status} />
+            <span className="shrink-0 text-[11px] tracking-[0.06em] text-vc-text-2 uppercase">
+              {TOKEN_STATUS_LABELS[property.token.status]}
+            </span>
           )}
         </div>
       </div>

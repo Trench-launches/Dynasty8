@@ -45,7 +45,7 @@ describe("GET /api/properties", () => {
     expect((await list("?verification=VERIFIED")).body.total).toBe(0);
     const featured = CATALOGUE.filter((e) => e.featured).map((e) => slugify(e.name));
     expect((await list("?featured=true")).body.items.map((i) => i.slug).sort()).toEqual(featured.sort());
-    expect((await list("?region=port-gellhorn")).body.items.map((i) => i.slug).sort()).toEqual(["delights-cabaret", "starlet-motel"]);
+    expect((await list("?region=leonida-keys")).body.items.map((i) => i.slug).sort()).toEqual(["jasons-stilt-house", "key-lento-marina-club", "leonida-keys-safehouse"]);
     await db().property.update({ where: { slug: "pegassi-residences" }, data: { region: "Mount-Kalaga" } });
     expect((await list("?region=MOUNT-KALAGA")).body.items.map((i) => i.slug)).toEqual(["pegassi-residences"]);
   });

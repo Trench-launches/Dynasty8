@@ -49,10 +49,10 @@ export function FundStats({ summary }: { summary: FundSummaryDto }) {
 
 function StatCard({ label, value, note }: { label: string; value: string; note: string }) {
   return (
-    <div className="min-w-0 rounded-md border border-[#ced4da] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-      <p className="text-[10px] tracking-wider text-[#868e96] uppercase">{label}</p>
-      <p className="mt-0.5 truncate text-[22px] leading-tight font-semibold text-[#212529] tabular-nums">{value}</p>
-      <p className="mt-0.5 truncate text-xs text-[#6c757d]">{note}</p>
+    <div className="min-w-0 border border-vc-line bg-vc-surface px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+      <p className="text-[13px] tracking-[0.06em] text-vc-muted uppercase">{label}</p>
+      <p className="mt-1 truncate text-[30px] leading-tight text-vc-text tabular-nums">{value}</p>
+      <p className="mt-0.5 truncate text-[14px] text-vc-text-2">{note}</p>
     </div>
   );
 }
@@ -71,16 +71,16 @@ function LatestCard({
   detail: string | null | undefined;
 }) {
   return (
-    <div className="flex min-w-0 items-center justify-between gap-3 rounded-md border border-[#ced4da] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.06)] xl:col-span-2">
+    <div className="flex min-w-0 items-center justify-between gap-3 border border-vc-line bg-vc-surface-3 px-4 py-3 xl:col-span-2">
       <div className="min-w-0">
-        <p className="text-[10px] tracking-wider text-[#868e96] uppercase">{label}</p>
+        <p className="text-[13px] tracking-[0.06em] text-vc-muted uppercase">{label}</p>
         {signature && detail ? (
           <>
-            <p className="mt-0.5 truncate text-base font-semibold text-[#212529] tabular-nums">{detail}</p>
-            <p className="truncate text-xs text-[#6c757d]">{formatFundDate(at ?? null)}</p>
+            <p className="mt-0.5 truncate text-base font-semibold text-vc-text tabular-nums">{detail}</p>
+            <p className="truncate text-xs text-vc-text-2">{formatFundDate(at ?? null)}</p>
           </>
         ) : (
-          <p className="mt-0.5 text-base font-semibold text-[#868e96]">{empty}</p>
+          <p className="mt-0.5 text-base font-semibold text-vc-muted">{empty}</p>
         )}
       </div>
       {signature && (
@@ -89,7 +89,7 @@ function LatestCard({
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`View ${label.toLowerCase()} on Solscan`}
-          className="inline-flex shrink-0 items-center gap-1 rounded-[3px] border border-[#ced4da] px-2.5 py-1 text-xs font-semibold text-d8-green hover:border-d8-green"
+          className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-vc-primary px-4 text-[13px] tracking-[0.02em] text-white hover:bg-vc-primary-strong"
         >
           {shortAddress(signature)} <ExternalLink className="size-3" />
         </a>
