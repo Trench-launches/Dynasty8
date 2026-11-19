@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import type { EcosystemToken } from "@/lib/types";
 
 /** Shown in the address bar, whatever host serves the page (localhost, previews). */
-const SITE_HOST = "dynasty15.xyz";
+const SITE_HOST = "vicecityrealestate.city";
 /** The project's X profile. */
 const X_URL = "https://x.com/Dynasty15fund";
 

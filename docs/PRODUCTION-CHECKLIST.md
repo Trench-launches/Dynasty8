@@ -27,7 +27,7 @@ Done already (verified or tested):
 ## C. Merge, deploy and hosting (you)
 
 State from the Cloudflare account (owner's notes, 2026-11-18):
-- Worker `dynasty8` on the **free** Workers plan serves dynasty15.xyz. The domain is at Namecheap with Cloudflare nameservers. Pushes to `main` deploy; other branches make preview builds.
+- Worker `dynasty8` on the **free** Workers plan serves vicecityrealestate.city. The domain is at Namecheap with Cloudflare nameservers. Pushes to `main` deploy; other branches make preview builds.
 - [PR #12](https://github.com/Trench-launches/Dynasty8/pull/12) merged as 5052bf5, and its `main` build failed at `npm ci` ("Missing: diff@9.0.0 from lock file"). #16 re-synced the lock file, and `main` (a2ae60a, with #16 and #17) is live and working.
 - [PR #18](https://github.com/Trench-launches/Dynasty8/pull/18) failed with the same lock-file error because its branch predated #16. `main` is now merged into it (3af5130). Its lock file is `main`'s, and `npm ci` passes locally.
 - Until #18 is merged, **every build, previews included, runs `db:migrate` and `db:seed` against production Supabase**. #18's own builds already use the guard: Cloudflare sets `WORKERS_CI=1` and `WORKERS_CI_BRANCH` on every build, and `scripts/db-task.mjs` skips both steps unless the branch is `main`.
@@ -51,7 +51,7 @@ Steps:
 4. Do **not** set `FUND_ALLOW_SINGLE_SIG` in production.
 5. Grant yourself admin: `npm run admin:grant -- --github-id <id> --login <login> --role ADMIN` against the production database.
 6. Register the treasury against production: `npm run fund:register -- --config config/treasury.mainnet.json --check`, then without `--check`.
-7. Sign in at `https://dynasty15.xyz/admin/treasury`, connect Phantom and check the page shows the multisig, the three vaults and "you".
+7. Sign in at `https://vicecityrealestate.city/admin/treasury`, connect Phantom and check the page shows the multisig, the three vaults and "you".
 
 ## E. Launch $DYNASTY (you; live transactions)
 
