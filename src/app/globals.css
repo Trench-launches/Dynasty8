@@ -6,26 +6,30 @@
 
 /* Vice City palette as real CSS variables (charts, map pins and :root read them at runtime). */
 @theme {
-  /* GTA VI / Vice City purple palette. Every UI colour in the app comes from these tokens; change
-     a shade here and it changes everywhere. Contrast on --color-vc-surface: text 14:1, muted 6.9:1,
-     faint 4.6:1, accent 5.3:1; white on --color-vc-primary 4.8:1. */
-  --color-vc-page: #34213f; /* deep Vice City purple: page background */
-  --color-vc-surface: #452b50; /* dark plum: cards, panels, menus */
-  --color-vc-surface-2: #4f325b; /* insets, table stripes, inputs */
-  --color-vc-surface-3: #5c3c69; /* tracks, hover fills, chips */
-  --color-vc-line: #5f406b; /* hairlines and card borders */
-  --color-vc-line-strong: #7b5788; /* input borders, dividers that must show */
+  /* GTA VI / Vice City purple palette, sampled from the owner's reference (Progress / Challenges
+     screen): dark plum tiles on a mauve backdrop that brightens towards the corner, light-purple
+     dividers, violet-pink to peach accents. Every UI colour comes from these tokens.
+     Contrast on --color-vc-surface: text 11.8:1, muted 7.5:1, faint 6.2:1, accent 6.8:1. On the
+     brightest point of the page backdrop (#6b416f): text 7.3:1, muted 4.6:1. White on primary 4.8:1. */
+  --color-vc-page: #3b2343; /* darkest backdrop purple (page base, browser theme) */
+  --color-vc-page-mid: #4e3156; /* backdrop sweep, middle */
+  --color-vc-page-high: #6b416f; /* backdrop sweep, brightest mauve */
+  --color-vc-surface: #412748; /* dark plum tiles: cards, panels, menus */
+  --color-vc-surface-2: #4a2e52; /* insets, table stripes, inputs */
+  --color-vc-surface-3: #573762; /* tracks, hover fills, chips */
+  --color-vc-line: #5a3a63; /* hairlines and card borders */
+  --color-vc-line-strong: #8c6489; /* dividers (the reference's divider colour), input borders */
   --color-vc-primary: #94609a; /* light purple: filled buttons, active states */
   --color-vc-primary-strong: #7f5087; /* hover / pressed */
-  --color-vc-violet: #bb6dd4; /* violet accent: focus, selected borders, chart lines */
-  --color-vc-accent: #d990e5; /* soft pink accent: headings, links, highlights */
+  --color-vc-violet: #c378dc; /* violet-pink accent: focus, selected borders, chart lines */
+  --color-vc-accent: #e3a6ec; /* soft pink accent: headings, links, highlights */
   --color-vc-lilac: #e6c3ef; /* soft lavender: secondary accent text */
-  --color-vc-cream: #f3d4a2; /* warm cream: notes, warnings, gold markers */
+  --color-vc-cream: #f5d1a2; /* warm peach-cream: notes, warnings, gold markers */
   --color-vc-danger: #ff8fb0; /* errors on dark purple */
   --color-vc-text: #f8f1fa; /* primary text */
   --color-vc-text-2: #ead9ee; /* strong secondary text */
   --color-vc-muted: #d5bdd9; /* secondary text */
-  --color-vc-faint: #b99fc0; /* labels, captions */
+  --color-vc-faint: #c4abca; /* labels, captions */
 
 }
 
@@ -34,25 +38,25 @@
      remaining reference picks up the new colours. */
   --color-d8-green: #94609a;
   --color-d8-green-dark: #7f5087;
-  --color-d8-teal: #bb6dd4;
+  --color-d8-teal: #c378dc;
   --color-d8-dark: #f8f1fa;
-  --color-d8-yellow: #f3d4a2;
-  --color-d8-mint: #5c3c69;
-  --color-d8-mint-soft: #4f325b;
+  --color-d8-yellow: #f5d1a2;
+  --color-d8-mint: #573762;
+  --color-d8-mint-soft: #4a2e52;
   --color-d8-gold-soft: #5a4148;
-  --color-d8-gold-ink: #f3d4a2;
-  --color-d8-paper: #34213f;
+  --color-d8-gold-ink: #f5d1a2;
+  --color-d8-paper: #3b2343;
   --color-d8-ink: #f8f1fa;
   --color-sunset: #94609a;
-  --color-coral: #bb6dd4;
-  --color-tropic: #d990e5;
-  --color-neon: #bb6dd4;
-  --color-violet-deep: #34213f;
+  --color-coral: #c378dc;
+  --color-tropic: #e3a6ec;
+  --color-neon: #c378dc;
+  --color-violet-deep: #3b2343;
   --color-navy: #f8f1fa;
-  --color-cream: #d990e5;
+  --color-cream: #e3a6ec;
   --color-mint: #e6c3ef;
   --color-lime: #94609a;
-  --color-blush: #d990e5;
+  --color-blush: #e3a6ec;
   --color-ink: #ffffff; /* text on filled buttons */
 
   --color-background: var(--background);
@@ -144,9 +148,11 @@
   /* Filled buttons: light purple. */
   --sunset-gradient: linear-gradient(var(--color-vc-primary), var(--color-vc-primary));
   /* Section bars: a restrained purple-to-violet-pink sweep (not neon). */
-  --header-gradient: linear-gradient(100deg, #65406d 0%, #7f5087 55%, #94609a 100%);
+  --header-gradient: linear-gradient(100deg, #573762 0%, #7a4577 60%, #935187 100%);
+  /* Page backdrop (sampled from the reference): dark purple sweeping to soft mauve. */
+  --page-gradient: linear-gradient(160deg, var(--color-vc-page) 0%, var(--color-vc-page-mid) 45%, #5e3a66 75%, var(--color-vc-page-high) 100%);
   /* Browser-style top bar: dark plum chrome. */
-  --chrome-gradient: linear-gradient(180deg, #4f325b 0%, #3d2648 100%);
+  --chrome-gradient: linear-gradient(180deg, #4a2e52 0%, #3b2343 100%);
 
   /* The map texture reads these font variables for its labels. */
   --font-bebas: var(--font-barlow);
@@ -160,6 +166,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* The reference's mauve backdrop: dark purple top-left, brightening towards the far corner. */
+    background-image: var(--page-gradient);
+    background-attachment: fixed;
   }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
