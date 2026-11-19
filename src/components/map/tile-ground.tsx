@@ -14,6 +14,7 @@ import {
   tileRect,
   tileUrl,
 } from "./tiles";
+import { NIGHT, NIGHT_SEA, withNight, type MapTime } from "./day-night";
 
 /** Open-sea colour of the community map, used for the endless sea plane and the fog. */
 export const LEONIDA_SEA = "#2c67a4";
@@ -38,7 +39,10 @@ interface Tile {
 
 /** Ground layers draw under everything else and never fight over depth. */
 const groundMaterial = (map: THREE.Texture | null) =>
-  new THREE.MeshBasicMaterial({ map, depthTest: false, depthWrite: false, transparent: false });
+  withNight(new THREE.MeshBasicMaterial({ map, depthTest: false, depthWrite: false, transparent: false }));
+
+const DAY_FOG = new THREE.Color(LEONIDA_SEA);
+const NIGHT_FOG = new THREE.Color(NIGHT_SEA);
 
 function prepare(texture: THREE.Texture, gl: THREE.WebGLRenderer) {
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -55,8 +59,9 @@ function prepare(texture: THREE.Texture, gl: THREE.WebGLRenderer) {
  * The GTA VI map: one stitched low-resolution image of the whole map, with 256 px tiles
  * streamed in on top for whatever is on screen (up to 1 m per pixel) as the camera zooms in.
  */
-export function TileGround({ onReady }: { onReady: () => void }) {
+export function TileGround({ onReady, time = "day" }: { onReady: () => void; time?: MapTime }) {
   const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
   const size = useThree((s) => s.size);
   const group = useRef<THREE.Group>(null);
   const [base, setBase] = useState<THREE.Texture | null>(null);
@@ -64,6 +69,20 @@ export function TileGround({ onReady }: { onReady: () => void }) {
   const inflight = useRef(0);
   const lastCheck = useRef(0);
   const plane = useMemo(() => new THREE.PlaneGeometry(1, 1), []);
+  const seaMaterial = useMemo(() => withNight(new THREE.MeshBasicMaterial({ color: LEONIDA_SEA, depthTest: false, depthWrite: false })), []);
+  const baseMaterial = useMemo(() => (base ? groundMaterial(base) : null), [base]);
+
+  // First paint starts in the chosen look; later switches fade (see useFrame).
+  const timeRef = useRef(time);
+  useEffect(() => {
+    timeRef.current = time;
+  }, [time]);
+  useState(() => {
+    NIGHT.value = time === "night" ? 1 : 0;
+  });
+
+  useEffect(() => () => seaMaterial.dispose(), [seaMaterial]);
+  useEffect(() => () => baseMaterial?.dispose(), [baseMaterial]);
 
   useEffect(() => {
     let cancelled = false;
@@ -142,7 +161,15 @@ export function TileGround({ onReady }: { onReady: () => void }) {
     return tile;
   };
 
-  useFrame(({ camera, controls }) => {
+  useFrame(({ camera, controls }, delta) => {
+    // Day / night fade, and the fog follows the sea colour so the horizon matches.
+    const goal = timeRef.current === "night" ? 1 : 0;
+    if (NIGHT.value !== goal) {
+      const step = Math.min(1, delta * 3);
+      NIGHT.value = Math.abs(goal - NIGHT.value) < 0.004 ? goal : NIGHT.value + (goal - NIGHT.value) * step;
+    }
+    if (scene.fog instanceof THREE.Fog) scene.fog.color.lerpColors(DAY_FOG, NIGHT_FOG, NIGHT.value);
+
     const now = performance.now();
     if (now - lastCheck.current < 120) return;
     lastCheck.current = now;
@@ -209,12 +236,12 @@ export function TileGround({ onReady }: { onReady: () => void }) {
       {/* Endless sea */}
       <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]} renderOrder={-30}>
         <planeGeometry args={[60000, 60000]} />
-        <meshBasicMaterial color={LEONIDA_SEA} depthTest={false} depthWrite={false} />
+        <primitive object={seaMaterial} attach="material" />
       </mesh>
-      {base && (
+      {baseMaterial && (
         <mesh rotation-x={-Math.PI / 2} position={[baseCentre.x, 0, baseCentre.z]} renderOrder={-25}>
           <planeGeometry args={[TILED_AREA.w, TILED_AREA.h]} />
-          <meshBasicMaterial map={base} depthTest={false} depthWrite={false} />
+          <primitive object={baseMaterial} attach="material" />
         </mesh>
       )}
       <group ref={group} />

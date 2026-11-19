@@ -112,6 +112,28 @@ export function SiteHeader({ ecosystem }: { ecosystem: EcosystemToken }) {
         </button>
       </div>
 
+      {/* Page tabs (on small screens the pages menu covers this) */}
+      <nav aria-label="Pages" className="hidden shrink-0 lg:flex">
+        {NAV.map(({ href, label, icon: Icon }, i) => (
+          <Link
+            key={href}
+            href={href}
+            aria-current={isActive(href) ? "page" : undefined}
+            title={label}
+            className={cn(
+              chromeButton,
+              "flex w-11 gap-2 text-sm font-bold tracking-wide uppercase xl:w-auto xl:px-4",
+              i === 0 ? "rounded-l-md" : "-ml-px",
+              i === NAV.length - 1 && "rounded-r-md",
+              isActive(href) && "z-[1] border-vc-violet from-vc-primary to-vc-primary-strong text-white hover:from-vc-primary hover:to-vc-primary-strong",
+            )}
+          >
+            <Icon className="size-4" strokeWidth={2.5} aria-hidden />
+            <span className="sr-only xl:not-sr-only">{label}</span>
+          </Link>
+        ))}
+      </nav>
+
       <a
         href={X_URL}
         target="_blank"

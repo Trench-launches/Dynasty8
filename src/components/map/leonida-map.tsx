@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
 import { Canvas } from "@react-three/fiber";
-import { ChevronDown, Locate, Minus, Plus, X } from "lucide-react";
+import { ChevronDown, Locate, Minus, Moon, Plus, Sun, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { REGIONS } from "@/data/regions";
@@ -18,6 +18,7 @@ import {
 } from "./leonida-scene";
 
 import { LEONIDA_SEA, TileGround } from "./tile-ground";
+import { NIGHT_SEA, type MapTime } from "./day-night";
 import { LEONIDA_MAP_CREDIT } from "./tiles";
 
 export type { Insets } from "./leonida-scene";
@@ -49,6 +50,29 @@ interface LeonidaMapProps {
 }
 
 const FOG = LEONIDA_SEA;
+const TIME_KEY = "dynasty8:map-time";
+
+/**
+ * Day or night map, remembered per browser (storage can be blocked, so every access is
+ * guarded). The map is client-only (loaded with ssr: false), so reading storage on the first
+ * render cannot cause a hydration mismatch.
+ */
+function useMapTime(): [MapTime, (t: MapTime) => void] {
+  const [time, setTime] = useState<MapTime>(() => {
+    try {
+      return localStorage.getItem(TIME_KEY) === "night" ? "night" : "day";
+    } catch {
+      return "day";
+    }
+  });
+  const choose = useCallback((t: MapTime) => {
+    setTime(t);
+    try {
+      localStorage.setItem(TIME_KEY, t);
+    } catch {}
+  }, []);
+  return [time, choose];
+}
 /** How far a press on a pin must move before it becomes a map drag instead of a click. */
 const PIN_DRAG_SLOP_PX = 5;
 
@@ -89,6 +113,7 @@ export default function LeonidaMap({
   const [ready, setReady] = useState(false);
   const [near, setNear] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
+  const [time, setTime] = useMapTime();
   const compact = useMediaQuery("(max-width: 1023px)");
   const rootRef = useRef<HTMLDivElement>(null);
   // On small screens the bottom sheet needs the room; controls come back when it closes.
@@ -251,7 +276,7 @@ export default function LeonidaMap({
         "relative isolate overflow-hidden outline-none select-none focus-visible:ring-2 focus-visible:ring-tropic/60 focus-visible:ring-inset",
         className,
       )}
-      style={{ background: FOG }}
+      style={{ background: time === "night" ? NIGHT_SEA : FOG, transition: "background-color 400ms" }}
     >
       <Canvas
         flat
@@ -270,7 +295,7 @@ export default function LeonidaMap({
         }
       >
         <fog attach="fog" args={[FOG, 4000, 12000]} />
-        <TileGround onReady={markReady} />
+        <TileGround onReady={markReady} time={time} />
         <SelectionBeacon location={properties.find((p) => p.slug === selectedSlug)?.location ?? null} />
         <CameraRig
           ref={rig}
@@ -441,6 +466,19 @@ export default function LeonidaMap({
             <Locate />
           </ControlButton>
         </div>
+        <div
+          role="group"
+          aria-label="Map time of day"
+          className="flex flex-col overflow-hidden rounded-md border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.3)]"
+          style={{ background: PIN_GREEN }}
+        >
+          <ControlButton label="Day map" pressed={time === "day"} onClick={() => setTime("day")}>
+            <Sun />
+          </ControlButton>
+          <ControlButton label="Night map" pressed={time === "night"} onClick={() => setTime("night")}>
+            <Moon />
+          </ControlButton>
+        </div>
       </div>
 
       {/* Compass (the map is always north-up in 2D) */}
@@ -530,7 +568,7 @@ function ControlButton({
       onClick={onClick}
       className={cn(
         "grid size-9 place-items-center text-white transition-colors hover:bg-vc-primary focus-visible:bg-vc-primary focus-visible:outline-none [&+&]:border-t [&+&]:border-white/40 [&_svg]:size-4 [&_svg]:stroke-[3]",
-        pressed === true && "text-tropic",
+        pressed === true && "bg-vc-primary-strong text-tropic",
         pressed === false && "text-vc-faint",
       )}
     >
