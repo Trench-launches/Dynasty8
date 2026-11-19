@@ -412,7 +412,7 @@ Not covered by simulation: a payout into an *empty* vault (see 17.1), and a live
 | Name / symbol | Catalogue name and ticker (all within Pump's 32-byte name / 10-character symbol limits) |
 | Description | Catalogue copy + fan-made / not-affiliated / speculative disclaimer |
 | Image | `public/properties/<slug>-v2.jpg` (3:2) or `public/brand/dynasty15-logo.png`. **Owner/Jack:** upload a square crop |
-| Website | `https://dynasty15.xyz/property/<slug>` (DYNASTY: the home page) |
+| Website | `https://vicecityrealestate.city/property/<slug>` (DYNASTY: the home page) |
 | Quote | SOL only (the setup tool refuses other quotes) |
 | Dev buy | 0 SOL until decided (D-LAUNCH-DEVBUY) |
 | Creator wallet | Left empty: the owner's launch wallet, which must also sign the fee-sharing setup |

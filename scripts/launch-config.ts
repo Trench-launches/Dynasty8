@@ -12,7 +12,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { CATALOGUE, catalogueDescription, NATIVE_TOKEN, slugify } from "../src/data/catalogue";
 
-export const SITE = "https://dynasty15.xyz";
+export const SITE = "https://vicecityrealestate.city";
 const PROPERTY_DISCLAIMER =
   "Fan-made concept listing in the Dynasty 8 catalogue. Not affiliated with or endorsed by Rockstar Games or Take-Two. Not an official or purchasable GTA VI property. Speculative digital collectible; it does not represent ownership of any real or in-game property.";
 
