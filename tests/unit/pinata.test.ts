@@ -8,7 +8,7 @@ const coin: CoinAssets = {
   symbol: "STARLET",
   launchImage: "marketing/launch/starlet-motel.jpg",
   launchImageSha256: sha256(IMAGE),
-  metadata: { name: "Starlet Motel", symbol: "STARLET", description: "d", image: "REPLACE", showName: true, createdOn: "https://pump.fun", website: "https://dynasty15.xyz/property/starlet-motel" },
+  metadata: { name: "Starlet Motel", symbol: "STARLET", description: "d", image: "REPLACE", showName: true, createdOn: "https://pump.fun", website: "https://vicecityrealestate.city/property/starlet-motel" },
   twitter: null,
   telegram: null,
 };

@@ -19,7 +19,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { CATALOGUE, catalogueDescription, NATIVE_TOKEN, slugify } from "../src/data/catalogue";
 
-export const SITE = "https://dynasty15.xyz";
+export const SITE = "https://vicecityrealestate.city";
 export const IMAGE_PLACEHOLDER = "REPLACE_WITH_IPFS_URL_OF_launchImage";
 /** Owner decision: 0.01 SOL initial buy for every launch. */
 export const DEV_BUY_LAMPORTS = "10000000";

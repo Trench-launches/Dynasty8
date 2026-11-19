@@ -123,7 +123,7 @@ Expected prompts:
 
 | Step | Phantom shows | Approve only if |
 |---|---|---|
-| Connect | Connect request from dynasty15.xyz | The site is dynasty15.xyz |
+| Connect | Connect request from vicecityrealestate.city | The site is vicecityrealestate.city |
 | Lookup table (once) | 1–2 transactions to the Address Lookup Table program; balance change about −0.005 SOL; no token changes | The page's review dialog showed the same table address |
 | Fallback, if ever used | Three separate prompts: step 1 (already signed by the mint; creates the coin only), step 2 (fee-sharing lock, about −0.009 SOL rent), step 3 (the 0.01 SOL buy) | Each matches its review dialog; do them back to back |
 | Each launch | One transaction already signed by another party (the mint). Balance change about −0.045 SOL (0.01 buy + rent/fees). Receives about 353,000 of the new coin. Programs: Pump, Pump Fees, Compute Budget, Associated Token | Name, symbol, mint and shares match the page's review dialog (which shows the simulation result) |
