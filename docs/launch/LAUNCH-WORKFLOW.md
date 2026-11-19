@@ -11,7 +11,8 @@ Branch `launch/preparation` (draft PR #19, stacked on PR #18). **Nothing has bee
 | **$DYNASTY: Option C.** 100% of its own creator fees go to the FUND vault and count as buyback revenue | Launch config `DYNASTY_FUND_100` (FUND 10000 bps). Receipts book $DYNASTY's own mint as 100% buyback in every allocation mode (`receipts.ts`, `NATIVE_FEE_POLICY` in `fee-sharing.ts`). The fee-sharing check expects FUND 100% for $DYNASTY and 60/25/15 for properties. The dashboard reports `dynastyCreatorFeesLamports` and keeps $DYNASTY off the property leaderboard | Mocked: `tests/integration/option-c.test.ts` (9). Mainnet simulation: §4 |
 | **CROSSTOWN replaces BOATWORKS** | `src/data/catalogue.ts`: 15 coins including Cross Town Safehouse; BOATWORKS moved, with all its data, to `RESERVE_CANDIDATES`. Configs, metadata and launch cards regenerated | Mocked: `tests/unit/launch-config.test.ts`. CROSSTOWN is **held back** (§6) |
 | **Dev buy: 0.01 SOL per launch** | `buy_exact_quote_in_v3` inside the atomic launch, preceded by an idempotent creation of the buyer token account. Min-out is the fresh-curve expectation minus 3%. The size, compute, balance and slippage checks are in §3 | Mocked: `tests/integration/launch.test.ts`. Mainnet simulation: §4 |
-| **Dedicated Phantom launch wallet** | `config/launch/release-plan.json` → `launchWallet` (public address). The server refuses every launch and lookup-table request from any other wallet, and refuses everything while it is unset | Mocked: launch tests |
+| **Two Phantom deployer wallets** (2026-11-19) | `config/launch/release-plan.json` → `launchWallet` deploys $DYNASTY only; `propertyLaunchWallet` deploys the property coins only and must be a different wallet (refused if the two match). Each is refused for the other's coins, and everything for a coin is refused while its wallet is unset. Each wallet creates its own lookup table | Mocked: launch tests |
+| **First property: Jason's Stilt House** (2026-11-19) | `approvedProperties: ["jasons-stilt-house"]` | Mocked: launch tests |
 | **Pinata** | `scripts/launch/pin-assets.ts` (local CLI; `PINATA_JWT` from the environment only). The server re-verifies pinned metadata and image hashes before preparing a launch | Mocked: `tests/unit/pinata.test.ts` (5). Dry run executed |
 | **Launch order** | Enforced server-side (§5) | Mocked: launch tests |
 
@@ -107,7 +108,9 @@ Missing, and flagged for your approval:
 
 The launch tool and the pin script refuse CROSSTOWN until these exist and the configs are regenerated (`npx tsx scripts/launch-config.ts`). BOATWORKS stays in any database already seeded; the seed never deletes or edits rows. **Owner/admin action after deploy:** set BOATWORKS to DRAFT (`PATCH /api/admin/properties/brians-boat-works-and-marina`) if it should disappear from the live site.
 
-## 7. Launch wallet: permissions and expected Phantom prompts
+## 7. Launch wallets: permissions and expected Phantom prompts
+
+Everything below applies to both deployer wallets: the $DYNASTY wallet (`launchWallet`) and the property wallet (`propertyLaunchWallet`). Each needs its own lookup table and its own SOL.
 
 The launch wallet is an ordinary Phantom account the owner creates. It is **not** a multisig member and never holds treasury funds.
 
@@ -152,11 +155,11 @@ At launch time the server fetches the metadata URL again and checks name, symbol
 ## 9. Per-launch procedure
 
 1. Merge #18, then #19, and deploy. Register the treasury in production (`npm run fund:register -- --config config/treasury.mainnet.json`).
-2. Set `launchWallet` in `release-plan.json` (pull request), and fund the launch wallet.
+2. Set `launchWallet` ($DYNASTY) and `propertyLaunchWallet` (properties, a different wallet) in `release-plan.json` (pull request), and fund both.
 3. `/admin/treasury` → **Launch a coin → Create** (lookup table), approve the prompts, and keep the table address.
 4. `pin-assets.ts --coin dynasty --upload` → copy the metadata URL.
 5. **Launch a coin** → $DYNASTY → paste the URL → **Prepare launch**. The server verifies the metadata, checks the order, wallet and balance, and simulates. Review, then **Sign in Phantom**, then **Register mint**, then verify.
-6. Add the first property's slug to `approvedProperties` (pull request), pin it, and launch it the same way.
+6. Connect the property wallet, create its own lookup table, then launch the first property, Jason's Stilt House (already in `approvedProperties`), the same way.
 7. Run the fee-sharing check, then one controlled buyback-and-burn to BURNED.
 8. Approve and launch each further property individually: one slug, one pin, one launch, one registration and one fee-sharing check at a time.
 9. If **Prepare launch** ever refuses because the transaction does not fit, stop and decide whether to use the fallback (§3a) for that coin. Accept the risk checkbox only if the gap risk is acceptable for that launch, then do steps 1 → register → 2 → 3 back to back.

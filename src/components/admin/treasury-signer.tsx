@@ -46,9 +46,14 @@ type LaunchCoin = {
   pending: string[];
   policy: string;
   approved: boolean;
+  /** The wallet the release plan allows to deploy this coin ($DYNASTY and the properties use different ones). */
+  launchWallet: string | null;
   registered: { mint: string | null; deploymentStatus: string | null };
 };
+/** Each launch wallet owns its own lookup table, so the remembered table is keyed by wallet. */
 const LT_KEY = "d8.launchLookupTable";
+const ltKey = (wallet: string | null) => (wallet ? `${LT_KEY}:${wallet}` : LT_KEY);
+const short = (a: string) => `${a.slice(0, 4)}…${a.slice(-4)}`;
 
 const solscan = (kind: "account" | "tx", v: string) => `https://solscan.io/${kind}/${v}`;
 const LIVE = ["PREPARED", "CREATED", "APPROVED", "EXECUTED"];
@@ -82,16 +87,16 @@ export function TreasurySigner() {
   const [launchUri, setLaunchUri] = useState("");
   const [lookupTable, setLookupTableState] = useState("");
   useEffect(() => {
-    // Remembered per browser (a convenience only); read after mount so server and client HTML match.
+    // Remembered per browser and per wallet (a convenience only); read after mount so server and
+    // client HTML match, and again whenever a different wallet connects.
     void Promise.resolve().then(() => {
       try {
-        const saved = window.localStorage.getItem(LT_KEY);
-        if (saved) setLookupTableState(saved);
+        setLookupTableState(window.localStorage.getItem(ltKey(wallet)) ?? "");
       } catch {
         /* storage unavailable */
       }
     });
-  }, []);
+  }, [wallet]);
   const [launched, setLaunched] = useState<{ slug: string; kind: string; symbol: string; mint: string; signature: string; mode: "atomic" | "split" } | null>(null);
   const [fallbackAck, setFallbackAck] = useState(false);
   /** Fallback coins whose mint is registered: steps 2 (lock fee sharing) and 3 (dev buy) remain. */
@@ -99,7 +104,7 @@ export function TreasurySigner() {
   const setLookupTable = (v: string) => {
     setLookupTableState(v);
     try {
-      window.localStorage.setItem(LT_KEY, v);
+      window.localStorage.setItem(ltKey(wallet), v);
     } catch {
       /* storage unavailable: keep it in memory */
     }
@@ -537,7 +542,10 @@ export function TreasurySigner() {
       {status && !authError && (
         <Card title="Launch a coin (fees locked to the treasury from the first trade)">
           <ol className="list-decimal space-y-1 pl-5 text-sm text-vc-muted">
-            <li>One time: connect the dedicated launch wallet and create the launch lookup table.</li>
+            <li>
+              $DYNASTY and the property coins deploy from two different wallets. One time per wallet: connect it and create its own lookup
+              table.
+            </li>
             <li>Pin the coin&apos;s image and metadata with <code>scripts/launch/pin-assets.ts</code> (Pinata); paste the metadata URL.</li>
             <li>Prepare (the server verifies the pinned metadata and simulates the launch with its 0.01 SOL buy), review, sign in Phantom. Then register the mint.</li>
           </ol>
@@ -566,6 +574,18 @@ export function TreasurySigner() {
                   </option>
                 ))}
               </select>
+              {(() => {
+                const coin = launchCoins.find((c) => c.slug === launchSlug);
+                if (!coin) return null;
+                const which = coin.kind === "NATIVE" ? "$DYNASTY launch wallet" : "property launch wallet";
+                if (!coin.launchWallet) return <span className="mt-1 block text-vc-danger">No {which} is set in the release plan yet.</span>;
+                return (
+                  <span className={cn("mt-1 block", wallet && wallet !== coin.launchWallet ? "text-vc-danger" : "text-vc-faint")}>
+                    Deploy from the {which} {short(coin.launchWallet)}
+                    {wallet && wallet !== coin.launchWallet ? `; the connected wallet is ${short(wallet)}. Switch accounts in Phantom.` : "."}
+                  </span>
+                );
+              })()}
             </label>
             <label className="text-xs text-vc-text-2">
               Lookup table
