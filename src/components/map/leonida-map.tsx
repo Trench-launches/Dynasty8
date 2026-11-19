@@ -513,7 +513,7 @@ export default function LeonidaMap({
         </button>
         {legendOpen && (
           <ul className="mt-1.5 space-y-1.5 rounded-lg border border-vc-line bg-vc-surface/95 p-3 text-xs text-vc-text backdrop-blur">
-            {hq && <LegendRow label="DYNASTY HQ" glyph={<HqGlyph className="h-5 w-4" />} />}
+            {hq && <LegendRow label="VICE HQ" glyph={<HqGlyph className="h-5 w-4" />} />}
             <LegendRow label="Property" glyph={<PinGlyph status="coming_soon" state="default" featured={false} className="h-5 w-4" />} />
             <LegendRow label="Token live" glyph={<PinGlyph status="live" state="default" featured={false} className="h-5 w-4" />} />
             <LegendRow label="Featured" glyph={<PinGlyph status="coming_soon" state="default" featured className="h-5 w-4" />} />
