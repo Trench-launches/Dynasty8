@@ -16,6 +16,8 @@
   // Background jobs (market sync + Demolition Fund pass) once a minute, via /api/internal/tick.
   "triggers": { "crons": ["* * * * *"] },
   "observability": { "enabled": true },
+  // The deployed version's id: the edge cache in custom-worker.ts keys pages by it.
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
   // Connection pool in front of Postgres. Create it under Storage & databases -> Hyperdrive,
   // then uncomment with its id. Without it the app connects straight to DATABASE_URL.
   // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<hyperdrive id>" }],
