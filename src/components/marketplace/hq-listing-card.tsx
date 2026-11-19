@@ -62,7 +62,7 @@ export const HqListingCard = memo(function HqListingCard({ token, selected, hove
       onBlur={() => onHover(null)}
       className={listingCardFrame(selected, hovered)}
     >
-      <div className="relative h-[76px] w-[104px] shrink-0 overflow-hidden bg-d8-green">
+      <div className="relative h-[76px] w-[104px] shrink-0 overflow-hidden bg-vc-primary">
         <Image
           src={cardImage(DYNASTY_HQ.image)}
           alt=""
@@ -74,23 +74,23 @@ export const HqListingCard = memo(function HqListingCard({ token, selected, hove
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <p className="truncate text-[16px] leading-tight font-bold text-d8-ink">{DYNASTY_HQ.name}</p>
-        <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[13px] text-[#666]">
+        <p className="truncate text-[16px] leading-tight font-bold text-vc-text">{DYNASTY_HQ.name}</p>
+        <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[13px] text-vc-muted">
           <span className="truncate">{DYNASTY_HQ.area}</span>
           <Tag tone="gold" className="px-1.5 py-0.5 text-[10px]">
             <Crown className="size-2.5" aria-hidden /> Main token
           </Tag>
         </p>
-        <div className="mt-auto flex items-center justify-between gap-2 bg-d8-mint px-2 py-1">
-          <span className="truncate text-[13px] font-bold text-d8-green">${token.ticker}</span>
+        <div className="mt-auto flex items-center justify-between gap-2 bg-vc-surface-3 px-2 py-1">
+          <span className="truncate text-[13px] font-bold text-vc-accent">${token.ticker}</span>
           {m ? (
-            <span className="flex shrink-0 items-center gap-1.5 text-[12px] text-d8-ink tabular-nums">
+            <span className="flex shrink-0 items-center gap-1.5 text-[12px] text-vc-text tabular-nums">
               {formatUsdCompact(m.marketCapUsd)}
               <ChangeText value={m.change24hPct} />
               <MarketDataTag market={m} />
             </span>
           ) : (
-            <span className="shrink-0 text-[11px] tracking-[0.06em] text-[#4d6a57] uppercase">
+            <span className="shrink-0 text-[11px] tracking-[0.06em] text-vc-text-2 uppercase">
               {TOKEN_STATUS_LABELS[token.status]}
             </span>
           )}

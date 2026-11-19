@@ -35,9 +35,9 @@ function subscribeHistory(onChange: () => void) {
   };
 }
 
-/** Raised grey browser-toolbar button. */
+/** Raised plum browser-toolbar button. */
 const chromeButton =
-  "grid h-9 shrink-0 place-items-center border border-[#b5b5b5] bg-linear-to-b from-white to-[#e3e3e3] text-[#333] shadow-[inset_0_1px_0_#fff] transition-colors outline-none hover:from-[#f7f7f7] hover:to-[#d6d6d6] active:from-[#dcdcdc] active:to-[#ececec] focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:text-[#333]/35 sm:h-10";
+  "grid h-9 shrink-0 place-items-center border border-vc-line-strong bg-linear-to-b from-vc-surface-3 to-vc-surface-2 text-vc-text shadow-[inset_0_1px_0_rgb(255_255_255/0.08)] transition-colors outline-none hover:from-vc-line-strong hover:to-vc-surface-3 active:from-vc-surface-2 active:to-vc-surface-2 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:text-vc-text/35 sm:h-10";
 
 /**
  * Site header styled as a web browser's toolbar: back/forward, home, a pages menu, an address bar
@@ -56,7 +56,7 @@ export function SiteHeader({ ecosystem }: { ecosystem: EcosystemToken }) {
   const address = `${SITE_HOST}${pathname}`;
 
   return (
-    <header className="relative z-40 flex h-14 shrink-0 items-center gap-1.5 border-b border-[#bdbdbd] bg-linear-to-b from-[#f5f5f5] to-[#e2e2e2] px-2 sm:h-16 sm:gap-2.5 sm:px-4">
+    <header className="relative z-40 flex h-14 shrink-0 items-center gap-1.5 border-b border-vc-line bg-chrome-gradient px-2 sm:h-16 sm:gap-2.5 sm:px-4">
       {/* Back / forward */}
       <div className="hidden shrink-0 sm:flex">
         <button
@@ -91,15 +91,15 @@ export function SiteHeader({ ecosystem }: { ecosystem: EcosystemToken }) {
       </PagesMenu>
 
       {/* Address bar */}
-      <div className="flex h-9 min-w-0 flex-1 overflow-hidden rounded-md border border-[#b5b5b5] bg-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)] sm:h-10">
+      <div className="flex h-9 min-w-0 flex-1 overflow-hidden rounded-md border border-vc-line-strong bg-vc-surface shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)] sm:h-10">
         <PagesMenu isActive={isActive}>
           <button
             type="button"
             aria-label={`Current page: ${address}. Show pages`}
-            className="flex min-w-0 flex-1 items-center gap-2 px-2.5 text-left outline-none focus-visible:bg-[#f1f3f5] sm:px-3.5"
+            className="flex min-w-0 flex-1 items-center gap-2 px-2.5 text-left outline-none focus-visible:bg-vc-surface-2 sm:px-3.5"
           >
             <LogoMark className="size-5 sm:size-6" />
-            <span className="truncate text-[15px] text-[#333] sm:text-[17px]">{address}</span>
+            <span className="truncate text-[15px] text-vc-text sm:text-[17px]">{address}</span>
           </button>
         </PagesMenu>
         <button
@@ -133,8 +133,8 @@ function PagesMenu({ isActive, children }: { isActive: (href: string) => boolean
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent align="start" className="w-60 gap-0.5 border border-[#dee2e6] bg-white p-1.5">
-        <p className="px-2.5 pt-1 pb-1.5 text-[11px] font-semibold tracking-wider text-[#868e96] uppercase">Pages</p>
+      <PopoverContent align="start" className="w-60 gap-0.5 border border-vc-line bg-vc-surface p-1.5">
+        <p className="px-2.5 pt-1 pb-1.5 text-[11px] font-semibold tracking-wider text-vc-faint uppercase">Pages</p>
         {NAV.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
@@ -142,13 +142,13 @@ function PagesMenu({ isActive, children }: { isActive: (href: string) => boolean
             onClick={() => setOpen(false)}
             aria-current={isActive(href) ? "page" : undefined}
             className={cn(
-              "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-semibold text-[#333] outline-none hover:bg-[#f1f3f5] focus-visible:bg-[#f1f3f5]",
-              isActive(href) && "bg-d8-green/10 text-d8-green hover:bg-d8-green/15",
+              "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-semibold text-vc-text outline-none hover:bg-vc-surface-2 focus-visible:bg-vc-surface-2",
+              isActive(href) && "bg-vc-primary/10 text-vc-accent hover:bg-vc-primary/15",
             )}
           >
             <Icon className="size-4" />
             <span className="flex-1">{label}</span>
-            <span className="text-xs font-normal text-[#868e96]">
+            <span className="text-xs font-normal text-vc-faint">
               {SITE_HOST}
               {href}
             </span>

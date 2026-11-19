@@ -21,7 +21,7 @@ const LeonidaMap = dynamic(() => import("@/components/map/leonida-map"), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 grid place-items-center bg-[#2c67a4]">
-      <span className="size-10 animate-spin rounded-full border-2 border-[#ced4da] border-t-white" />
+      <span className="size-10 animate-spin rounded-full border-2 border-vc-line-strong border-t-white" />
     </div>
   ),
 });
@@ -151,7 +151,7 @@ export function Marketplace({
 
   return (
     <div className="relative flex min-h-0 flex-1">
-      <aside className="hidden w-[clamp(320px,27vw,420px)] shrink-0 border-r border-[#dee2e6] bg-sidebar lg:block">
+      <aside className="hidden w-[clamp(320px,27vw,420px)] shrink-0 border-r border-vc-line bg-sidebar lg:block">
         <ListingSidebar
           visible={visible}
           total={properties.length}
@@ -188,7 +188,7 @@ export function Marketplace({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 40 }}
                 transition={{ type: "spring", stiffness: 380, damping: 34 }}
-                className="scrollbar-thin absolute top-3 right-3 bottom-3 z-40 overflow-x-hidden overflow-y-auto border border-[#e3e3e3] bg-white/95 shadow-2xl shadow-black/60 backdrop-blur-md"
+                className="scrollbar-thin absolute top-3 right-3 bottom-3 z-40 overflow-x-hidden overflow-y-auto border border-vc-line bg-vc-surface/95 shadow-2xl shadow-black/60 backdrop-blur-md"
                 style={{ width: PANEL_WIDTH }}
               >
                 {selected ? (
@@ -263,11 +263,11 @@ export function Marketplace({
               onDragEnd={(_, info) => {
                 if (info.offset.y > 90 || info.velocity.y > 600) select(null);
               }}
-              className="absolute inset-x-0 bottom-0 z-40 flex flex-col rounded-t-2xl border-t border-[#dee2e6] bg-white shadow-[0_-12px_40px_rgba(0,0,0,0.6)]"
+              className="absolute inset-x-0 bottom-0 z-40 flex flex-col rounded-t-2xl border-t border-vc-line bg-vc-surface shadow-[0_-12px_40px_rgba(0,0,0,0.6)]"
               style={{ height: sheetHeight }}
             >
               <div className="flex shrink-0 justify-center pt-2 pb-1">
-                <span className="h-1 w-10 rounded-full bg-[#e9ecef]" aria-hidden />
+                <span className="h-1 w-10 rounded-full bg-vc-surface-3" aria-hidden />
               </div>
               <div className={cn("scrollbar-thin min-h-0 flex-1 overflow-x-hidden overflow-y-auto")} onPointerDown={(e) => e.stopPropagation()}>
                 {selected ? (

@@ -36,7 +36,7 @@ export function MarketsGrid({ properties }: { properties: Property[] }) {
   return (
     <section aria-label="Property tokens" className="space-y-5">
       <div className="space-y-2.5">
-        <p id="sort-label" className="text-[15px] font-bold tracking-[0.06em] text-d8-ink uppercase">
+        <p id="sort-label" className="text-[15px] font-bold tracking-[0.06em] text-vc-text uppercase">
           Sort by
         </p>
         <div className="flex flex-wrap gap-2" role="group" aria-labelledby="sort-label">

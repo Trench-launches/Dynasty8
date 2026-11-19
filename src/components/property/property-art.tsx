@@ -259,7 +259,7 @@ export function PropertyArt({
   const src = original && !full ? cardImage(original) : original;
   if (src) {
     return (
-      <div className={cn("relative overflow-hidden bg-white", className)}>
+      <div className={cn("relative overflow-hidden bg-vc-surface-2", className)}>
         <Image
           src={src}
           alt={property.name}
