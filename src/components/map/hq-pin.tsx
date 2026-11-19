@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { formatUsdCompact } from "@/lib/format";
 import { LogoMark } from "@/components/brand/logo";
 import type { MapLocation } from "@/lib/types";
-import { HOVER_CARD_CLASS, PIN_GOLD, PIN_GREEN, PIN_PATH, type PinState } from "./map-pin";
+import { HOVER_CARD_CLASS, PIN_ACCENT, PIN_GREEN, PIN_PATH, type PinState } from "./map-pin";
 
 /** The DYNASTY Main Office on the map: a landmark for $DYNASTY, not a property listing. */
 export interface HqMarker {
@@ -18,8 +18,8 @@ export interface HqMarker {
 }
 
 /**
- * A gold pin with the $DYNASTY coin in its head, so it stands apart from the white and green
- * property pins. Same teardrop as a property pin (tip at the bottom centre), drawn larger.
+ * A pink pin with the $DYNASTY badge in its head, so it stands apart from the purple property
+ * pins. Same teardrop as a property pin (tip at the bottom centre), drawn larger.
  */
 export function HqGlyph({ state = "default", className }: { state?: PinState; className?: string }) {
   return (
@@ -27,7 +27,7 @@ export function HqGlyph({ state = "default", className }: { state?: PinState; cl
       <svg viewBox="0 0 34 44" className="size-full overflow-visible">
         <path
           d={PIN_PATH}
-          fill={PIN_GOLD}
+          fill={PIN_ACCENT}
           stroke={state === "selected" ? PIN_GREEN : state === "hovered" ? "var(--color-vc-page)" : "var(--color-vc-text)"}
           strokeWidth={state === "selected" ? 3.2 : 2.4}
           strokeLinejoin="round"
@@ -68,14 +68,14 @@ export const HqPin = memo(function HqPin({ hq, state, onSelect, onHover }: HqPin
           className={cn(
             "h-[60px] w-[46px]",
             state === "selected"
-              ? "drop-shadow-[0_0_10px_rgba(224,177,58,0.95)]"
+              ? "drop-shadow-[0_0_10px_rgba(195,120,220,0.95)]"
               : "drop-shadow-[0_3px_4px_rgba(0,0,0,0.45)]",
           )}
         />
       </button>
 
       {/* Always labelled, at every zoom: it is the one landmark on the map. */}
-      <span className="pointer-events-none absolute top-full left-1/2 mt-1 -translate-x-1/2 rounded bg-vc-cream px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide whitespace-nowrap text-vc-text shadow">
+      <span className="pointer-events-none absolute top-full left-1/2 mt-1 -translate-x-1/2 rounded bg-vc-accent px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide whitespace-nowrap text-vc-page shadow">
         VICE HQ
       </span>
 

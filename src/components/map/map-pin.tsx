@@ -15,7 +15,8 @@ const STAR =
 
 // Theme colours (globals.css); var() works in SVG presentation attributes.
 export const PIN_GREEN = "var(--color-vc-primary)"; // legacy name: the brand pin colour, now light purple
-export const PIN_GOLD = "var(--color-vc-cream)";
+/** Highlight colour: the HQ pin, selected outlines, the featured badge and the map frame. */
+export const PIN_ACCENT = "var(--color-vc-accent)";
 const PIN_DARK = "var(--color-vc-page)";
 const PIN_LIGHT = "var(--color-vc-text)";
 const PIN_MUTED_FILL = "var(--color-vc-lilac)";
@@ -35,9 +36,9 @@ export const HOVER_CARD_CLASS = cn(
 );
 
 export function pinColors(status: Property["token"]["status"], state: PinState) {
-  const outline = state === "selected" ? PIN_GOLD : state === "hovered" ? PIN_DARK : PIN_GREEN;
-  if (status === "unavailable") return { fill: PIN_MUTED_FILL, stroke: state === "selected" ? PIN_GOLD : PIN_MUTED_LINE, house: PIN_MUTED_LINE };
-  if (status === "live") return { fill: PIN_GREEN, stroke: state === "selected" ? PIN_GOLD : PIN_LIGHT, house: PIN_LIGHT };
+  const outline = state === "selected" ? PIN_ACCENT : state === "hovered" ? PIN_DARK : PIN_GREEN;
+  if (status === "unavailable") return { fill: PIN_MUTED_FILL, stroke: state === "selected" ? PIN_ACCENT : PIN_MUTED_LINE, house: PIN_MUTED_LINE };
+  if (status === "live") return { fill: PIN_GREEN, stroke: state === "selected" ? PIN_ACCENT : PIN_LIGHT, house: PIN_LIGHT };
   return { fill: PIN_LIGHT, stroke: outline, house: PIN_GREEN };
 }
 
@@ -68,7 +69,7 @@ export function PinGlyph({
       <path d={HOUSE} fill={c.house} />
       {featured && (
         <g transform="translate(29 6)">
-          <circle r={6.2} fill={PIN_GOLD} stroke={PIN_LIGHT} strokeWidth={1.4} />
+          <circle r={6.2} fill={PIN_ACCENT} stroke={PIN_LIGHT} strokeWidth={1.4} />
           <path d={STAR} fill={PIN_LIGHT} transform="scale(0.85)" />
         </g>
       )}
@@ -122,7 +123,7 @@ export const MapPin = memo(function MapPin({ property, state, showLabel, onSelec
           className={cn(
             "h-[44px] w-[34px]",
             state === "selected"
-              ? "drop-shadow-[0_0_8px_rgba(224,177,58,0.9)]"
+              ? "drop-shadow-[0_0_8px_rgba(195,120,220,0.9)]"
               : "drop-shadow-[0_2px_3px_rgba(0,0,0,0.4)]",
           )}
         />
@@ -132,7 +133,7 @@ export const MapPin = memo(function MapPin({ property, state, showLabel, onSelec
         <span
           className={cn(
             "pointer-events-none absolute top-full left-1/2 mt-1 -translate-x-1/2 rounded px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide whitespace-nowrap shadow",
-            state === "selected" ? "bg-vc-cream text-vc-text" : "bg-vc-surface/95 text-vc-text",
+            state === "selected" ? "bg-vc-accent text-vc-page" : "bg-vc-surface/95 text-vc-text",
           )}
         >
           {tickerLabel(property)}
