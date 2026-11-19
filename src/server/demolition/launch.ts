@@ -45,7 +45,10 @@ type LaunchCoin = (typeof propertiesConfig.coins)[number] | typeof dynastyConfig
 export const LAUNCH_COINS: LaunchCoin[] = [dynastyConfig.coin, ...propertiesConfig.coins];
 
 export interface ReleasePlan {
+  /** Deploys $DYNASTY. */
   launchWallet: string | null;
+  /** Deploys the property coins. Owner decision: a different wallet from the $DYNASTY one. */
+  propertyLaunchWallet: string | null;
   lookupTable: string | null;
   devBuyLamports: string;
   slippageBps: number;
@@ -79,25 +82,45 @@ export async function listLaunchCoins() {
       pending: c.pending,
       policy: c.feeSharing.policy,
       approved: c.kind === "NATIVE" || plan.approvedProperties.includes(c.slug),
+      launchWallet: c.kind === "NATIVE" ? plan.launchWallet : plan.propertyLaunchWallet,
       registered: { mint: t?.mintAddress ?? null, deploymentStatus: t?.deploymentStatus ?? null },
     };
   });
 }
 
-function requireLaunchWallet(wallet: string) {
+/**
+ * Two deployer wallets (owner decision): `launchWallet` deploys $DYNASTY and only $DYNASTY;
+ * `propertyLaunchWallet` deploys the property coins and must be a different wallet.
+ */
+function requireLaunchWallet(wallet: string, kind: "NATIVE" | "PROPERTY") {
   const plan = getReleasePlan();
-  if (!plan.launchWallet) throw new ApiError(409, "CONFLICT", "No launch wallet is set in config/launch/release-plan.json; launches are refused until the owner sets it");
-  if (plan.launchWallet !== wallet) throw new ApiError(403, "FORBIDDEN", "This wallet is not the approved launch wallet");
+  if (kind === "NATIVE") {
+    if (!plan.launchWallet) throw new ApiError(409, "CONFLICT", "No $DYNASTY launch wallet is set in config/launch/release-plan.json (launchWallet); launches are refused until the owner sets it");
+    if (plan.launchWallet !== wallet) throw new ApiError(403, "FORBIDDEN", "This wallet is not the approved $DYNASTY launch wallet");
+    return;
+  }
+  if (!plan.propertyLaunchWallet) throw new ApiError(409, "CONFLICT", "No property launch wallet is set in config/launch/release-plan.json (propertyLaunchWallet); property launches are refused until the owner sets it");
+  if (plan.propertyLaunchWallet === plan.launchWallet) throw new ApiError(409, "CONFLICT", "propertyLaunchWallet must be a different wallet from the $DYNASTY launchWallet");
+  if (plan.propertyLaunchWallet !== wallet) throw new ApiError(403, "FORBIDDEN", "This wallet is not the approved property launch wallet");
+}
+
+/** Which launch the wallet is approved for, for requests that are not tied to one coin (the lookup table). */
+function launchKindOf(wallet: string): "NATIVE" | "PROPERTY" {
+  const plan = getReleasePlan();
+  if (plan.launchWallet && wallet === plan.launchWallet) return "NATIVE";
+  if (plan.propertyLaunchWallet && wallet === plan.propertyLaunchWallet) return "PROPERTY";
+  if (!plan.launchWallet && !plan.propertyLaunchWallet) throw new ApiError(409, "CONFLICT", "No launch wallet is set in config/launch/release-plan.json; launches are refused until the owner sets it");
+  throw new ApiError(403, "FORBIDDEN", "This wallet is not an approved launch wallet");
 }
 
 /**
- * The project lookup table, owned by the launch wallet: every account that is identical for all
+ * A lookup table owned by one launch wallet ($DYNASTY's or the property wallet; each needs its own): every account that is identical for all
  * launches plus the launch wallet's own WSOL account and Pump volume accumulator. Returned as one or
  * more unsigned transactions (create + extend, then further extends) to sign in order. It moves no
  * funds; it can be frozen afterwards with Solana tooling.
  */
 export async function prepareLookupTable(authority: string, actor: Actor) {
-  requireLaunchWallet(authority);
+  requireLaunchWallet(authority, launchKindOf(authority));
   const expected = await expectedShareholdersFor("PROPERTY");
   if (!expected || expected.holders.length !== 3) throw new ApiError(422, "UNPROCESSABLE", "Register the FUND, ECOSYSTEM and OPERATIONS treasury wallets first");
   const rpc = getPumpSetupRpc();
@@ -192,7 +215,7 @@ export interface PreparedLaunch {
 async function launchPreflight(p: { slug: string; creator: string; mint: string; uri: string }) {
   const coin = LAUNCH_COINS.find((c) => c.slug === p.slug);
   if (!coin) throw new ApiError(404, "NOT_FOUND", "No launch config for that coin");
-  requireLaunchWallet(p.creator);
+  requireLaunchWallet(p.creator, coin.kind === "NATIVE" ? "NATIVE" : "PROPERTY");
   if (coin.status !== "READY_FOR_OWNER_REVIEW") throw new ApiError(409, "CONFLICT", `${coin.symbol} is waiting on an owner decision: ${coin.pending[0] ?? "see the launch config"}`);
   const argIssues = validateCoinArgs({ name: coin.name, symbol: coin.symbol, uri: p.uri });
   if (argIssues.length) throw new ApiError(422, "UNPROCESSABLE", argIssues.join("; "));
@@ -356,7 +379,7 @@ export async function prepareSplitCreate(p: { slug: string; creator: string; min
 export async function prepareSplitDevBuy(p: { slug: string; creator: string }, actor: Actor) {
   const coin = LAUNCH_COINS.find((c) => c.slug === p.slug);
   if (!coin) throw new ApiError(404, "NOT_FOUND", "No launch config for that coin");
-  requireLaunchWallet(p.creator);
+  requireLaunchWallet(p.creator, coin.kind === "NATIVE" ? "NATIVE" : "PROPERTY");
   const token =
     coin.kind === "NATIVE"
       ? await prisma.token.findFirst({ where: { isNative: true } })

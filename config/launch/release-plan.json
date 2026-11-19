@@ -1,15 +1,17 @@
 {
   "$comment": "Owner-controlled launch gate, enforced by POST /api/admin/demolition-fund/launch/prepare. Public addresses only; never put keys here. Changes go through a reviewed pull request.",
   "launchWallet": null,
-  "launchWalletNote": "Set to the dedicated Phantom launch wallet's PUBLIC address. Until set, every launch is refused; afterwards only this wallet can prepare launches and the lookup table.",
+  "launchWalletNote": "PUBLIC address of the Phantom wallet that deploys $DYNASTY (and only $DYNASTY). Until set, the $DYNASTY launch is refused.",
+  "propertyLaunchWallet": null,
+  "propertyLaunchWalletNote": "PUBLIC address of the separate Phantom wallet that deploys the property coins (owner decision 2026-11-19: not the $DYNASTY wallet; the server refuses it if the two match). Until set, every property launch is refused. It needs its own lookup table, created from /admin/treasury while it is connected.",
   "lookupTable": null,
-  "lookupTableNote": "Set after the owner creates the project lookup table from /admin/treasury (optional here; the page also remembers it).",
+  "lookupTableNote": "Optional record of the $DYNASTY wallet's lookup table (the page remembers each wallet's own table).",
   "devBuyLamports": "10000000",
   "slippageBps": 300,
   "priorityMicroLamports": 50000,
   "metadataGateway": "https://ipfs.io/ipfs/",
   "order": ["dynasty", "property-1", "verify", "property-n"],
   "orderNote": "1) $DYNASTY. 2) ONE property coin listed in approvedProperties. 3) Verify its on-chain fee-sharing config and the accounting (fee-sharing check matching). 4) Run one controlled buyback-and-burn to BURNED. 5) Only then may further approved properties launch, one at a time.",
-  "approvedProperties": [],
-  "approvedPropertiesNote": "Slugs the owner explicitly approves for launch, e.g. [\"starlet-motel\"]. Empty = no property coin may launch."
+  "approvedProperties": ["jasons-stilt-house"],
+  "approvedPropertiesNote": "Slugs the owner explicitly approves for launch. Owner decision 2026-11-19: Jason's Stilt House is the first property coin. Empty = no property coin may launch."
 }

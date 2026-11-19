@@ -35,6 +35,9 @@ const FUND = treasury.wallets[0]!.address;
 const dynastyCfg = JSON.parse(readFileSync("config/launch/dynasty.mainnet.json", "utf8")).coin;
 const propsCfg = JSON.parse(readFileSync("config/launch/properties.mainnet.json", "utf8")).coins as { slug: string; metadata: Record<string, unknown>; launchImage: string | null }[];
 const LAUNCH_WALLET = newKey();
+/** Owner decision: the property coins deploy from a different wallet than $DYNASTY. */
+const PROPERTY_WALLET = newKey();
+const walletFor = (slug: string) => (slug === "dynasty" ? LAUNCH_WALLET : PROPERTY_WALLET);
 const RECIPIENT = newKey();
 const URI = (slug: string) => `https://ipfs.io/ipfs/Qm${slug.replace(/[^a-z]/g, "").padEnd(44, "x").slice(0, 44)}`;
 const IMG = (slug: string) => `https://ipfs.io/ipfs/QmImg${slug.replace(/[^a-z]/g, "").padEnd(41, "x").slice(0, 41)}`;
@@ -105,7 +108,8 @@ function gateway(over: { slug?: string; badImage?: boolean; badName?: boolean; s
 
 let rpc: FakeRpc;
 let table: string;
-const plan = (over: Partial<ReleasePlan> = {}): ReleasePlan => ({ launchWallet: LAUNCH_WALLET, lookupTable: null, devBuyLamports: "10000000", slippageBps: 300, priorityMicroLamports: 50_000, approvedProperties: ["starlet-motel", "ocean-view-hotel"], ...over });
+let propertyTable: string;
+const plan = (over: Partial<ReleasePlan> = {}): ReleasePlan => ({ launchWallet: LAUNCH_WALLET, propertyLaunchWallet: PROPERTY_WALLET, lookupTable: null, devBuyLamports: "10000000", slippageBps: 300, priorityMicroLamports: 50_000, approvedProperties: ["starlet-motel", "ocean-view-hotel"], ...over });
 
 beforeEach(async () => {
   await resetDatabase();
@@ -117,14 +121,20 @@ beforeEach(async () => {
   setPumpSetupRpcForTests(rpc);
   setReleasePlanForTests(plan());
   gateway();
-  table = newKey();
-  rpc.tables.set(
-    table,
-    new AddressLookupTableAccount({
-      key: new PublicKey(table),
-      state: { deactivationSlot: 2n ** 64n - 1n, lastExtendedSlot: 0, lastExtendedSlotStartIndex: 0, addresses: staticLaunchAccounts(propertyHolders, { buybackFeeRecipient: RECIPIENT, launchWallet: LAUNCH_WALLET }).map((a) => new PublicKey(a)) },
-    }),
-  );
+  // Each launch wallet has its own lookup table (it holds the wallet's own WSOL account and volume accumulator).
+  const makeTable = (owner: string) => {
+    const key = newKey();
+    rpc.tables.set(
+      key,
+      new AddressLookupTableAccount({
+        key: new PublicKey(key),
+        state: { deactivationSlot: 2n ** 64n - 1n, lastExtendedSlot: 0, lastExtendedSlotStartIndex: 0, addresses: staticLaunchAccounts(propertyHolders, { buybackFeeRecipient: RECIPIENT, launchWallet: owner }).map((a) => new PublicKey(a)) },
+      }),
+    );
+    return key;
+  };
+  table = makeTable(LAUNCH_WALLET);
+  propertyTable = makeTable(PROPERTY_WALLET);
 });
 
 afterEach(() => {
@@ -136,7 +146,7 @@ afterEach(() => {
 
 const mint = () => Keypair.generate().publicKey.toBase58();
 const launch = (slug: string, over: Partial<{ creator: string; mint: string; uri: string; lookupTable: string }> = {}) =>
-  prepareAtomicLaunch({ slug, creator: LAUNCH_WALLET, mint: mint(), uri: URI(slug), lookupTable: table, ...over }, ADMIN);
+  prepareAtomicLaunch({ slug, creator: walletFor(slug), mint: mint(), uri: URI(slug), lookupTable: slug === "dynasty" ? table : propertyTable, ...over }, ADMIN);
 async function markLaunched(slug: string) {
   const t = slug === "dynasty" ? await db().token.findFirstOrThrow({ where: { isNative: true } }) : await db().token.findFirstOrThrow({ where: { property: { slug } } });
   await db().token.update({ where: { id: t.id }, data: { mintAddress: mint(), deploymentStatus: "PENDING_VERIFICATION" } });
@@ -145,8 +155,8 @@ async function markLaunched(slug: string) {
 
 function decode(base64: string) {
   const tx = VersionedTransaction.deserialize(Buffer.from(base64, "base64"));
-  const alt = rpc.tables.get(table)!;
-  const keys = tx.message.getAccountKeys({ addressLookupTableAccounts: [alt] }).keySegments().flat().map((k) => k.toBase58());
+  const alts = [rpc.tables.get(table)!, rpc.tables.get(propertyTable)!];
+  const keys = tx.message.getAccountKeys({ addressLookupTableAccounts: alts }).keySegments().flat().map((k) => k.toBase58());
   const ixs = tx.message.compiledInstructions.map((ix) => ({ program: keys[ix.programIdIndex]!, data: Buffer.from(ix.data), accounts: ix.accountKeyIndexes.map((i) => keys[i]!) }));
   return { tx, keys, ixs };
 }
@@ -199,12 +209,35 @@ describe("atomic launch with locked fee sharing and the 0.01 SOL dev buy (mocked
   });
 
   it("only the approved launch wallet can prepare launches or the lookup table", async () => {
-    setReleasePlanForTests(plan({ launchWallet: null }));
-    await expect(launch("dynasty")).rejects.toThrow(/No launch wallet is set/);
+    setReleasePlanForTests(plan({ launchWallet: null, propertyLaunchWallet: null }));
+    await expect(launch("dynasty")).rejects.toThrow(/No \$DYNASTY launch wallet is set/);
     await expect(prepareLookupTable(LAUNCH_WALLET, ADMIN)).rejects.toThrow(/No launch wallet is set/);
     setReleasePlanForTests(plan());
     await expect(launch("dynasty", { creator: newKey() })).rejects.toMatchObject({ status: 403 });
     await expect(prepareLookupTable(newKey(), ADMIN)).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("deploys $DYNASTY and the property coins from two different wallets", async () => {
+    // $DYNASTY only from launchWallet, never from the property wallet.
+    await expect(launch("dynasty", { creator: PROPERTY_WALLET })).rejects.toThrow(/not the approved \$DYNASTY launch wallet/);
+    await markLaunched("dynasty");
+    // Properties only from propertyLaunchWallet, never from the $DYNASTY wallet.
+    await expect(launch("starlet-motel", { creator: LAUNCH_WALLET })).rejects.toThrow(/not the approved property launch wallet/);
+    await expect(launch("starlet-motel")).resolves.toMatchObject({ creator: PROPERTY_WALLET, symbol: "STARLET" });
+    // Unset: property launches refused, $DYNASTY unaffected.
+    setReleasePlanForTests(plan({ propertyLaunchWallet: null }));
+    await expect(launch("starlet-motel")).rejects.toThrow(/No property launch wallet is set/);
+    // The same wallet in both fields is refused (it must be a different wallet).
+    setReleasePlanForTests(plan({ propertyLaunchWallet: LAUNCH_WALLET }));
+    await expect(launch("starlet-motel", { creator: LAUNCH_WALLET })).rejects.toThrow(/must be a different wallet/);
+    // Each wallet prepares its own lookup table, holding its own accounts.
+    setReleasePlanForTests(plan());
+    const own = await prepareLookupTable(PROPERTY_WALLET, ADMIN);
+    expect(own.addresses).toEqual(staticLaunchAccounts(propertyHolders, { buybackFeeRecipient: RECIPIENT, launchWallet: PROPERTY_WALLET }));
+    // listLaunchCoins tells the page which wallet each coin deploys from.
+    const coins = await listLaunchCoins();
+    expect(coins.find((c) => c.symbol === "DYNASTY")?.launchWallet).toBe(LAUNCH_WALLET);
+    expect(coins.find((c) => c.symbol === "STILT")?.launchWallet).toBe(PROPERTY_WALLET);
   });
 
   it("enforces the release order: DYNASTY, one approved property, verify, controlled buyback, then more", async () => {
@@ -320,7 +353,7 @@ describe("fallback: separate transactions (mocked chain)", () => {
     ]);
   };
   const split = (slug: string, ack = true, over: Partial<{ creator: string }> = {}) =>
-    prepareSplitCreate({ slug, creator: LAUNCH_WALLET, mint: mint(), uri: URI(slug), acknowledgeGapRisk: ack, ...over }, ADMIN);
+    prepareSplitCreate({ slug, creator: walletFor(slug), mint: mint(), uri: URI(slug), acknowledgeGapRisk: ack, ...over }, ADMIN);
 
   it("step 1 needs the gap-risk acknowledgment, applies every launch gate, and creates the coin only", async () => {
     await expect(split("dynasty", false)).rejects.toThrow(/Acknowledge the fallback risk.*NOT the treasury/s);
