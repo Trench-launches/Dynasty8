@@ -20,17 +20,17 @@ export function FundTreasury({ summary }: { summary: FundSummaryDto }) {
   const split = t.allocationMode === "ON_CHAIN_SPLIT";
 
   return (
-    <section aria-labelledby="fund-treasury" className="min-w-0 border border-[#e3e3e3] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+    <section aria-labelledby="fund-treasury" className="min-w-0 border border-vc-line bg-vc-surface shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
       <PanelHeader id="fund-treasury" title="Treasury balances" note="Transparency" className="-mx-px -mt-px" />
-      <div className="border-b border-[#e3e3e3] px-4 py-3">
-        <p className="text-[15px] leading-relaxed text-[#555]">
+      <div className="border-b border-vc-line px-4 py-3">
+        <p className="text-[15px] leading-relaxed text-vc-text-2">
           {split
             ? `Pump.fun pays each property's fees straight to three wallets: ${formatBps(a.buybackBps)} to the fund, ${formatBps(a.ecosystemBps)} ecosystem, ${formatBps(a.operationsBps)} operations.`
             : `The fund receives all property fees and passes on ${formatBps(a.ecosystemBps)} ecosystem and ${formatBps(a.operationsBps)} operations.`}
         </p>
       </div>
 
-      <dl className="grid gap-px bg-[#dee2e6] sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="grid gap-px bg-vc-surface-3 sm:grid-cols-2 lg:grid-cols-4">
         <Cell
           label="Fund balance (on-chain)"
           value={t.fundBalanceLamports ? formatSol(t.fundBalanceLamports) : "Not observed yet"}
@@ -67,19 +67,19 @@ export function FundTreasury({ summary }: { summary: FundSummaryDto }) {
 
       <div className="grid gap-4 px-4 py-4 lg:grid-cols-2">
         <div className="min-w-0">
-          <h3 className="text-[17px] tracking-[0.04em] text-d8-green uppercase">Treasury wallets</h3>
+          <h3 className="text-[17px] tracking-[0.04em] text-vc-accent uppercase">Treasury wallets</h3>
           {t.wallets.length === 0 ? (
-            <p className="mt-2 text-sm text-[#868e96]">Treasury wallets have not been registered yet.</p>
+            <p className="mt-2 text-sm text-vc-faint">Treasury wallets have not been registered yet.</p>
           ) : (
-            <ul className="mt-2 divide-y divide-[#dee2e6] rounded-[3px] border border-[#dee2e6]">
+            <ul className="mt-2 divide-y divide-vc-line rounded-[3px] border border-vc-line">
               {t.wallets.map((w) => (
                 <li key={w.role} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
                   <span className="min-w-0">
-                    <span className="block font-semibold text-[#212529]">{ROLE_LABEL[w.role]}</span>
-                    <span className="flex items-center gap-1 text-xs text-[#6c757d]">
+                    <span className="block font-semibold text-vc-text">{ROLE_LABEL[w.role]}</span>
+                    <span className="flex items-center gap-1 text-xs text-vc-muted">
                       {w.isMultisig && w.threshold ? (
                         <>
-                          <ShieldCheck className="size-3.5 text-d8-green" aria-hidden /> Squads multisig, {w.threshold} of {w.members} signers
+                          <ShieldCheck className="size-3.5 text-vc-accent" aria-hidden /> Squads multisig, {w.threshold} of {w.members} signers
                         </>
                       ) : (
                         "Single-signature wallet"
@@ -90,7 +90,7 @@ export function FundTreasury({ summary }: { summary: FundSummaryDto }) {
                     href={solscanAccount(w.address)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 rounded-[3px] border border-[#ced4da] px-2 py-0.5 text-xs font-semibold text-d8-green hover:border-d8-green"
+                    className="inline-flex items-center gap-1 rounded-[3px] border border-vc-line-strong px-2 py-0.5 text-xs font-semibold text-vc-accent hover:border-vc-violet"
                   >
                     {shortAddress(w.address)} <ExternalLink className="size-3" />
                   </a>
@@ -100,17 +100,17 @@ export function FundTreasury({ summary }: { summary: FundSummaryDto }) {
           )}
         </div>
         <div className="min-w-0">
-          <h3 className="text-[17px] tracking-[0.04em] text-d8-green uppercase">Property fee sharing</h3>
+          <h3 className="text-[17px] tracking-[0.04em] text-vc-accent uppercase">Property fee sharing</h3>
           {fs.checked === 0 ? (
-            <p className="mt-2 text-sm text-[#868e96]">No property token has launched, so there is nothing to check yet.</p>
+            <p className="mt-2 text-sm text-vc-faint">No property token has launched, so there is nothing to check yet.</p>
           ) : fs.issues.length === 0 ? (
-            <p className="mt-2 flex items-center gap-1.5 text-sm text-d8-green">
+            <p className="mt-2 flex items-center gap-1.5 text-sm text-vc-accent">
               <CheckCircle2 className="size-4" aria-hidden /> Every live property pays the expected wallets, and its shares are locked.
             </p>
           ) : (
             <ul className="mt-2 space-y-1.5">
               {fs.issues.map((i) => (
-                <li key={i.mint} className="rounded-[3px] border border-[#ffe08a] bg-[#fff9e6] px-3 py-2 text-xs text-[#664d03]">
+                <li key={i.mint} className="rounded-[3px] border border-vc-cream/40 bg-vc-surface-2 px-3 py-2 text-xs text-vc-cream">
                   <span className="flex items-center gap-1 font-semibold">
                     <TriangleAlert className="size-3.5" aria-hidden /> ${i.ticker}
                   </span>
@@ -127,10 +127,10 @@ export function FundTreasury({ summary }: { summary: FundSummaryDto }) {
 
 function Cell({ label, value, note, muted = false }: { label: string; value: string; note: string; muted?: boolean }) {
   return (
-    <div className="min-w-0 bg-white px-4 py-3">
-      <dt className="truncate text-[10px] tracking-wider text-[#868e96] uppercase">{label}</dt>
-      <dd className={`mt-0.5 truncate text-lg font-semibold tabular-nums ${muted ? "text-[#868e96]" : "text-[#212529]"}`}>{value}</dd>
-      <dd className="truncate text-xs text-[#6c757d]">{note}</dd>
+    <div className="min-w-0 bg-vc-surface px-4 py-3">
+      <dt className="truncate text-[10px] tracking-wider text-vc-faint uppercase">{label}</dt>
+      <dd className={`mt-0.5 truncate text-lg font-semibold tabular-nums ${muted ? "text-vc-faint" : "text-vc-text"}`}>{value}</dd>
+      <dd className="truncate text-xs text-vc-muted">{note}</dd>
     </div>
   );
 }

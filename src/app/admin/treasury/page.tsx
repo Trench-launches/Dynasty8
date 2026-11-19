@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 /** Members-only signing page. Data loads client-side from admin APIs (GitHub sign-in + role). */
 export default function TreasuryPage() {
   return (
-    <main className="min-h-dvh bg-[#f1f3f5]">
+    <main className="min-h-dvh bg-vc-surface-2">
       <TreasurySigner />
     </main>
   );

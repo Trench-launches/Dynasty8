@@ -73,7 +73,7 @@ async function FundContent() {
           <FundActivity initial={history} ticker={dynasty.ticker} decimals={dynasty.decimals} />
         </div>
 
-        <p className="text-[13px] leading-relaxed text-[#777]">
+        <p className="text-[13px] leading-relaxed text-vc-muted">
           Buybacks and burns reduce ${dynasty.ticker} supply; they do not guarantee any price or return. Figures refresh about
           every minute and include only finalized transactions the backend has verified. Property tokens are themed digital
           collectibles. Not affiliated with Rockstar Games or Take-Two Interactive. Nothing here is financial advice.

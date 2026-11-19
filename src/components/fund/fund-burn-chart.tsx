@@ -30,40 +30,44 @@ export function FundBurnChart({ burns, ticker, decimals }: Props) {
   const total = points.at(-1)?.cumulative.toString() ?? "0";
 
   return (
-    <section aria-labelledby="fund-burns" className="min-w-0 border border-[#e3e3e3] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+    <section aria-labelledby="fund-burns" className="min-w-0 border border-vc-line bg-vc-surface shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
       <PanelHeader id="fund-burns" title="Cumulative burns" note="Burn analytics" className="-mx-px -mt-px" />
-      <div className="border-b border-[#e3e3e3] px-4 py-3">
-        <p className="text-[13px] tracking-[0.06em] text-[#777] uppercase">Verified total</p>
-        <p className="mt-1 flex items-baseline gap-2 leading-none text-d8-ink tabular-nums">
+      <div className="border-b border-vc-line px-4 py-3">
+        <p className="text-[13px] tracking-[0.06em] text-vc-muted uppercase">Verified total</p>
+        <p className="mt-1 flex items-baseline gap-2 leading-none text-vc-text tabular-nums">
           <span className="text-[30px]">{formatTokenAmount(total, decimals)}</span>
-          <span className="text-[15px] text-[#555] uppercase">${ticker}</span>
+          <span className="text-[15px] text-vc-text-2 uppercase">${ticker}</span>
         </p>
       </div>
       {data.length === 0 ? (
         <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
-          <Flame className="size-8 text-[#adb5bd]" aria-hidden />
-          <p className="font-semibold text-[#495057]">No burns yet</p>
-          <p className="max-w-xs text-xs text-[#868e96]">Every ${ticker} the fund buys back is burned; verified burns will chart here.</p>
+          <Flame className="size-8 text-vc-faint" aria-hidden />
+          <p className="font-semibold text-vc-text-2">No burns yet</p>
+          <p className="max-w-xs text-xs text-vc-faint">Every ${ticker} the fund buys back is burned; verified burns will chart here.</p>
         </div>
       ) : (
         <div className="h-56 px-2 py-3 sm:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="#e9ecef" vertical={false} />
+              <CartesianGrid stroke="var(--color-vc-line)" vertical={false} />
               <XAxis
                 dataKey="t"
                 type="number"
                 domain={["dataMin", "dataMax"]}
                 tickFormatter={(t: number) => new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })}
-                tick={{ fontSize: 11, fill: "#868e96" }}
-                stroke="#ced4da"
+                tick={{ fontSize: 11, fill: "var(--color-vc-faint)" }}
+                stroke="var(--color-vc-line-strong)"
               />
-              <YAxis tick={{ fontSize: 11, fill: "#868e96" }} stroke="#ced4da" width={56} tickFormatter={(v: number) => Intl.NumberFormat("en-US", { notation: "compact" }).format(v)} />
+              <YAxis tick={{ fontSize: 11, fill: "var(--color-vc-faint)" }} stroke="var(--color-vc-line-strong)" width={56} tickFormatter={(v: number) => Intl.NumberFormat("en-US", { notation: "compact" }).format(v)} />
               <Tooltip
+                contentStyle={{ background: "var(--color-vc-surface)", border: "1px solid var(--color-vc-line)", borderRadius: 4, color: "var(--color-vc-text)" }}
+                labelStyle={{ color: "var(--color-vc-muted)" }}
+                itemStyle={{ color: "var(--color-vc-text)" }}
+                cursor={{ stroke: "var(--color-vc-line-strong)" }}
                 formatter={(_v, _n, item) => [`${formatTokenAmount((item.payload as { raw: string }).raw, decimals)} $${ticker}`, "Burned to date"]}
                 labelFormatter={(_l, payload) => formatFundDate((payload?.[0]?.payload as { label?: string } | undefined)?.label ?? null)}
               />
-              <Area type="stepAfter" dataKey="value" stroke="#18713c" fill="#18713c" fillOpacity={0.15} strokeWidth={2} isAnimationActive={false} />
+              <Area type="stepAfter" dataKey="value" stroke="var(--color-vc-violet)" fill="var(--color-vc-violet)" fillOpacity={0.15} strokeWidth={2} isAnimationActive={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>

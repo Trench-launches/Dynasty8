@@ -12,9 +12,9 @@ export default function Error({ error, retry }: { error: unknown; retry: () => v
   return (
     <div className="grid min-h-dvh place-items-center bg-background p-6 text-center">
       <div className="max-w-md space-y-4">
-        <Logo variant="dark" className="mb-6 justify-center" />
-        <p className="font-display text-5xl tracking-wide text-[#212529]">WASTED</p>
-        <p className="text-[#6c757d]">Something went wrong loading the property market. The listings service may be unavailable.</p>
+        <Logo variant="light" className="mb-6 justify-center" />
+        <p className="font-display text-5xl tracking-wide text-vc-text">WASTED</p>
+        <p className="text-vc-muted">Something went wrong loading the property market. The listings service may be unavailable.</p>
         <div className="flex justify-center gap-3">
           <button
             type="button"
@@ -23,7 +23,7 @@ export default function Error({ error, retry }: { error: unknown; retry: () => v
           >
             Try again
           </button>
-          <Link href="/" className="rounded-lg border border-[#dee2e6] px-5 py-2.5 text-sm font-bold text-[#212529] hover:bg-[#f8f9fa]">
+          <Link href="/" className="rounded-lg border border-vc-line px-5 py-2.5 text-sm font-bold text-vc-text hover:bg-vc-surface-2">
             Back to map
           </Link>
         </div>

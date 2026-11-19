@@ -52,12 +52,12 @@ async function PropertyContent({ params }: Pick<PageProps<"/property/[slug]">, "
       <main className="w-full flex-1 px-3 py-6 sm:px-6 sm:py-8">
         <Link
           href={`/?p=${property.slug}`}
-          className="inline-flex items-center gap-1.5 text-[15px] tracking-[0.04em] text-d8-green uppercase outline-none hover:underline focus-visible:underline"
+          className="inline-flex items-center gap-1.5 text-[15px] tracking-[0.04em] text-vc-accent uppercase outline-none hover:underline focus-visible:underline"
         >
           <ArrowLeft className="size-4" /> Back to map
         </Link>
 
-        <div className="mt-4 overflow-hidden border border-[#e3e3e3] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+        <div className="mt-4 overflow-hidden border border-vc-line bg-vc-surface p-2 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
           <PropertyArt
             full
             property={property}
@@ -75,17 +75,17 @@ async function PropertyContent({ params }: Pick<PageProps<"/property/[slug]">, "
                 <TokenStatusBadge status={property.token.status} />
                 {property.featured && <FeaturedBadge />}
               </div>
-              <h1 className="text-[40px] leading-[1.1] font-bold text-d8-ink sm:text-[48px]">{property.name}</h1>
-              <p className="mt-2 text-[19px] text-[#444]">{locationLabel(property)}</p>
+              <h1 className="text-[40px] leading-[1.1] font-bold text-vc-text sm:text-[48px]">{property.name}</h1>
+              <p className="mt-2 text-[19px] text-vc-text-2">{locationLabel(property)}</p>
             </header>
 
-            <p className="text-[19px] leading-[1.8] text-[#444]">{property.description}</p>
+            <p className="text-[19px] leading-[1.8] text-vc-text-2">{property.description}</p>
 
             <section aria-labelledby="where-fees-go" className="space-y-3">
               <SectionHeading id="where-fees-go">Where the fees go</SectionHeading>
-              <p className="text-[18px] leading-[1.75] text-[#444]">
+              <p className="text-[18px] leading-[1.75] text-vc-text-2">
                 Every {tickerLabel(property)} trade pays a Pump.fun creator fee. Those fees go to the{" "}
-                <Link href="/fund" className="text-d8-green underline-offset-2 hover:underline">
+                <Link href="/fund" className="text-vc-accent underline-offset-2 hover:underline">
                   Demolition Fund
                 </Link>
                 , which buys back and burns ${ecosystem.ticker}. Only finalized, verified on-chain transactions count.
@@ -96,17 +96,17 @@ async function PropertyContent({ params }: Pick<PageProps<"/property/[slug]">, "
               <SectionHeading id="on-the-map">On the map</SectionHeading>
               <div className="space-y-1.5">
                 {property.location ? (
-                  <p className="flex items-center gap-1.5 text-[16px] text-[#555]">
+                  <p className="flex items-center gap-1.5 text-[16px] text-vc-text-2">
                     <MapPin className="size-4" />
                     {property.location.precision === "exact" ? "Exact map placement" : "Approximate district placement on the map"}
                   </p>
                 ) : (
-                  <p className="flex items-center gap-1.5 text-[16px] text-[#555]">
+                  <p className="flex items-center gap-1.5 text-[16px] text-vc-text-2">
                     <MapPinOff className="size-4" /> Map placement pending
                   </p>
                 )}
                 <VerificationBadge property={property} />
-                {property.verification.note && <p className="text-sm text-[#777]">{property.verification.note}</p>}
+                {property.verification.note && <p className="text-sm text-vc-muted">{property.verification.note}</p>}
               </div>
             </section>
           </div>

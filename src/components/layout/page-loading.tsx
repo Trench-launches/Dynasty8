@@ -8,8 +8,8 @@ export function PageLoading() {
   return (
     <div className="grid min-h-dvh flex-1 place-items-center bg-background" role="status" aria-live="polite">
       <div className="flex flex-col items-center gap-3">
-        <div className="size-10 animate-spin rounded-full border-2 border-[#dee2e6] border-t-sunset" />
-        <p className="font-display text-2xl tracking-[0.2em] text-[#6c757d]">Loading listings</p>
+        <div className="size-10 animate-spin rounded-full border-2 border-vc-line border-t-sunset" />
+        <p className="font-display text-2xl tracking-[0.2em] text-vc-muted">Loading listings</p>
       </div>
     </div>
   );

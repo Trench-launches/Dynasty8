@@ -17,19 +17,19 @@ export function SearchBox({ filters, onChange, className }: Props & { className?
     <div className={className}>
       <label className="relative block">
         <span className="sr-only">Search properties</span>
-        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[#868e96]" />
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-vc-faint" />
         <Input
           value={filters.query}
           onChange={(e) => onChange({ ...filters, query: e.target.value })}
           placeholder="Search name, area or $TICKER"
-          className="h-10 border-[#dee2e6] bg-white/95 pr-9 pl-9 text-sm placeholder:text-[#adb5bd]"
+          className="h-10 border-vc-line bg-vc-surface/95 pr-9 pl-9 text-sm placeholder:text-vc-faint"
         />
         {filters.query && (
           <button
             type="button"
             aria-label="Clear search"
             onClick={() => onChange({ ...filters, query: "" })}
-            className="absolute top-1/2 right-2 grid size-6 -translate-y-1/2 place-items-center rounded text-[#6c757d] hover:text-[#212529]"
+            className="absolute top-1/2 right-2 grid size-6 -translate-y-1/2 place-items-center rounded text-vc-muted hover:text-vc-text"
           >
             <X className="size-3.5" />
           </button>
@@ -52,10 +52,10 @@ function FilterSelect<T extends string>({
 }) {
   return (
     <Select value={value} onValueChange={(v) => onValueChange(v as T)}>
-      <SelectTrigger aria-label={label} size="sm" className="h-8 w-full border-[#dee2e6] bg-[#f8f9fa] text-xs">
+      <SelectTrigger aria-label={label} size="sm" className="h-8 w-full border-vc-line bg-vc-surface-2 text-xs">
         <SelectValue />
       </SelectTrigger>
-      <SelectContent className="border border-[#dee2e6] bg-white">
+      <SelectContent className="border border-vc-line bg-vc-surface">
         {options.map((o) => (
           <SelectItem key={o.value} value={o.value} className="text-xs">
             {o.label}

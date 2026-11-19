@@ -5,8 +5,8 @@ import { formatChange } from "@/lib/format";
 import type { MarketSnapshot, Property, TokenStatus } from "@/lib/types";
 
 const STATUS_STYLES: Record<TokenStatus, string> = {
-  live: "border-d8-green bg-d8-green text-white",
-  coming_soon: "border-[#ced4da] bg-[#f8f9fa] text-[#495057]",
+  live: "border-vc-violet bg-vc-primary text-white",
+  coming_soon: "border-vc-line-strong bg-vc-surface-2 text-vc-text-2",
   unavailable: "border-destructive/40 bg-destructive/10 text-destructive line-through decoration-destructive/40",
 };
 
@@ -32,7 +32,7 @@ export function FeaturedBadge({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded bg-[#ffc107] px-2 py-0.5 text-[10px] font-semibold tracking-wider text-[#212529] uppercase",
+        "inline-flex items-center gap-1 rounded bg-vc-cream px-2 py-0.5 text-[10px] font-semibold tracking-wider text-vc-text uppercase",
         className,
       )}
     >
@@ -45,7 +45,7 @@ export function VerificationBadge({ property, className }: { property: Property;
   const { status } = property.verification;
   if (status === "confirmed") {
     return (
-      <span className={cn("inline-flex items-center gap-1 text-[11px] text-d8-green", className)}>
+      <span className={cn("inline-flex items-center gap-1 text-[11px] text-vc-accent", className)}>
         <BadgeCheck className="size-3.5" /> Confirmed location
       </span>
     );
@@ -72,7 +72,7 @@ export function MarketDataTag({ market, className }: { market: MarketSnapshot | 
       <span
         title={`Delayed market data, last updated ${new Date(market.updatedAt).toLocaleString()}`}
         className={cn(
-          "rounded border border-amber-300/50 bg-amber-300/15 px-1 py-px text-[9px] font-bold tracking-wider text-amber-200 uppercase",
+          "rounded border border-vc-cream/40/50 bg-amber-300/15 px-1 py-px text-[9px] font-bold tracking-wider text-amber-200 uppercase",
           className,
         )}
       >
@@ -99,7 +99,7 @@ export function ChangeText({ value, className }: { value: number | null | undefi
     <span
       className={cn(
         "tabular-nums",
-        value == null ? "text-cream/50" : value >= 0 ? "text-d8-green" : "text-destructive",
+        value == null ? "text-cream/50" : value >= 0 ? "text-vc-accent" : "text-destructive",
         className,
       )}
     >

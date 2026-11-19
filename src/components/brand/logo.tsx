@@ -17,13 +17,13 @@ type LogoVariant = keyof typeof LOGO;
 /** $DYNASTY token icon: the logo on a green coin, so it reads on light backgrounds. */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <span aria-hidden="true" className={cn("grid shrink-0 place-items-center rounded-full bg-d8-green", className)}>
+    <span aria-hidden="true" className={cn("grid shrink-0 place-items-center rounded-full bg-vc-primary", className)}>
       <Image src={LOGO.light} alt="" width={LOGO_W} height={LOGO_H} sizes="64px" className="h-auto w-[80%]" />
     </span>
   );
 }
 
-/** Site logo. `light` = white house for the green navbar, `dark` = green house for white pages. */
+/** Site logo. `light` = white house for the purple theme (every page), `dark` = green house, kept for light backgrounds. */
 export function Logo({ className, variant = "light" }: { className?: string; variant?: LogoVariant }) {
   return (
     <span className={cn("flex items-center", className)}>

@@ -28,7 +28,7 @@ export function HqGlyph({ state = "default", className }: { state?: PinState; cl
         <path
           d={PIN_PATH}
           fill={PIN_GOLD}
-          stroke={state === "selected" ? PIN_GREEN : state === "hovered" ? "#0f5a2d" : "#ffffff"}
+          stroke={state === "selected" ? PIN_GREEN : state === "hovered" ? "var(--color-vc-page)" : "var(--color-vc-text)"}
           strokeWidth={state === "selected" ? 3.2 : 2.4}
           strokeLinejoin="round"
         />
@@ -75,21 +75,21 @@ export const HqPin = memo(function HqPin({ hq, state, onSelect, onHover }: HqPin
       </button>
 
       {/* Always labelled, at every zoom: it is the one landmark on the map. */}
-      <span className="pointer-events-none absolute top-full left-1/2 mt-1 -translate-x-1/2 rounded bg-[#e0b13a] px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide whitespace-nowrap text-[#212529] shadow">
+      <span className="pointer-events-none absolute top-full left-1/2 mt-1 -translate-x-1/2 rounded bg-vc-cream px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide whitespace-nowrap text-vc-text shadow">
         DYNASTY HQ
       </span>
 
       {state === "hovered" && (
         <div role="tooltip" className={HOVER_CARD_CLASS}>
           <p className="truncate font-display text-[17px] leading-tight text-cream">{hq.name}</p>
-          <p className="mt-1 truncate text-xs text-[#6c757d]">Headquarters · {hq.area}</p>
+          <p className="mt-1 truncate text-xs text-vc-muted">Headquarters · {hq.area}</p>
           <div className="mt-2 flex items-center justify-between gap-2 text-xs">
             <span className="font-bold text-tropic">${hq.ticker}</span>
             {hq.marketCapUsd != null && (
-              <span className="text-[#495057]">MC {formatUsdCompact(hq.marketCapUsd)}</span>
+              <span className="text-vc-text-2">MC {formatUsdCompact(hq.marketCapUsd)}</span>
             )}
           </div>
-          <p className="mt-2 text-[10px] tracking-[0.18em] text-[#868e96] uppercase">Click for ${hq.ticker} details</p>
+          <p className="mt-2 text-[10px] tracking-[0.18em] text-vc-faint uppercase">Click for ${hq.ticker} details</p>
         </div>
       )}
     </div>

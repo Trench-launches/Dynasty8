@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
 import { Canvas } from "@react-three/fiber";
-import { ChevronDown, Locate, Minus, Plus, X } from "lucide-react";
+import { ChevronDown, Locate, Minus, Moon, Plus, Sun, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { REGIONS } from "@/data/regions";
@@ -18,6 +18,7 @@ import {
 } from "./leonida-scene";
 
 import { LEONIDA_SEA, TileGround } from "./tile-ground";
+import { NIGHT_SEA, type MapTime } from "./day-night";
 import { LEONIDA_MAP_CREDIT } from "./tiles";
 
 export type { Insets } from "./leonida-scene";
@@ -49,6 +50,29 @@ interface LeonidaMapProps {
 }
 
 const FOG = LEONIDA_SEA;
+const TIME_KEY = "dynasty8:map-time";
+
+/**
+ * Day or night map, remembered per browser (storage can be blocked, so every access is
+ * guarded). The map is client-only (loaded with ssr: false), so reading storage on the first
+ * render cannot cause a hydration mismatch.
+ */
+function useMapTime(): [MapTime, (t: MapTime) => void] {
+  const [time, setTime] = useState<MapTime>(() => {
+    try {
+      return localStorage.getItem(TIME_KEY) === "night" ? "night" : "day";
+    } catch {
+      return "day";
+    }
+  });
+  const choose = useCallback((t: MapTime) => {
+    setTime(t);
+    try {
+      localStorage.setItem(TIME_KEY, t);
+    } catch {}
+  }, []);
+  return [time, choose];
+}
 /** How far a press on a pin must move before it becomes a map drag instead of a click. */
 const PIN_DRAG_SLOP_PX = 5;
 
@@ -89,6 +113,7 @@ export default function LeonidaMap({
   const [ready, setReady] = useState(false);
   const [near, setNear] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
+  const [time, setTime] = useMapTime();
   const compact = useMediaQuery("(max-width: 1023px)");
   const rootRef = useRef<HTMLDivElement>(null);
   // On small screens the bottom sheet needs the room; controls come back when it closes.
@@ -251,7 +276,7 @@ export default function LeonidaMap({
         "relative isolate overflow-hidden outline-none select-none focus-visible:ring-2 focus-visible:ring-tropic/60 focus-visible:ring-inset",
         className,
       )}
-      style={{ background: FOG }}
+      style={{ background: time === "night" ? NIGHT_SEA : FOG, transition: "background-color 400ms" }}
     >
       <Canvas
         flat
@@ -264,13 +289,13 @@ export default function LeonidaMap({
         }}
         className="!absolute inset-0 touch-none"
         fallback={
-          <div className="grid h-full place-items-center p-6 text-center text-sm text-[#495057]">
+          <div className="grid h-full place-items-center p-6 text-center text-sm text-vc-text-2">
             Your browser can&apos;t display the 3D map. The property list still works.
           </div>
         }
       >
         <fog attach="fog" args={[FOG, 4000, 12000]} />
-        <TileGround onReady={markReady} />
+        <TileGround onReady={markReady} time={time} />
         <SelectionBeacon location={properties.find((p) => p.slug === selectedSlug)?.location ?? null} />
         <CameraRig
           ref={rig}
@@ -396,10 +421,10 @@ export default function LeonidaMap({
       </div>
 
       {!ready && (
-        <div className="pointer-events-none absolute inset-0 z-40 grid place-items-center bg-white/70 backdrop-blur-sm">
+        <div className="pointer-events-none absolute inset-0 z-40 grid place-items-center bg-vc-surface/70 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3">
-            <span className="size-10 animate-spin rounded-full border-2 border-[#dee2e6] border-t-sunset" />
-            <p className="font-display text-xl tracking-[0.25em] text-[#212529]">LOADING LEONIDA</p>
+            <span className="size-10 animate-spin rounded-full border-2 border-vc-line border-t-sunset" />
+            <p className="font-display text-xl tracking-[0.25em] text-vc-text">LOADING LEONIDA</p>
           </div>
         </div>
       )}
@@ -415,7 +440,7 @@ export default function LeonidaMap({
             key={r.id}
             type="button"
             onClick={() => rig.current?.flyToRegion(r.id)}
-            className="shrink-0 rounded border border-[#dee2e6] bg-white/80 px-3.5 py-2 font-display text-[15px] leading-none tracking-[0.08em] text-[#212529] backdrop-blur transition-colors hover:border-sunset/60 hover:bg-white/95 hover:text-[#212529]"
+            className="shrink-0 rounded border border-vc-line bg-vc-surface/80 px-3.5 py-2 font-display text-[15px] leading-none tracking-[0.08em] text-vc-text backdrop-blur transition-colors hover:border-sunset/60 hover:bg-vc-surface/95 hover:text-vc-text"
           >
             {r.name.toUpperCase()}
           </button>
@@ -439,6 +464,19 @@ export default function LeonidaMap({
           </ControlButton>
           <ControlButton label="Show whole map" onClick={() => rig.current?.reset()}>
             <Locate />
+          </ControlButton>
+        </div>
+        <div
+          role="group"
+          aria-label="Map time of day"
+          className="flex flex-col overflow-hidden rounded-md border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.3)]"
+          style={{ background: PIN_GREEN }}
+        >
+          <ControlButton label="Day map" pressed={time === "day"} onClick={() => setTime("day")}>
+            <Sun />
+          </ControlButton>
+          <ControlButton label="Night map" pressed={time === "night"} onClick={() => setTime("night")}>
+            <Moon />
           </ControlButton>
         </div>
       </div>
@@ -468,20 +506,20 @@ export default function LeonidaMap({
           type="button"
           onClick={() => setLegendOpen((o) => !o)}
           aria-expanded={legendOpen}
-          className="flex items-center gap-1.5 rounded-md border border-[#dee2e6] bg-white/95 px-2.5 py-1.5 text-[11px] font-bold tracking-[0.16em] text-[#495057] uppercase backdrop-blur hover:text-[#212529]"
+          className="flex items-center gap-1.5 rounded-md border border-vc-line bg-vc-surface/95 px-2.5 py-1.5 text-[11px] font-bold tracking-[0.16em] text-vc-text-2 uppercase backdrop-blur hover:text-vc-text"
         >
           {mapped} on map
           <ChevronDown className={cn("size-3.5 transition-transform", legendOpen && "rotate-180")} />
         </button>
         {legendOpen && (
-          <ul className="mt-1.5 space-y-1.5 rounded-lg border border-[#dee2e6] bg-white/95 p-3 text-xs text-[#212529] backdrop-blur">
+          <ul className="mt-1.5 space-y-1.5 rounded-lg border border-vc-line bg-vc-surface/95 p-3 text-xs text-vc-text backdrop-blur">
             {hq && <LegendRow label="DYNASTY HQ" glyph={<HqGlyph className="h-5 w-4" />} />}
             <LegendRow label="Property" glyph={<PinGlyph status="coming_soon" state="default" featured={false} className="h-5 w-4" />} />
             <LegendRow label="Token live" glyph={<PinGlyph status="live" state="default" featured={false} className="h-5 w-4" />} />
             <LegendRow label="Featured" glyph={<PinGlyph status="coming_soon" state="default" featured className="h-5 w-4" />} />
             <LegendRow label="Unavailable" glyph={<PinGlyph status="unavailable" state="default" featured={false} className="h-5 w-4" />} />
             <LegendRow label="Selected" glyph={<PinGlyph status="coming_soon" state="selected" featured={false} className="h-5 w-4" />} />
-            <li className="pt-1 text-[10px] leading-snug text-[#868e96]">Pins show approximate district placement.</li>
+            <li className="pt-1 text-[10px] leading-snug text-vc-faint">Pins show approximate district placement.</li>
           </ul>
         )}
       </div>
@@ -489,17 +527,17 @@ export default function LeonidaMap({
       {/* Map credit (CC BY 4.0 requires it) */}
       <p
         className={cn(
-          "pointer-events-auto absolute z-30 max-w-[60%] truncate rounded bg-white/80 px-1.5 py-0.5 text-right text-[10px] leading-tight text-[#495057] backdrop-blur transition-[bottom,right] duration-300",
+          "pointer-events-auto absolute z-30 max-w-[60%] truncate rounded bg-vc-surface/80 px-1.5 py-0.5 text-right text-[10px] leading-tight text-vc-text-2 backdrop-blur transition-[bottom,right] duration-300",
           !showChrome && "hidden",
         )}
         style={{ right: insets.right + 12, bottom: insets.bottom + 10 }}
       >
         Map:{" "}
-        <a href={LEONIDA_MAP_CREDIT.href} target="_blank" rel="noopener noreferrer" className="underline hover:text-[#212529]">
+        <a href={LEONIDA_MAP_CREDIT.href} target="_blank" rel="noopener noreferrer" className="underline hover:text-vc-text">
           gtadb.org
         </a>{" "}
         &amp; GTA VI Community Mapping Project,{" "}
-        <a href={LEONIDA_MAP_CREDIT.license} target="_blank" rel="noopener noreferrer" className="underline hover:text-[#212529]">
+        <a href={LEONIDA_MAP_CREDIT.license} target="_blank" rel="noopener noreferrer" className="underline hover:text-vc-text">
           CC BY 4.0
         </a>{" "}
         (legend removed)
@@ -529,9 +567,9 @@ function ControlButton({
       aria-pressed={pressed}
       onClick={onClick}
       className={cn(
-        "grid size-9 place-items-center text-white transition-colors hover:bg-[#0f5a2d] focus-visible:bg-[#0f5a2d] focus-visible:outline-none [&+&]:border-t [&+&]:border-white/40 [&_svg]:size-4 [&_svg]:stroke-[3]",
-        pressed === true && "text-tropic",
-        pressed === false && "text-[#868e96]",
+        "grid size-9 place-items-center text-white transition-colors hover:bg-vc-primary focus-visible:bg-vc-primary focus-visible:outline-none [&+&]:border-t [&+&]:border-white/40 [&_svg]:size-4 [&_svg]:stroke-[3]",
+        pressed === true && "bg-vc-primary-strong text-tropic",
+        pressed === false && "text-vc-faint",
       )}
     >
       {children}
@@ -556,8 +594,8 @@ function Compass() {
       {/* Star sits a little low so the N has the gap between its tip and the rim to itself. */}
       <g transform="translate(0 2.5)">
         <path d="M0 -12 L3.2 -3.2 L15 0 L3.2 3.2 L0 15 L-3.2 3.2 L-15 0 L-3.2 -3.2 Z" fill={PIN_GREEN} />
-        <path d="M0 -12 L3.2 -3.2 L0 0 Z M15 0 L3.2 3.2 L0 0 Z M0 15 L-3.2 3.2 L0 0 Z M-15 0 L-3.2 -3.2 L0 0 Z" fill="#0f5a2d" />
-        <circle r={2.2} fill="#ffffff" />
+        <path d="M0 -12 L3.2 -3.2 L0 0 Z M15 0 L3.2 3.2 L0 0 Z M0 15 L-3.2 3.2 L0 0 Z M-15 0 L-3.2 -3.2 L0 0 Z" fill="var(--color-vc-page)" />
+        <circle r={2.2} fill="var(--color-vc-text)" />
       </g>
       <text
         x={0}

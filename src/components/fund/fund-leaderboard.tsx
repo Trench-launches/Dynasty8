@@ -21,10 +21,10 @@ export function FundLeaderboard({ contributions, properties, ticker, decimals }:
   const anyRanked = contributions.some((c) => c.rank !== null);
 
   return (
-    <section aria-labelledby="fund-leaderboard" className="min-w-0 border border-[#e3e3e3] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+    <section aria-labelledby="fund-leaderboard" className="min-w-0 border border-vc-line bg-vc-surface shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
       <PanelHeader id="fund-leaderboard" title="Top contributors" note="Leaderboard" className="-mx-px -mt-px" />
       {!anyRanked && (
-        <p className="border-b border-[#e3e3e3] px-4 py-3 text-[15px] text-[#555]">
+        <p className="border-b border-vc-line px-4 py-3 text-[15px] text-vc-text-2">
           No contributions yet. Properties rank here once their creator fees reach the fund.
         </p>
       )}
@@ -33,7 +33,7 @@ export function FundLeaderboard({ contributions, properties, ticker, decimals }:
         {/* Fixed layout: number columns keep their widths and the property column takes the rest (names truncate). */}
         <table className="w-full table-fixed text-left text-sm">
           <thead>
-            <tr className="border-b border-[#dee2e6] text-[10px] tracking-wider text-[#868e96] uppercase">
+            <tr className="border-b border-vc-line text-[10px] tracking-wider text-vc-faint uppercase">
               <th scope="col" className="w-11 py-2 pr-1 pl-4 font-semibold">#</th>
               <th scope="col" className="py-2 pr-3 font-semibold">Property</th>
               <th scope="col" className="w-32 py-2 pr-4 text-right font-semibold sm:pr-3">Creator fees</th>
@@ -47,12 +47,12 @@ export function FundLeaderboard({ contributions, properties, ticker, decimals }:
               const property = bySlug.get(c.property.slug);
               const ranked = c.rank !== null;
               return (
-                <tr key={c.property.slug} className="border-b border-[#f1f3f5] last:border-0 hover:bg-[#f8f9fa]">
+                <tr key={c.property.slug} className="border-b border-vc-line last:border-0 hover:bg-vc-surface-2">
                   <td className="py-2 pr-1 pl-4">
                     <span
                       className={cn(
                         "grid size-6 place-items-center rounded-full text-xs font-bold tabular-nums",
-                        c.rank === 1 ? "bg-d8-green text-white" : ranked ? "bg-[#e9ecef] text-[#212529]" : "text-[#adb5bd]",
+                        c.rank === 1 ? "bg-vc-primary text-white" : ranked ? "bg-vc-surface-3 text-vc-text" : "text-vc-faint",
                       )}
                     >
                       {c.rank ?? "–"}
@@ -64,37 +64,37 @@ export function FundLeaderboard({ contributions, properties, ticker, decimals }:
                       className="group flex min-w-0 items-center gap-3 outline-none focus-visible:underline"
                     >
                       {property && (
-                        <PropertyArt property={property} sizes="48px" className="h-9 w-12 shrink-0 rounded-[3px] border border-[#dee2e6]" />
+                        <PropertyArt property={property} sizes="48px" className="h-9 w-12 shrink-0 rounded-[3px] border border-vc-line" />
                       )}
                       <span className="min-w-0">
-                        <span className="block truncate font-semibold text-[#343a40] group-hover:underline">{c.property.name}</span>
-                        {c.property.ticker && <span className="block text-xs font-bold text-d8-green">${c.property.ticker}</span>}
+                        <span className="block truncate font-semibold text-vc-text group-hover:underline">{c.property.name}</span>
+                        {c.property.ticker && <span className="block text-xs font-bold text-vc-accent">${c.property.ticker}</span>}
                       </span>
                     </Link>
                   </td>
                   <td className="py-2 pr-4 text-right whitespace-nowrap tabular-nums sm:pr-3">
                     {ranked ? (
                       <>
-                        <span className="font-semibold text-[#212529]">{formatSol(c.creatorFeesLamports)}</span>
-                        <span className="block text-[11px] text-[#868e96]">
+                        <span className="font-semibold text-vc-text">{formatSol(c.creatorFeesLamports)}</span>
+                        <span className="block text-[11px] text-vc-faint">
                           {formatCount(c.feeReceipts)} receipt{c.feeReceipts === 1 ? "" : "s"}
                         </span>
                         {/* Phones have no burned column; show it under the fees instead. */}
-                        <span className="block text-[11px] font-semibold text-d8-green sm:hidden">
+                        <span className="block text-[11px] font-semibold text-vc-accent sm:hidden">
                           {formatTokenAmount(c.dynastyBurnedRaw, decimals)} burned
                         </span>
                       </>
                     ) : (
-                      <span className="text-xs text-[#adb5bd]">No fees yet</span>
+                      <span className="text-xs text-vc-faint">No fees yet</span>
                     )}
                   </td>
-                  <td className="hidden py-2 pr-3 text-right whitespace-nowrap text-[#495057] tabular-nums sm:table-cell">
+                  <td className="hidden py-2 pr-3 text-right whitespace-nowrap text-vc-text-2 tabular-nums sm:table-cell">
                     {ranked ? formatSol(c.buybackAllocatedLamports) : <Muted />}
                   </td>
-                  <td className="hidden py-2 pr-4 text-right whitespace-nowrap text-[#495057] tabular-nums sm:table-cell lg:pr-3">
+                  <td className="hidden py-2 pr-4 text-right whitespace-nowrap text-vc-text-2 tabular-nums sm:table-cell lg:pr-3">
                     {ranked ? formatTokenAmount(c.dynastyBurnedRaw, decimals) : <Muted />}
                   </td>
-                  <td className="hidden py-2 pr-4 text-right text-xs whitespace-nowrap text-[#6c757d] lg:table-cell">
+                  <td className="hidden py-2 pr-4 text-right text-xs whitespace-nowrap text-vc-muted lg:table-cell">
                     {ranked ? formatFundDate(c.lastReceiptAt) : <Muted />}
                   </td>
                 </tr>
@@ -108,5 +108,5 @@ export function FundLeaderboard({ contributions, properties, ticker, decimals }:
 }
 
 function Muted() {
-  return <span className="text-[#adb5bd]">—</span>;
+  return <span className="text-vc-faint">—</span>;
 }

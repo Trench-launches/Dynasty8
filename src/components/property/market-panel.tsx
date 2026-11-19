@@ -37,11 +37,11 @@ const RANGES: ChartRange[] = ["24h", "7d", "30d"];
 const RANGE_LABEL: Record<ChartRange, string> = { "24h": "24H", "7d": "7D", "30d": "30D" };
 /** The server caches history for 5-60 min per range, so a 1-minute refresh keeps an open page current cheaply. */
 const CHART_REFRESH_MS = 60_000;
-/** Site branding: the Dynasty green (--color-d8-green) for the line; grid one hairline step off the white card. */
-const CHART_LINE = "#18713c";
-const CHART_GRID = "#e9ecef";
-const CHART_AXIS_TEXT = "#6c757d";
-const CHART_CURSOR = "#adb5bd";
+/** Theme colours (globals.css): violet line, hairline grid, faint axis text. */
+const CHART_LINE = "var(--color-vc-violet)";
+const CHART_GRID = "var(--color-vc-line)";
+const CHART_AXIS_TEXT = "var(--color-vc-faint)";
+const CHART_CURSOR = "var(--color-vc-line-strong)";
 
 const UNAVAILABLE_TEXT: Record<ChartUnavailableReason, string> = {
   not_launched: "The chart appears once the token is live.",
@@ -100,7 +100,7 @@ export function PropertyMarket({
           <p className="mt-3 text-xs text-neon">Demo mode: these figures are generated for design preview and are not real.</p>
         )}
         {market?.stale && (
-          <p className="mt-3 text-xs text-[#8a6d00]">
+          <p className="mt-3 text-xs text-vc-cream">
             Market data is delayed. Last updated{" "}
             {/* Local time differs between server and browser; let the browser's version stand. */}
             <time dateTime={market.updatedAt} suppressHydrationWarning>
@@ -114,15 +114,15 @@ export function PropertyMarket({
       <aside className={panelClassName}>
         <Panel aria-labelledby="buy-property">
           <PanelHeader id="buy-property" title="Buy property" note={STATUS_NOTE[token.status]} />
-          <PanelBody className="space-y-6 bg-[#fafafa] px-5 pt-5 pb-6">
+          <PanelBody className="space-y-6 bg-vc-surface-2 px-5 pt-5 pb-6">
             <div>
               <FigureLabel>Price per token</FigureLabel>
               {market?.priceUsd != null ? (
                 <BigFigure value={formatPrice(market.priceUsd)} unit="USD" className="mt-1" />
               ) : (
-                <BigFigure value="Pending" className="mt-1 text-[#999]" />
+                <BigFigure value="Pending" className="mt-1 text-vc-faint" />
               )}
-              <p className="mt-2 text-[16px] text-[#444]">
+              <p className="mt-2 text-[16px] text-vc-text-2">
                 {market ? (
                   <>
                     Market cap {formatUsdCompact(market.marketCapUsd)} · 24h <ChangeText value={market.change24hPct} />
@@ -147,11 +147,11 @@ export function PropertyMarket({
                   Buy on Pump.fun <ExternalLink className="size-5" />
                 </a>
               ) : (
-                <span aria-disabled="true" className={cn(ctaButton, "pointer-events-none border-[#8f9b93] bg-[#b4c0b8]")}>
+                <span aria-disabled="true" className={cn(ctaButton, "pointer-events-none border-vc-line-strong bg-vc-line-strong")}>
                   {token.status === "unavailable" ? "Trading paused" : "Trading opens at launch"}
                 </span>
               )}
-              <p className="text-[13px] leading-relaxed text-[#777]">
+              <p className="text-[13px] leading-relaxed text-vc-muted">
                 {tradeUrl
                   ? "Opens Pump.fun in a new tab. Check the mint address matches before you trade."
                   : "The buy button links to Pump.fun once the token is live and its mint is verified."}{" "}
@@ -174,21 +174,21 @@ function TokenCard({ property }: { property: Property }) {
   const verified = Boolean(mint && mintVerified);
 
   return (
-    <div className="border-2 border-d8-green bg-d8-mint-soft px-4 py-4">
+    <div className="border-2 border-vc-violet bg-vc-surface-2 px-4 py-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="flex min-w-0 items-center gap-3 text-[19px] font-bold tracking-[0.02em] text-d8-ink uppercase">
-          <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-d8-green">
-            <span className="size-2.5 rounded-full bg-white" />
+        <p className="flex min-w-0 items-center gap-3 text-[19px] font-bold tracking-[0.02em] text-vc-text uppercase">
+          <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-vc-primary">
+            <span className="size-2.5 rounded-full bg-vc-surface" />
           </span>
           <span className="truncate">{tickerLabel(property)}</span>
         </p>
         <Tag tone={status === "live" ? "green" : "gold"}>{TOKEN_STATUS_LABELS[status]}</Tag>
       </div>
       <div className="mt-2 pl-9">
-        <p className="text-[13px] tracking-[0.06em] text-[#777] uppercase">Verified mint address</p>
+        <p className="text-[13px] tracking-[0.06em] text-vc-muted uppercase">Verified mint address</p>
         {verified ? (
           <div className="mt-1 flex items-center gap-2">
-            <code className="min-w-0 truncate font-mono text-[13px] text-d8-ink">{mint}</code>
+            <code className="min-w-0 truncate font-mono text-[13px] text-vc-text">{mint}</code>
             <button
               type="button"
               aria-label="Copy mint address"
@@ -198,13 +198,13 @@ function TokenCard({ property }: { property: Property }) {
                   setTimeout(() => setCopied(false), 1500);
                 });
               }}
-              className="grid size-7 shrink-0 place-items-center border border-[#cfd8d2] bg-white text-[#555] hover:text-d8-ink"
+              className="grid size-7 shrink-0 place-items-center border border-vc-line-strong bg-vc-surface text-vc-text-2 hover:text-vc-text"
             >
-              {copied ? <Check className="size-3.5 text-d8-green" /> : <Copy className="size-3.5" />}
+              {copied ? <Check className="size-3.5 text-vc-accent" /> : <Copy className="size-3.5" />}
             </button>
           </div>
         ) : (
-          <p className="mt-1 text-[16px] leading-relaxed text-[#444]">Pending verification. Never trust an unverified mint.</p>
+          <p className="mt-1 text-[16px] leading-relaxed text-vc-text-2">Pending verification. Never trust an unverified mint.</p>
         )}
       </div>
     </div>
@@ -283,7 +283,7 @@ function PriceChart({ property, className }: { property: Property; className?: s
               <PriceArea points={points} range={shownRange} />
             </div>
           ) : pending ? (
-            <div className="h-full animate-pulse bg-[#f4f4f2]" />
+            <div className="h-full animate-pulse bg-vc-surface-2" />
           ) : current?.error ? (
             <EmptyChart text={UNAVAILABLE_TEXT.provider_unavailable} />
           ) : (
@@ -293,13 +293,13 @@ function PriceChart({ property, className }: { property: Property; className?: s
 
         {shown && stats && (
           <>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-[#dee2e6] pt-3 text-xs">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-vc-line pt-3 text-xs">
               <dl className="flex flex-wrap gap-x-4 gap-y-1">
                 <ChartFigure label="Latest" value={formatPrice(stats.last.priceUsd)} />
                 <ChartFigure label={`${RANGE_LABEL[shownRange]} high`} value={formatPrice(stats.high.priceUsd)} />
                 <ChartFigure label={`${RANGE_LABEL[shownRange]} low`} value={formatPrice(stats.low.priceUsd)} />
               </dl>
-              <p className="text-[11px] text-[#868e96]">{sourceLine(shown)}</p>
+              <p className="text-[11px] text-vc-faint">{sourceLine(shown)}</p>
             </div>
             {/* Every value on the chart, for screen readers (the tooltip is never the only way to read it). */}
             <table className="sr-only">
@@ -378,10 +378,10 @@ function PriceArea({ points, range }: { points: ChartPoint[]; range: ChartRange 
           fill={CHART_LINE}
           fillOpacity={0.1}
           dot={false}
-          activeDot={{ r: 4, fill: CHART_LINE, stroke: "#ffffff", strokeWidth: 2 }}
+          activeDot={{ r: 4, fill: CHART_LINE, stroke: "var(--color-vc-surface)", strokeWidth: 2 }}
           isAnimationActive={false}
         />
-        <ReferenceDot x={last.t} y={last.priceUsd} r={4} fill={CHART_LINE} stroke="#ffffff" strokeWidth={2} />
+        <ReferenceDot x={last.t} y={last.priceUsd} r={4} fill={CHART_LINE} stroke="var(--color-vc-surface)" strokeWidth={2} />
       </AreaChart>
     </ResponsiveContainer>
   );
@@ -392,14 +392,14 @@ function PriceTooltip({ active, payload }: TooltipContentProps) {
   const point = active ? (payload?.[0]?.payload as ChartPoint | undefined) : undefined;
   if (!point) return null;
   return (
-    <div className="rounded border border-[#dee2e6] bg-white px-3 py-2 shadow-[0_4px_14px_rgba(0,0,0,0.12)]">
-      <p className="text-sm font-semibold text-[#212529]">{formatPrice(point.priceUsd)}</p>
-      <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[#6c757d]">
-        <span aria-hidden="true" className="h-0.5 w-3 rounded-full bg-d8-green" />
+    <div className="rounded border border-vc-line bg-vc-surface px-3 py-2 shadow-[0_4px_14px_rgba(0,0,0,0.12)]">
+      <p className="text-sm font-semibold text-vc-text">{formatPrice(point.priceUsd)}</p>
+      <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-vc-muted">
+        <span aria-hidden="true" className="h-0.5 w-3 rounded-full bg-vc-primary" />
         {formatWhen(point.t)}
       </p>
       {point.volumeUsd != null && (
-        <p className="mt-0.5 text-[11px] text-[#868e96]">Volume {formatUsdCompact(point.volumeUsd)}</p>
+        <p className="mt-0.5 text-[11px] text-vc-faint">Volume {formatUsdCompact(point.volumeUsd)}</p>
       )}
     </div>
   );
@@ -408,8 +408,8 @@ function PriceTooltip({ active, payload }: TooltipContentProps) {
 function ChartFigure({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline gap-1.5">
-      <dt className="text-[#868e96]">{label}</dt>
-      <dd className="font-semibold text-[#212529] tabular-nums">{value}</dd>
+      <dt className="text-vc-faint">{label}</dt>
+      <dd className="font-semibold text-vc-text tabular-nums">{value}</dd>
     </div>
   );
 }
@@ -458,7 +458,7 @@ function sourceLine(series: ChartSeries): string {
 
 function EmptyChart({ text }: { text: string }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 border border-dashed border-[#d9d9d9] px-6 text-center text-[15px] text-[#888]">
+    <div className="flex h-full flex-col items-center justify-center gap-2 border border-dashed border-vc-line px-6 text-center text-[15px] text-vc-faint">
       <LineChart className="size-6" />
       {text}
     </div>

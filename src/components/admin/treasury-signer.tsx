@@ -230,9 +230,9 @@ export function TreasurySigner() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-5 px-4 py-6 sm:px-6">
       <header className="space-y-1">
-        <p className="text-[11px] font-semibold tracking-[0.16em] text-d8-green uppercase">Demolition Fund · members only</p>
-        <h1 className="font-display text-3xl font-bold text-[#212529]">Treasury signing</h1>
-        <p className="max-w-2xl text-sm text-[#6c757d]">
+        <p className="text-[11px] font-semibold tracking-[0.16em] text-vc-accent uppercase">Demolition Fund · members only</p>
+        <h1 className="font-display text-3xl font-bold text-vc-text">Treasury signing</h1>
+        <p className="max-w-2xl text-sm text-vc-muted">
           Review buyback and burn proposals and sign them with your own Phantom wallet. This site prepares unsigned transactions only; the Squads multisig counts
           approvals and enforces the threshold. Never enter a seed phrase or private key anywhere on this site.
         </p>
@@ -240,21 +240,21 @@ export function TreasurySigner() {
 
       <Card title="Your wallet">
         {hasPhantom === false ? (
-          <p className="text-sm text-[#495057]">
+          <p className="text-sm text-vc-text-2">
             Phantom was not found in this browser.{" "}
-            <a className="font-semibold text-d8-green hover:underline" href="https://phantom.com/download" target="_blank" rel="noopener noreferrer">
+            <a className="font-semibold text-vc-accent hover:underline" href="https://phantom.com/download" target="_blank" rel="noopener noreferrer">
               Install Phantom
             </a>{" "}
             and reload.
           </p>
         ) : wallet ? (
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span className="inline-flex items-center gap-1.5 rounded border border-[#ced4da] px-2 py-1 font-mono text-xs">
+            <span className="inline-flex items-center gap-1.5 rounded border border-vc-line-strong px-2 py-1 font-mono text-xs">
               <Wallet className="size-3.5" aria-hidden /> {shortAddress(wallet)}
             </span>
             {me ? (
               me.isMember ? (
-                <span className="inline-flex items-center gap-1 text-d8-green">
+                <span className="inline-flex items-center gap-1 text-vc-accent">
                   <CheckCircle2 className="size-4" aria-hidden /> Multisig member ({perms(me.permissions!)})
                 </span>
               ) : (
@@ -263,7 +263,7 @@ export function TreasurySigner() {
                 </span>
               )
             ) : null}
-            <button onClick={disconnect} className="ml-auto text-xs font-semibold text-[#6c757d] hover:underline">
+            <button onClick={disconnect} className="ml-auto text-xs font-semibold text-vc-muted hover:underline">
               Disconnect
             </button>
           </div>
@@ -271,7 +271,7 @@ export function TreasurySigner() {
           <button
             onClick={connect}
             disabled={hasPhantom === null}
-            className="inline-flex items-center gap-2 rounded bg-d8-green px-3 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded bg-vc-primary px-3 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
           >
             <Wallet className="size-4" aria-hidden /> Connect Phantom
           </button>
@@ -280,12 +280,12 @@ export function TreasurySigner() {
 
       {authError ? (
         <Card title="Admin sign-in required">
-          <p className="text-sm text-[#495057]">
+          <p className="text-sm text-vc-text-2">
             {authError === 401 ? "Sign in with the GitHub account that has an admin role to load proposals." : "Your GitHub account does not have an admin role for the fund."}
           </p>
           {authError === 401 && (
             // eslint-disable-next-line @next/next/no-html-link-for-pages -- Auth.js sign-in is an API route and needs a full page load
-            <a href="/api/auth/signin?callbackUrl=/admin/treasury" className="mt-3 inline-flex rounded border border-[#ced4da] px-3 py-1.5 text-sm font-semibold text-d8-green hover:border-d8-green">
+            <a href="/api/auth/signin?callbackUrl=/admin/treasury" className="mt-3 inline-flex rounded border border-vc-line-strong px-3 py-1.5 text-sm font-semibold text-vc-accent hover:border-vc-violet">
               Sign in with GitHub
             </a>
           )}
@@ -298,9 +298,9 @@ export function TreasurySigner() {
         </p>
       )}
       {sent && (
-        <p role="status" className="rounded border border-d8-green/40 bg-d8-green/10 px-3 py-2 text-sm text-[#212529]">
+        <p role="status" className="rounded border border-vc-violet/40 bg-vc-primary/10 px-3 py-2 text-sm text-vc-text">
           {sent.label}: sent.{" "}
-          <a className="inline-flex items-center gap-1 font-semibold text-d8-green hover:underline" href={solscan("tx", sent.signature)} target="_blank" rel="noopener noreferrer">
+          <a className="inline-flex items-center gap-1 font-semibold text-vc-accent hover:underline" href={solscan("tx", sent.signature)} target="_blank" rel="noopener noreferrer">
             {shortAddress(sent.signature)} <ExternalLink className="size-3" />
           </a>{" "}
           Status updates once the transaction is finalized.
@@ -317,29 +317,29 @@ export function TreasurySigner() {
                 <Fact k="Time lock" v={status.multisig.timeLockSeconds ? `${status.multisig.timeLockSeconds}s` : "none"} />
               </dl>
               <div>
-                <p className="text-[10px] tracking-wider text-[#868e96] uppercase">Vaults</p>
+                <p className="text-[10px] tracking-wider text-vc-faint uppercase">Vaults</p>
                 <ul className="mt-1 grid gap-1 sm:grid-cols-3">
                   {status.multisig.vaults.map((v) => (
-                    <li key={v.role} className="rounded bg-[#f8f9fa] px-2 py-1.5 text-xs">
+                    <li key={v.role} className="rounded bg-vc-surface-2 px-2 py-1.5 text-xs">
                       <span className="font-semibold">{v.role}</span> · vault {v.index} · <Addr a={v.address} />
                     </li>
                   ))}
                 </ul>
               </div>
               <div>
-                <p className="text-[10px] tracking-wider text-[#868e96] uppercase">Members</p>
+                <p className="text-[10px] tracking-wider text-vc-faint uppercase">Members</p>
                 <ul className="mt-1 space-y-1">
                   {status.multisig.members.map((m) => (
                     <li key={m.key} className="flex flex-wrap items-center gap-2 text-xs">
                       <Addr a={m.key} />
-                      <span className="text-[#6c757d]">{perms(m)}</span>
-                      {m.key === wallet && <span className="rounded bg-d8-green px-1.5 py-0.5 text-[10px] font-semibold text-white">you</span>}
+                      <span className="text-vc-muted">{perms(m)}</span>
+                      {m.key === wallet && <span className="rounded bg-vc-primary px-1.5 py-0.5 text-[10px] font-semibold text-white">you</span>}
                     </li>
                   ))}
                 </ul>
               </div>
               {status.assessment?.warnings.length ? (
-                <ul className="list-disc space-y-0.5 pl-5 text-xs text-amber-800">
+                <ul className="list-disc space-y-0.5 pl-5 text-xs text-vc-cream">
                   {status.assessment.warnings.map((w) => (
                     <li key={w}>{w}</li>
                   ))}
@@ -347,14 +347,14 @@ export function TreasurySigner() {
               ) : null}
             </div>
           ) : (
-            <p className="text-sm text-[#6c757d]">No multisig fund wallet is registered yet. Register the fund vault first (see docs/DEMOLITION-FUND.md §16).</p>
+            <p className="text-sm text-vc-muted">No multisig fund wallet is registered yet. Register the fund vault first (see docs/DEMOLITION-FUND.md §16).</p>
           )}
         </Card>
       )}
 
       {status && !authError && (
         <Card title="Fee sharing for a launched coin">
-          <p className="text-sm text-[#6c757d]">
+          <p className="text-sm text-vc-muted">
             After launching a property coin (or $DYNASTY) on Pump.fun from this wallet and registering its mint, lock its creator fees to the treasury
             vaults. The split comes from the registered wallets; it cannot be edited here.
           </p>
@@ -364,7 +364,7 @@ export function TreasurySigner() {
               onChange={(e) => setSetupMint(e.target.value)}
               placeholder="Coin mint address"
               aria-label="Coin mint address"
-              className="min-w-0 flex-1 rounded border border-[#ced4da] px-2 py-1.5 font-mono text-xs"
+              className="min-w-0 flex-1 rounded border border-vc-line-strong px-2 py-1.5 font-mono text-xs"
             />
             <ActionButton label="Prepare" disabled={!wallet || setupMint.trim().length < 32} busy={busy === "setup"} onClick={feeSharingSetup} />
           </div>
@@ -374,15 +374,15 @@ export function TreasurySigner() {
       {status && !authError && (
         <Card title="Buybacks waiting for a proposal">
           {needsProposal.length === 0 ? (
-            <p className="text-sm text-[#6c757d]">Nothing to propose. Buybacks appear here after they are planned, quoted and approved by admins.</p>
+            <p className="text-sm text-vc-muted">Nothing to propose. Buybacks appear here after they are planned, quoted and approved by admins.</p>
           ) : (
-            <ul className="divide-y divide-[#dee2e6]">
+            <ul className="divide-y divide-vc-line">
               {needsProposal.map((b) => {
                 const purpose = b.status === "APPROVED" ? "swap" : "burn";
                 return (
                   <li key={b.id} className="flex flex-wrap items-center gap-3 py-2 text-sm">
                     <span className="font-semibold">{purpose === "swap" ? `Buy with ${formatSol(b.budgetLamports)}` : `Burn ${b.tokensReceivedRaw ?? "0"} raw units`}</span>
-                    <span className="text-xs text-[#6c757d]">{b.status}</span>
+                    <span className="text-xs text-vc-muted">{b.status}</span>
                     <ActionButton
                       label={purpose === "swap" ? "Create buyback proposal" : "Create burn proposal"}
                       disabled={!canInit}
@@ -400,18 +400,18 @@ export function TreasurySigner() {
       {status && !authError && (
         <Card title="Open proposals">
           {open.length === 0 ? (
-            <p className="text-sm text-[#6c757d]">No proposals waiting for signatures.</p>
+            <p className="text-sm text-vc-muted">No proposals waiting for signatures.</p>
           ) : (
-            <ul className="divide-y divide-[#dee2e6]">
+            <ul className="divide-y divide-vc-line">
               {open.map((p) => (
                 <li key={p.id} className="flex flex-wrap items-center gap-3 py-2.5 text-sm">
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold">
                       #{p.transactionIndex} · {p.purpose === "SWAP" ? `Buy $DYNASTY with up to ${formatSol(p.amount)}` : `Burn ${formatTokenAmount(p.amount, null)} raw units`}
                     </p>
-                    <p className="text-xs text-[#6c757d]">
+                    <p className="text-xs text-vc-muted">
                       {p.status === "PREPARED" ? "Prepared, not yet created on-chain" : `${p.approvals} of ${p.threshold} approvals · ${p.status.toLowerCase()}`} ·{" "}
-                      <a className="text-d8-green hover:underline" href={solscan("account", p.proposalPda)} target="_blank" rel="noopener noreferrer">
+                      <a className="text-vc-accent hover:underline" href={solscan("account", p.proposalPda)} target="_blank" rel="noopener noreferrer">
                         proposal account
                       </a>
                     </p>
@@ -432,14 +432,14 @@ export function TreasurySigner() {
 
       {status && !authError && done.length > 0 && (
         <Card title="Recent proposals">
-          <ul className="space-y-1 text-xs text-[#495057]">
+          <ul className="space-y-1 text-xs text-vc-text-2">
             {done.map((p) => (
               <li key={p.id}>
                 #{p.transactionIndex} {p.purpose.toLowerCase()} · {p.status.toLowerCase()}
                 {p.executedSignature && (
                   <>
                     {" · "}
-                    <a className="text-d8-green hover:underline" href={solscan("tx", p.executedSignature)} target="_blank" rel="noopener noreferrer">
+                    <a className="text-vc-accent hover:underline" href={solscan("tx", p.executedSignature)} target="_blank" rel="noopener noreferrer">
                       {shortAddress(p.executedSignature)}
                     </a>
                   </>
@@ -452,27 +452,27 @@ export function TreasurySigner() {
 
       {review && (
         <div role="dialog" aria-modal="true" aria-labelledby="review-title" className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-md bg-white p-5 shadow-lg">
+          <div className="w-full max-w-lg rounded-md bg-vc-surface p-5 shadow-lg">
             <h2 id="review-title" className="flex items-center gap-2 text-lg font-bold">
-              <ShieldCheck className="size-5 text-d8-green" aria-hidden /> {review.title}
+              <ShieldCheck className="size-5 text-vc-accent" aria-hidden /> {review.title}
             </h2>
             <dl className="mt-3 space-y-2 text-sm">
               {review.lines.map(([k, v]) => (
                 <div key={k}>
-                  <dt className="text-[10px] tracking-wider text-[#868e96] uppercase">{k}</dt>
-                  <dd className="break-all text-[#212529]">{v}</dd>
+                  <dt className="text-[10px] tracking-wider text-vc-faint uppercase">{k}</dt>
+                  <dd className="break-all text-vc-text">{v}</dd>
                 </div>
               ))}
             </dl>
-            <p className="mt-3 text-xs text-[#6c757d]">Phantom will show the transaction again. Only approve it there if it matches this summary.</p>
+            <p className="mt-3 text-xs text-vc-muted">Phantom will show the transaction again. Only approve it there if it matches this summary.</p>
             <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => setReview(null)} className="rounded border border-[#ced4da] px-3 py-1.5 text-sm font-semibold">
+              <button onClick={() => setReview(null)} className="rounded border border-vc-line-strong px-3 py-1.5 text-sm font-semibold">
                 Cancel
               </button>
               <button
                 onClick={confirmAndSign}
                 disabled={busy === "sign"}
-                className="inline-flex items-center gap-2 rounded bg-d8-green px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded bg-vc-primary px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
               >
                 {busy === "sign" && <Loader2 className="size-4 animate-spin" aria-hidden />} Sign in Phantom
               </button>
@@ -505,9 +505,9 @@ function perms(m: Member) {
 
 function Card({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-md border border-[#ced4da] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-      <header className="flex items-center justify-between gap-2 border-b border-[#dee2e6] px-4 py-2.5">
-        <h2 className="text-sm font-bold text-[#212529]">{title}</h2>
+    <section className="rounded-md border border-vc-line-strong bg-vc-surface shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+      <header className="flex items-center justify-between gap-2 border-b border-vc-line px-4 py-2.5">
+        <h2 className="text-sm font-bold text-vc-text">{title}</h2>
         {action}
       </header>
       <div className="px-4 py-3">{children}</div>
@@ -517,8 +517,8 @@ function Card({ title, action, children }: { title: string; action?: React.React
 
 function Fact({ k, v }: { k: string; v: React.ReactNode }) {
   return (
-    <div className="rounded bg-[#f8f9fa] px-2.5 py-2">
-      <dt className="text-[10px] tracking-wider text-[#868e96] uppercase">{k}</dt>
+    <div className="rounded bg-vc-surface-2 px-2.5 py-2">
+      <dt className="text-[10px] tracking-wider text-vc-faint uppercase">{k}</dt>
       <dd className="mt-0.5 font-semibold">{v}</dd>
     </div>
   );
@@ -526,7 +526,7 @@ function Fact({ k, v }: { k: string; v: React.ReactNode }) {
 
 function Addr({ a }: { a: string }) {
   return (
-    <a className="inline-flex items-center gap-1 font-mono text-xs text-d8-green hover:underline" href={solscan("account", a)} target="_blank" rel="noopener noreferrer" title={a}>
+    <a className="inline-flex items-center gap-1 font-mono text-xs text-vc-accent hover:underline" href={solscan("account", a)} target="_blank" rel="noopener noreferrer" title={a}>
       {shortAddress(a)} <ExternalLink className="size-3" />
     </a>
   );
@@ -540,7 +540,7 @@ function ActionButton(p: { label: string; onClick: () => void; disabled?: boolea
       title={p.disabled ? "Your connected wallet does not have this permission" : undefined}
       className={cn(
         "inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50",
-        p.variant === "ghost" ? "border border-[#ced4da] text-[#495057]" : "bg-d8-green text-white hover:opacity-90",
+        p.variant === "ghost" ? "border border-vc-line-strong text-vc-text-2" : "bg-vc-primary text-white hover:opacity-90",
       )}
     >
       {p.busy && <Loader2 className="size-3.5 animate-spin" aria-hidden />} {p.label}
@@ -550,7 +550,7 @@ function ActionButton(p: { label: string; onClick: () => void; disabled?: boolea
 
 function IconButton({ label, onClick, busy }: { label: string; onClick: () => void; busy?: boolean }) {
   return (
-    <button onClick={onClick} disabled={busy} className="inline-flex items-center gap-1 text-xs font-semibold text-d8-green hover:underline disabled:opacity-50">
+    <button onClick={onClick} disabled={busy} className="inline-flex items-center gap-1 text-xs font-semibold text-vc-accent hover:underline disabled:opacity-50">
       <RefreshCw className={cn("size-3.5", busy && "animate-spin")} aria-hidden /> {label}
     </button>
   );

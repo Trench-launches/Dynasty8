@@ -13,8 +13,13 @@ const HOUSE = "M17 9.2 L25 16.2 H22.6 V24.4 H19.2 V19.6 H14.8 V24.4 H11.4 V16.2 
 const STAR =
   "M0 -5 L1.47 -1.55 L4.76 -1.55 L2.12 0.6 L2.94 4.05 L0 2.1 L-2.94 4.05 L-2.12 0.6 L-4.76 -1.55 L-1.47 -1.55 Z";
 
-export const PIN_GREEN = "#18713c";
-export const PIN_GOLD = "#e0b13a";
+// Theme colours (globals.css); var() works in SVG presentation attributes.
+export const PIN_GREEN = "var(--color-vc-primary)"; // legacy name: the brand pin colour, now light purple
+export const PIN_GOLD = "var(--color-vc-cream)";
+const PIN_DARK = "var(--color-vc-page)";
+const PIN_LIGHT = "var(--color-vc-text)";
+const PIN_MUTED_FILL = "var(--color-vc-lilac)";
+const PIN_MUTED_LINE = "var(--color-vc-faint)";
 
 export type PinState = "default" | "hovered" | "selected";
 
@@ -23,17 +28,17 @@ export type PinState = "default" | "hovered" | "selected";
  * right edge it anchors to the pin's side, driven by data-flip / data-edge on the pin wrapper.
  */
 export const HOVER_CARD_CLASS = cn(
-  "pointer-events-none absolute bottom-full left-1/2 mb-3 w-56 -translate-x-1/2 rounded-xl border border-[#dee2e6] bg-white/95 p-3 text-left shadow-2xl shadow-black/50 backdrop-blur",
+  "pointer-events-none absolute bottom-full left-1/2 mb-3 w-56 -translate-x-1/2 rounded-xl border border-vc-line bg-vc-surface/95 p-3 text-left shadow-2xl shadow-black/50 backdrop-blur",
   "[[data-flip='1']_&]:top-full [[data-flip='1']_&]:bottom-auto [[data-flip='1']_&]:mt-7 [[data-flip='1']_&]:mb-0",
   "[[data-edge='l']_&]:left-[-12px] [[data-edge='l']_&]:translate-x-0",
   "[[data-edge='r']_&]:right-[-12px] [[data-edge='r']_&]:left-auto [[data-edge='r']_&]:translate-x-0",
 );
 
 export function pinColors(status: Property["token"]["status"], state: PinState) {
-  const outline = state === "selected" ? PIN_GOLD : state === "hovered" ? "#0f5a2d" : PIN_GREEN;
-  if (status === "unavailable") return { fill: "#eef0f1", stroke: state === "selected" ? PIN_GOLD : "#8a9096", house: "#8a9096" };
-  if (status === "live") return { fill: PIN_GREEN, stroke: state === "selected" ? PIN_GOLD : "#ffffff", house: "#ffffff" };
-  return { fill: "#ffffff", stroke: outline, house: PIN_GREEN };
+  const outline = state === "selected" ? PIN_GOLD : state === "hovered" ? PIN_DARK : PIN_GREEN;
+  if (status === "unavailable") return { fill: PIN_MUTED_FILL, stroke: state === "selected" ? PIN_GOLD : PIN_MUTED_LINE, house: PIN_MUTED_LINE };
+  if (status === "live") return { fill: PIN_GREEN, stroke: state === "selected" ? PIN_GOLD : PIN_LIGHT, house: PIN_LIGHT };
+  return { fill: PIN_LIGHT, stroke: outline, house: PIN_GREEN };
 }
 
 export function PinGlyph({
@@ -63,8 +68,8 @@ export function PinGlyph({
       <path d={HOUSE} fill={c.house} />
       {featured && (
         <g transform="translate(29 6)">
-          <circle r={6.2} fill={PIN_GOLD} stroke="#ffffff" strokeWidth={1.4} />
-          <path d={STAR} fill="#ffffff" transform="scale(0.85)" />
+          <circle r={6.2} fill={PIN_GOLD} stroke={PIN_LIGHT} strokeWidth={1.4} />
+          <path d={STAR} fill={PIN_LIGHT} transform="scale(0.85)" />
         </g>
       )}
     </svg>
@@ -127,7 +132,7 @@ export const MapPin = memo(function MapPin({ property, state, showLabel, onSelec
         <span
           className={cn(
             "pointer-events-none absolute top-full left-1/2 mt-1 -translate-x-1/2 rounded px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide whitespace-nowrap shadow",
-            state === "selected" ? "bg-[#e0b13a] text-[#212529]" : "bg-white/95 text-[#212529]",
+            state === "selected" ? "bg-vc-cream text-vc-text" : "bg-vc-surface/95 text-vc-text",
           )}
         >
           {tickerLabel(property)}
@@ -140,10 +145,10 @@ export const MapPin = memo(function MapPin({ property, state, showLabel, onSelec
           className={HOVER_CARD_CLASS}
         >
           <p className="truncate font-display text-[17px] leading-tight text-cream">{property.name}</p>
-          <p className="mt-1 truncate text-xs text-[#6c757d]">{property.neighbourhood}</p>
+          <p className="mt-1 truncate text-xs text-vc-muted">{property.neighbourhood}</p>
           <div className="mt-2 flex items-center justify-between gap-2 text-xs">
             <span className="font-bold text-tropic">{tickerLabel(property)}</span>
-            <span className="text-[#495057]">
+            <span className="text-vc-text-2">
               {m
                 ? `MC ${formatUsdCompact(m.marketCapUsd)}`
                 : property.token.status === "unavailable"
@@ -153,7 +158,7 @@ export const MapPin = memo(function MapPin({ property, state, showLabel, onSelec
               {m?.stale && <span className="ml-1 text-[10px] font-bold text-amber-200">DELAYED</span>}
             </span>
           </div>
-          <p className="mt-2 text-[10px] tracking-[0.18em] text-[#868e96] uppercase">Click to view listing</p>
+          <p className="mt-2 text-[10px] tracking-[0.18em] text-vc-faint uppercase">Click to view listing</p>
         </div>
       )}
     </div>

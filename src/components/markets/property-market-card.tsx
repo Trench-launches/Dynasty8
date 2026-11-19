@@ -27,7 +27,7 @@ export function PropertyMarketCard({ property }: { property: Property }) {
   const category = CATEGORY_LABELS[property.category];
 
   return (
-    <article className="group flex flex-col border border-[#e3e3e3] bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_4px_14px_rgba(0,0,0,0.1)]">
+    <article className="group flex flex-col border border-vc-line bg-vc-surface p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_4px_14px_rgba(0,0,0,0.1)]">
       <Link
         href={href}
         className="relative block overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -43,35 +43,35 @@ export function PropertyMarketCard({ property }: { property: Property }) {
           {tickerLabel(property)}
         </span>
         {property.featured && (
-          <span className="absolute top-2 left-2 grid size-7 place-items-center rounded-full bg-white/95 text-d8-green shadow-sm">
+          <span className="absolute top-2 left-2 grid size-7 place-items-center rounded-full bg-vc-surface/95 text-vc-accent shadow-sm">
             <Star className="size-4 fill-current" aria-label="Featured" />
           </span>
         )}
-        <span className="absolute inset-x-0 bottom-0 bg-d8-yellow/95 py-1.5 text-center text-[22px] leading-tight font-bold tracking-[0.02em] text-white uppercase text-shadow-[0_1px_2px_rgb(0_0_0/0.35)]">
+        <span className="absolute inset-x-0 bottom-0 bg-vc-primary/95 py-1.5 text-center text-[22px] leading-tight font-bold tracking-[0.02em] text-white uppercase text-shadow-[0_1px_2px_rgb(0_0_0/0.35)]">
           {category}
         </span>
       </Link>
 
       <div className="flex items-center justify-between gap-3 px-1 pt-2.5 pb-2 text-[16px]">
-        <Link href={href} className="min-w-0 truncate text-d8-ink outline-none hover:underline focus-visible:underline">
+        <Link href={href} className="min-w-0 truncate text-vc-text outline-none hover:underline focus-visible:underline">
           {property.name}
         </Link>
-        <span className="flex shrink-0 items-center gap-1.5 text-[#555]">
+        <span className="flex shrink-0 items-center gap-1.5 text-vc-text-2">
           {STATUS[token.status]} <Home className="size-4 fill-current" aria-hidden />
         </span>
       </div>
 
-      <div className="flex min-h-[58px] items-center justify-between gap-3 bg-d8-mint py-2 pr-2 pl-3">
+      <div className="flex min-h-[58px] items-center justify-between gap-3 bg-vc-surface-3 py-2 pr-2 pl-3">
         <div className="min-w-0">
           {m?.marketCapUsd != null ? (
             <BigFigure value={formatUsdCompact(m.marketCapUsd)} unit="MCAP" size="sm" />
           ) : (
-            <p className="truncate text-[22px] leading-tight text-[#6c7a70]">
+            <p className="truncate text-[22px] leading-tight text-vc-muted">
               {token.status === "unavailable" ? "Trading paused" : "Price pending"}
             </p>
           )}
           {token.status === "coming_soon" && (
-            <p className="mt-0.5 text-[13px] tracking-[0.06em] text-d8-green uppercase">Launching soon</p>
+            <p className="mt-0.5 text-[13px] tracking-[0.06em] text-vc-accent uppercase">Launching soon</p>
           )}
         </div>
         {buyUrl ? (
@@ -92,14 +92,14 @@ export function PropertyMarketCard({ property }: { property: Property }) {
       </div>
 
       <div className="flex items-center justify-between gap-3 px-1 pt-2.5 text-[15px]">
-        <span className="min-w-0 truncate text-d8-ink">{area || category}</span>
+        <span className="min-w-0 truncate text-vc-text">{area || category}</span>
         {m ? (
-          <span className={cn("flex shrink-0 items-center gap-1.5 text-[13px] text-[#555] tabular-nums")}>
+          <span className={cn("flex shrink-0 items-center gap-1.5 text-[13px] text-vc-text-2 tabular-nums")}>
             24h <ChangeText value={m.change24hPct} />
             <MarketDataTag market={m} />
           </span>
         ) : (
-          <span className="shrink-0 text-[13px] text-[#555]">Trades on Pump.fun</span>
+          <span className="shrink-0 text-[13px] text-vc-text-2">Trades on Pump.fun</span>
         )}
       </div>
     </article>
